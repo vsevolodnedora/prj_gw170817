@@ -34,7 +34,7 @@ import statsmodels.api as sm
 
 from uutils import x_y_z_sort
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/"
+__outplotdir__ = "../figs/all3/"
 
 # opt.curve_fit()
 

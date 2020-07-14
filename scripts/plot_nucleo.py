@@ -30,7 +30,7 @@ from model_sets import models as md
 
 from uutils import *
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/plot_nucleo/"
+__outplotdir__ = "../figs/all3/plot_nucleo/"
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 

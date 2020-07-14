@@ -24,7 +24,7 @@ import os
 import copy
 
 class Paths:
-    to_csv_table = "../output/hotokezaka2013_summary.csv"
+    to_csv_table = "../datasets/hotokezaka2013_summary.csv"
 
 class Struct(object):
     Mej_min = 5e-5

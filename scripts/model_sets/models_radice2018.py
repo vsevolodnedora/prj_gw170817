@@ -21,13 +21,13 @@ import copy
 # from utils import get_advanced_time, get_retarded_time
 
 class Paths(object):
-    to_rns_sequences = "../Data/RNS/RNS.dat.gz"
-    to_tovs = "../Data/TOVs/" # EOS_sequence.txt
-    to_summarytable = "../output/models3.csv"
-    to_radicetable = "../output/radice2018_summary3.csv"
+    to_rns_sequences = "../../Data/RNS/RNS.dat.gz"
+    to_tovs = "../../Data/TOVs/" # EOS_sequence.txt
+    to_summarytable = "../datasets/models3.csv"
+    to_radicetable = "../datasets/radice2018_summary3.csv"
     to_simsource = "/data1/numrel/WhiskyTHC/Backup/2018/GW170817/"
     # to_summarytable = "../output/radice2018_summary.csv"
-    to_radicepapertable = "../output/radice_papertable.txt"
+    to_radicepapertable = "../datasets/radice_papertable.txt"
     pass
 
 

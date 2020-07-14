@@ -14,7 +14,7 @@ import csv
 from scipy import interpolate
 import scipy.optimize as opt # for least square method
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/tov_sequences/"
+__outplotdir__ = "../figs/all3/tov_sequences/"
 
 class Paths:
     to_tovs = "../Data/TOVs/"

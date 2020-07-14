@@ -34,7 +34,7 @@ import model_sets.models as md
 
 from uutils import *
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/plot_disk_struct/"
+__outplotdir__ = "../figs/all3/plot_disk_struct/"
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 

@@ -26,8 +26,8 @@ import copy
 
 
 class Paths:
-    to_csv_table = "../output/dietrich_summary_2015.csv"
-    to_csv_table_compilation = "../output/dietrich_ujevic_sammary.csv"
+    to_csv_table = "../datasets/dietrich_summary_2015.csv"
+    to_csv_table_compilation = "../datasets/dietrich_ujevic_sammary.csv"
 
 class Struct(object):
     Mej_min = 5e-5

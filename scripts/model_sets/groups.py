@@ -14,7 +14,7 @@ import copy
 #
 
 class Paths:
-    to_group_table = "../output/groups.csv"
+    to_group_table = "../datasets/groups.csv"
 
 list_long = [
     ""

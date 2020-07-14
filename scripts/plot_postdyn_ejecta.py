@@ -36,7 +36,7 @@ from uutils import *
 
 import model_sets.models as md
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/plot_postdyn_ej/"
+__outplotdir__ = "..//figs/all3/plot_postdyn_ej/"
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 

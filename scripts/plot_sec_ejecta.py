@@ -28,7 +28,7 @@ import rns
 import tov
 from model_sets import models as md
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/plot_sec_ejecta/"
+__outplotdir__ = "../figs/all3/plot_sec_ejecta/"
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 

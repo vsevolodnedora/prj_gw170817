@@ -21,7 +21,7 @@ import copy
 
 
 class Paths:
-    to_csv_table = "../output/vincent_summary_2019.csv"
+    to_csv_table = "../datasets/vincent_summary_2019.csv"
 
 class Struct(object):
     ye_def_err = 0.01

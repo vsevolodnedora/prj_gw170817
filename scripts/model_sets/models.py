@@ -18,9 +18,9 @@ import copy
 # from uutils import standard_div
 
 class Paths(object):
-    to_rns_sequences = "../Data/RNS/RNS.dat.gz"
-    to_tovs = "../Data/TOVs/" # EOS_sequence.txt
-    to_summarytable = "../output/models3.csv"
+    to_rns_sequences = "../../Data/RNS/RNS.dat.gz"
+    to_tovs = "../../Data/TOVs/" # EOS_sequence.txt
+    to_summarytable = "../datasets/models3.csv"
     to_simsource = "/data1/numrel/WhiskyTHC/Backup/2018/GW170817/"
     # to_summarytable = "../output/radice2018_summary.csv"
     pass
@@ -376,7 +376,8 @@ datasets_markers = {
     "kiuchi":       "D", #"X",
     "vincent":      "s", #"v",
     "our":          "o",
-    "our_total":    "."
+    "our_total":    ".",
+    "reference":    "o"
 }
 
 datasets_labels = {
@@ -391,7 +392,8 @@ datasets_labels = {
     "kiuchi":       "Kiuchi+2019", #"X",
     "vincent":      "Vincent+2019", #"v",
     "our":          "This work",
-    "our_total":    "This work Total"
+    "our_total":    "This work Total",
+    "reference":    "Reference"
 }
 
 datasets_colors = {
@@ -401,7 +403,8 @@ datasets_colors = {
     "radice":"green",
     "kiuchi":"gray",
     "vincent":"red",
-    "our":"blue"
+    "our":"blue",
+    "reference": "blue"
 }
 
 eos_dic_marker = {

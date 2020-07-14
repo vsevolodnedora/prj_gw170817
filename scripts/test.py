@@ -32,7 +32,7 @@ def task_copy_collated_gw_data():
 
 def test_myavi():
 
-    figpath = "/data01/numrel/vsevolod.nedora/figs/all3/test_myavi/"
+    figpath = "../figs/all3/test_myavi/"
 
     X = np.linspace(-10, 10, 100)
     x, y, z = np.meshgrid(X, X, X)

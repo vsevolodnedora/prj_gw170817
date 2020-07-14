@@ -25,7 +25,7 @@ from settings import resolutions
 from model_sets.models import simulations_nonblacklisted
 simulations = simulations_nonblacklisted
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/rns_sequences/"
+__outplotdir__ = "../figs/all3/rns_sequences/"
 
 #
 

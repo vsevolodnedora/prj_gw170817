@@ -26,7 +26,7 @@ from matplotlib.colors import LogNorm, Normalize
 
 from uutils import x_y_z_sort
 
-__outplotdir__ = "/data01/numrel/vsevolod.nedora/figs/all3/plot_dynej_summary/"
+__outplotdir__ = "../figs/all3/plot_dynej_summary/"
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 

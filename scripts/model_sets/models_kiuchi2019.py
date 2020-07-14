@@ -30,7 +30,7 @@ import copy
 #
 
 class Paths:
-    to_csv_table = "../output/kiuchi_summary_2019.csv"
+    to_csv_table = "../datasets/kiuchi_summary_2019.csv"
 
 class Struct(object):
     Mej_min = 5e-5
