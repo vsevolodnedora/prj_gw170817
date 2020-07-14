@@ -1,0 +1,4 @@
+update on Dynamical Ejecta
+I find that the properties of equal mass runs depend on LK/M0, and generally we get more ejecta with M0 with one exception. 
+Meanwhile noVisc/Visc has a complex effect, sometimes increasing sometimes decreasing amount of ejecta, but overall smoothing out its angular distribution. 
+For unequal mass binaries comparison with the old subset of runs is not directly possibe due to different masses NSs.
