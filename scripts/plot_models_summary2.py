@@ -7,7 +7,7 @@ import os
 import copy
 import h5py
 import csv
-
+import scipy.stats as st
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -82,12 +82,45 @@ def plot_datasets_scatter2(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets):
         ms = model_dic['ms']
         color = model_dic["color"]
 
+
+        # if "color" in model_dic.keys() and "facecolor" in model_dic.keys() and "edgecolor" in model_dic.keys():
+        #     raise NameError("Specify either color or combination of 'facecolor' and 'edgecolor' ")
+
+        # if label == "None":
+        #     pass
+        # if label != "None" and "facecolor" in model_dic.keys() and "edgecolor" in model_dic.keys():
+        #     ax[0].scatter([-100], [-100], marker=marker, s=ms, edgecolor=model_dic["edgecolor"],
+        #                   facecolor=model_dic["facecolor"], alpha=1., label=label)
+        # if label != "None" and "color" in model_dic.keys():
+        #     ax[0].scatter([-100], [-100], marker=marker, s=ms, color=model_dic["color"], alpha=1., label=label)
+        #
+        # if label == "#EOS" and "color" in model_dic.keys():
+        #     if model_dic["color"] == "#EOS" and marker == "#EOS":
+        #         for ieos in ourmd.eos_dic_color.keys():
+        #             icolor = ourmd.eos_dic_color[ieos]
+        #             imarker = ourmd.eos_dic_marker[ieos]
+        #             ax[0].scatter([-100], [-100], marker=marker, s=ms, color=icolor, alpha=1., edgecolor=icolor,
+        #                       label=ieos, facecolor="none")
+
+
+        # if label != "None" and "facecolor" in model_dic.keys():
+        #     ax[0].scatter([-100], [-100], marker=marker, s=ms, edgecolor=color,
+        #                   facecolor=model_dic["facecolor"], alpha=1., label=label)
+        # if label != "None" and "color" in model_dic.keys():
+        #     ax[0].scatter([-100], [-100], marker=marker, s=ms, edgecolor=color,
+        #                   facecolor=model_dic["color"], alpha=1., label=label)
+        #
+        #
+        #
         if label == "None":
             pass
         elif label != "#EOS":
             if color == None:
-                icolor = "gray"
-                ax[0].scatter([-100], [-100], marker=marker, s=ms, color=color, alpha=1., edgecolor=None, label=label)
+                if "labelmarkercolor" in model_dic.keys():
+                    ax[0].scatter([-100], [-100], marker=marker, s=ms,
+                                  color=model_dic["labelmarkercolor"], alpha=1., edgecolor=None,label=label)
+                else:
+                    ax[0].scatter([-100], [-100], marker=marker, s=ms, color=color, alpha=1., edgecolor=None, label=label)
             else:
                 ax[0].scatter([-100], [-100], marker=marker, s=ms, edgecolor=color, facecolor='none', alpha=1., label=label)
         else:
@@ -479,8 +512,12 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
             dic = plot_dic["add_error_bar"]
             #
             mean = np.mean(all_y_)
+            median = np.median(all_y_)
             if "mean" in dic.keys() and dic["mean"]:
                 ax.axhline(y=mean, **dic["mean"])
+
+            if "median" in dic.keys() and dic["median"]:
+                ax.axhline(y=median, **dic["median"])
 
             if "width" in dic.keys():# and len(dic["width"]>0):
                 if dic["width"] == "1sigma":
@@ -490,6 +527,18 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
                     ax.fill_between(all_x, y2, y1, **dic["fill_between"])
                     #print(all_y_)
                     print(mean, mean + width,mean - width)#;exit(1)
+
+            if "confinterv" in dic.keys():
+
+                # weights w / w.sum()
+                w = np.full(len(all_y_), 1./len(all_y_))
+                rv = st.rv_discrete(values=(all_y_, w))
+                median = rv.median()
+                interval = rv.interval(dic["confinterv"])
+
+                _x = np.array([all_x.min(), all_x.max()])
+                ax.fill_between(_x, [interval[0], interval[0]],
+                                    [interval[1], interval[1]], **dic["fill_between"])
 
     # tend to subplots
     for axi, key in zip(axes, subplot_dics.keys()):
@@ -776,8 +825,8 @@ def task_plot_mdisk_q_vs_fit_all():
     # # datasets["lehner"] =    {'marker': 'P', 'ms': 20, "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016", "color": "blue", "fit": False}
     # # datasets["hotokezaka"] ={'marker': '>', 'ms': 20, "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "color": "gray", "fit": False}
     # datasets['our'] =       {'marker': 'o', 'ms': 40, "models": md.groups, "data": md, "err": "v_n", "label": r"This work", "color": "red", "fit": True}
-    datasets['our'] = {"models": md.groups, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
-    datasets["radice"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.MdiskPP_err}
+    datasets['reference'] = {"models": md.groups, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": "v_n"}
+    datasets["radice"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True, "color": None, "plot_errorbar": False, "err": rd.params.MdiskPP_err}
     datasets["kiuchi"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True, "color": None,"plot_errorbar": False, "err": ki.params.Mdisk_err}
     datasets["vincent"] = {"models": vi.simulations, "data": vi, "fit": True, "color": None, "plot_errorbar": False, "err": vi.params.Mdisk_err}
     datasets["dietrich16"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True,"color": None, "plot_errorbar": False, "err": di16.params.Mdisk_err}
@@ -786,7 +835,11 @@ def task_plot_mdisk_q_vs_fit_all():
     for t in datasets.keys():
         datasets[t]["marker"] = ourmd.datasets_markers[t]
         datasets[t]["label"] = ourmd.datasets_labels[t]
-        datasets[t]["ms"] = 40
+        datasets[t]["labelmarkercolor"] = "gray"
+        # datasets[t]["facecolor"] = "gray"
+        # datasets[t]["edgecolor"] = "none"
+        # datasets[t]["labelcolor"] = "gray"
+        datasets[t]["ms"] = 50
     # datasets[t]["fill_style"] = "none"
 
     x_dic    = {"v_n": "q", "err": None, "deferr": None, "mod": {}}
@@ -803,8 +856,8 @@ def task_plot_mdisk_q_vs_fit_all():
         "vmin": 350, "vmax": 900.0, "cmap": "jet", "plot_cbar": True,  # "tab10",
         "xmin": 0.95, "xmax": 1.9, "xscale": "linear",
         "ymin": 0, "ymax": .5, "yscale": "linear",
-        "xlabel": r"$M_1/M_2$",
-        "ylabel": r"$M_{\rm ej}$ $[10^{-3}M_{\odot}]$",
+        "xlabel": r"$q$",
+        "ylabel": r"$M_{\rm disk}$",
         "cbar_label": r"$\tilde{\Lambda}$",
         "figname": __outplotdir__ + "disk_q_mass_fit_all.png",
         "legend": {"fancybox": False, "loc": 'upper left',
@@ -823,8 +876,8 @@ def task_plot_mdisk_q_vs_fit_all():
     #from make_fit import fitting_function_mdisk, fitting_coeffs_mdisk_david_ours, complex_fic_data_mdisk_module
 
     fit_dic = {
-        "func":fit_funcs.mdisk_2_2_poly, "coeffs": fit_coefs.mdisk_2_2_poly(),
-        "xmin": 0.95, "xmax": 1.9, "xscale": "linear", "xlabel": r"$M_1/M_2$",
+        "func":fit_funcs.mdisk_2_2_poly, "coeffs": np.array([-8.951e-1,1.195,4.292e-4,-3.991e-1,4.778e-5,-2.266e-7]),
+        "xmin": 0.95, "xmax": 1.9, "xscale": "linear", "xlabel": r"$q$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero":True
     }
@@ -1132,7 +1185,7 @@ def task_plot_mdisk_fits_only():
     subplot_dics = {
         "Eq.14":
             {"xmin": -0.02, "xmax": .3, "xscale": "linear",
-             "ymin": -100.0, "ymax": 20.0, "yscale": "linear",
+             "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis":'both', "which":'both', "labelleft":True,
@@ -1142,11 +1195,11 @@ def task_plot_mdisk_fits_only():
                                "bottom":True, "top":True, "left":True, "right":True},
              "text":{'x':0.85, 'y':0.90, 's':r"Eq.(14)", 'fontsize':14, 'color':'black','horizontalalignment':'center'},
              "plot_zero": True,
-             "labels": True
+             "labels": True,
             },
         "Eq.15":
             {"xmin": -0.02, "xmax": .3, "xscale": "linear",
-             "ymin": -100.0, "ymax": 20.0, "yscale": "linear",
+             "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -1158,10 +1211,14 @@ def task_plot_mdisk_fits_only():
                       'horizontalalignment': 'center'},
              "plot_zero": True,
              "labels": True,
+             "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+                        # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                        "shadow": "False", "ncol": 2, "fontsize": 13,
+                        "framealpha": 0., "borderaxespad": 0., "frameon": False},
              },
         "poly1":
             {"xmin": -0.02, "xmax": .3, "xscale": "linear",
-             "ymin": -100.0, "ymax": 20.0, "yscale": "linear",
+             "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -1176,7 +1233,7 @@ def task_plot_mdisk_fits_only():
              },
         "poly2":
             {"xmin": -0.02, "xmax": .3, "xscale": "linear",
-             "ymin": -100.0, "ymax": 20.0, "yscale": "linear",
+             "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -1188,10 +1245,6 @@ def task_plot_mdisk_fits_only():
                       'horizontalalignment': 'center'},
              "plot_zero": True,
              "labels": True,
-             "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
-                        # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                        "shadow": "False", "ncol": 2, "fontsize": 13,
-                        "framealpha": 0., "borderaxespad": 0., "frameon": False},
              },
     }
 
@@ -1203,17 +1256,19 @@ def task_plot_mdisk_fits_only():
         "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
         "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "disk_mass_fits_all.png",
+        "figname": __outplotdir__ + "disk_mass_fits_cl_all.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
         # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
         #              "ncol":3, "labelspacing":0.}
-        # "add_error_bar":{
-        #     "mean":{'color':'gray','lw':0.5,'ls':':'},
-        #     "width":"1sigma",
-        #     "fill_between":{"facecolor":'gray', "alpha":0.5}
-        #
-        # }
+        "add_error_bar":{
+            "median":{'color':'blue','lw':0.6,'ls':':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            #"width":"1sigma",
+            "confinterv":0.68,
+            "fill_between":{"facecolor":'gray', "alpha":0.3}
+
+        }
     }
 
     plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
@@ -1775,8 +1830,8 @@ def task_plot_mej_fits_only():
 
     subplot_dics = {
         "Eq.6":
-            {"xmin": -4, "xmax": 24., "xscale": "linear",
-             "ymin": -11, "ymax": 5.0, "yscale": "linear",
+            {"xmin": -4, "xmax": 40., "xscale": "linear",
+             "ymin": -11.0, "ymax": 9.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis":'both', "which":'both', "labelleft":True,
@@ -1789,8 +1844,8 @@ def task_plot_mej_fits_only():
              "labels": True
             },
         "Eq.7":
-            {"xmin": -4, "xmax": 24., "xscale": "linear",
-             "ymin": -11.0, "ymax": 5.0, "yscale": "linear",
+            {"xmin": -4, "xmax": 40., "xscale": "linear",
+             "ymin": -11.0, "ymax": 9.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -1803,8 +1858,8 @@ def task_plot_mej_fits_only():
              "labels": True,
              },
         "poly1":
-            {"xmin": -4, "xmax": 24., "xscale": "linear",
-             "ymin": -16, "ymax": 5.0, "yscale": "linear",
+            {"xmin": -4, "xmax": 40., "xscale": "linear",
+             "ymin": -11, "ymax": 9.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -1822,8 +1877,8 @@ def task_plot_mej_fits_only():
              "labels": True
              },
         "poly2":
-            {"xmin": -4, "xmax": 24., "xscale": "linear",
-             "ymin": -11.0, "ymax": 10.0, "yscale": "linear",
+            {"xmin": -4, "xmax": 40., "xscale": "linear",
+             "ymin": -11.0, "ymax": 9.0, "yscale": "linear",
              #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
              #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -1846,11 +1901,19 @@ def task_plot_mej_fits_only():
         "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
         "tick_params": {"labelcolor":'none', "top":False, "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "mej_fits_all.png",
+        "figname": __outplotdir__ + "mej_fits_cl_all.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
         # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
         #              "ncol":3, "labelspacing":0.}
+        "add_error_bar": {
+            "median": {'color': 'blue', 'lw': 0.6, 'ls': ':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            # "width":"1sigma",
+            "confinterv": 0.68,
+            "fill_between": {"facecolor": 'gray', "alpha": 0.3}
+
+        }
     }
 
     plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
@@ -2343,7 +2406,7 @@ def task_plot_vej_fits_only():
 
     subplot_dics = {
         "Eq.9":
-            {"xmin":0.05, "xmax":.3, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+            {"xmin":0.03, "xmax":.35, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
              "ymin": -1.1, "ymax": 1.1, "yscale": "linear", #"ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
              "tick_params": {"axis":'both', "which":'both', "labelleft":True,
                                "labelright":False, "tick1On":True, "tick2On":True,
@@ -2355,7 +2418,7 @@ def task_plot_vej_fits_only():
              "labels": True
             },
         "poly1":
-            {"xmin":0.05, "xmax":.3, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+            {"xmin":0.03, "xmax":.35, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
              "ymin": -1.1, "ymax": 1.1, "yscale": "linear", #"ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                              "labelright": False, "tick1On": True, "tick2On": True,
@@ -2372,7 +2435,7 @@ def task_plot_vej_fits_only():
              "labels": True
              },
         "poly2":
-            {"xmin":0.05, "xmax":.3, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+            {"xmin":0.03, "xmax":.35, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
              "ymin": -1.1, "ymax": 1.1, "yscale": "linear", #"ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                              "labelright": False, "tick1On": True, "tick2On": True,
@@ -2394,11 +2457,19 @@ def task_plot_vej_fits_only():
         "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
         "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "vej_fits_all.png",
+        "figname": __outplotdir__ + "vej_fits_cl_all.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
+        "add_error_bar": {
+            "median": {'color': 'blue', 'lw': 0.6, 'ls': ':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            # "width":"1sigma",
+            "confinterv": 0.68,
+            "fill_between": {"facecolor": 'gray', "alpha": 0.3}
+        }
         # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
         #              "ncol":3, "labelspacing":0.}
+
     }
 
     plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
@@ -2851,7 +2922,7 @@ def task_plot_yeej_fits_only():
     subplot_dics = {
         "Eq.11":
             {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-             "ymin": -2.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+             "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
              "tick_params": {"axis":'both', "which":'both', "labelleft":True,
                                "labelright":False, "tick1On":True, "tick2On":True,
                                "labelsize":14,
@@ -2863,7 +2934,7 @@ def task_plot_yeej_fits_only():
             },
         "poly1":
             {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-             "ymin": -3.0, "ymax": 1.1, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+             "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                              "labelright": False, "tick1On": True, "tick2On": True,
                              "labelsize": 14,
@@ -2880,7 +2951,7 @@ def task_plot_yeej_fits_only():
              },
         "poly2":
             {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-             "ymin": -1.8, "ymax": 1.0, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+             "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
              "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                              "labelright": False, "tick1On": True, "tick2On": True,
                              "labelsize": 14,
@@ -2901,9 +2972,16 @@ def task_plot_yeej_fits_only():
         "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
         "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "yeej_fits_all.png",
+        "figname": __outplotdir__ + "yeej_fits_cl_all.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
+        "add_error_bar": {
+            "median": {'color': 'blue', 'lw': 0.6, 'ls': ':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            # "width":"1sigma",
+            "confinterv": 0.68,
+            "fill_between": {"facecolor": 'gray', "alpha": 0.3}
+        }
         # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
         #              "ncol":3, "labelspacing":0.}
     }
@@ -3389,14 +3467,14 @@ if __name__ == "__main__":
     #task_plot_mej()
     ### task_plot_mej_q_vs_fit()
 
-    task_plot_mej_fits_only()
+    # task_plot_mej_fits_only()
     ''' --- vej --- '''
     #task_plot_vej_vs_fit_all()
     # task_plot_vej_vs_fit()
     # task_plot_vej_all()
     #task_plot_vej()
 
-    task_plot_vej_fits_only()
+    # task_plot_vej_fits_only()
 
     ''' --- ye --- '''
     #task_plot_ye_vs_fit_all()
@@ -3404,7 +3482,7 @@ if __name__ == "__main__":
     #task_plot_yeej_all()
     # task_plot_yeej()
 
-    task_plot_yeej_fits_only()
+    # task_plot_yeej_fits_only()
     ''' --- Mej vs vej ---  '''
     #task_plot_mej_vs_vej_all()
     # task_plot_mej_vs_vej()
@@ -3417,10 +3495,10 @@ if __name__ == "__main__":
     ''' --- Mdisk --- '''
     # task_plot_mdisk_vs_fit_all()
     # task_plot_mdisk_vs_fit()
-    # task_plot_mdisk_q_vs_fit_all()
+    task_plot_mdisk_q_vs_fit_all()
     # task_plot_mdisk_q_vs_fit()
     # task_plot_mdisk()
-    task_plot_mdisk_fits_only()
+    # task_plot_mdisk_fits_only()
 
     ''' test '''
     # from matplotlib import rcParams
