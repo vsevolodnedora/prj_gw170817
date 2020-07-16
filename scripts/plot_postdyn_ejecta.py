@@ -3075,12 +3075,12 @@ if __name__ == '__main__':
 
     ''' ------ Ejecta mass evolution ------- '''
 
-    #task_plot_total_ejecta_flux_2()
+    task_plot_total_ejecta_flux_2()
 
     ''' ------ Ejecta 1D histrograms ------- '''
 
     #task_plot_total_ejecta_hist_2()
-    custom_task_plot_total_ejecta_hist_2() # subplots
+    #custom_task_plot_total_ejecta_hist_2() # subplots
 
     ''' ------ Slices XZ Ye & hu ----------- '''
 

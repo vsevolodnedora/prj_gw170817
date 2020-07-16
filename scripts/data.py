@@ -81,6 +81,8 @@ class LOAD_FILES(LOAD_ITTIME):
 
         LOAD_ITTIME.__init__(self, sim)
 
+        self.path = Paths.ppr_sims
+
         self.sim = sim
 
         self.r_gw = 400. # radius of the detector for GW
@@ -162,9 +164,9 @@ class LOAD_FILES(LOAD_ITTIME):
 
     def load_outflow_corr(self, det, mask, v_n_x, v_n_y):
 
-        fpath_1 = Paths.ppr_sims + self.sim + '/' + "outflow_{:d}".format(
+        fpath_1 = self.path + self.sim + '/' + "outflow_{:d}".format(
             det) + '/' + mask + '/corr_' + v_n_x + '_' + v_n_y + ".h5"
-        fpath_2 = Paths.ppr_sims + self.sim + '/' + "outflow_{:d}".format(
+        fpath_2 = self.path + self.sim + '/' + "outflow_{:d}".format(
             det) + '/' + mask + '/corr_' + v_n_y + '_' + v_n_x + ".h5"
 
         if os.path.isfile(fpath_1):
@@ -204,7 +206,7 @@ class LOAD_FILES(LOAD_ITTIME):
 
     def load_outflow_data(self, det, mask, v_n):
 
-        fpath = Paths.ppr_sims+self.sim+'/'+ "outflow_{:d}".format(det) + '/' + mask + '/' + v_n
+        fpath = self.path+self.sim+'/'+ "outflow_{:d}".format(det) + '/' + mask + '/' + v_n
         if not os.path.isfile(fpath):
             raise IOError("File not found for det:{} mask:{} v_n:{} -> {}"
                           .format(det, mask, v_n, fpath))
@@ -249,7 +251,7 @@ class LOAD_FILES(LOAD_ITTIME):
         raise ValueError("Loading data method for ourflow data is not found")
 
     def load_collated_data(self, v_n):
-        fpath = Paths.ppr_sims + self.sim + '/' + "collated/" + v_n
+        fpath = self.path + self.sim + '/' + "collated/" + v_n
         if not os.path.isfile(fpath):
             raise IOError("File not found: collated v_n:{} -> {}"
                           .format(v_n, fpath))
@@ -258,7 +260,7 @@ class LOAD_FILES(LOAD_ITTIME):
         return data
 
     def load_gw_data(self, v_n):
-        fpath =  Paths.ppr_sims + self.sim + '/' + "waveforms/" + v_n
+        fpath =  self.path + self.sim + '/' + "waveforms/" + v_n
         if not os.path.isfile(fpath):
             raise IOError("File not found: gw v_n:{} -> {}"
                           .format(v_n, fpath))
@@ -269,7 +271,7 @@ class LOAD_FILES(LOAD_ITTIME):
     def load_3d_data_old(self, v_n):
         # ispar, itpar, tpar = self.get_ittime("profiles", "prof")
 
-        if not os.path.isdir(Paths.ppr_sims+self.sim+'/' + 'profiles/'):
+        if not os.path.isdir(self.path+self.sim+'/' + 'profiles/'):
             # print("No dir: {}".format())
             return np.zeros(0,)
 
@@ -286,7 +288,7 @@ class LOAD_FILES(LOAD_ITTIME):
 
         if v_n == "disk_mass.txt":
             for it in list_iterations:
-                fpath = Paths.ppr_sims+self.sim+'/'+"profiles/" + str(int(it))  + '/' + v_n
+                fpath = self.path+self.sim+'/'+"profiles/" + str(int(it))  + '/' + v_n
                 time_ = self.get_time_for_it(it, "prof")
                 time_arr.append(time_)
                 if os.path.isfile(fpath):
@@ -302,7 +304,7 @@ class LOAD_FILES(LOAD_ITTIME):
             raise NameError("no name for : {}".format(v_n))
             # n = 0
             # for it in list_iterations:
-            #     fpath = Paths.ppr_sims + self.sim + '/' + "profiles/" + str(int(it)) + '/' + v_n
+            #     fpath = self.path + self.sim + '/' + "profiles/" + str(int(it)) + '/' + v_n
             #     time_ = self.get_time_for_it(it, "prof")
             #     time_arr.append(time_)
             #     if os.path.isfile(fpath):
@@ -320,7 +322,7 @@ class LOAD_FILES(LOAD_ITTIME):
     def load_3d_data(self, v_n, mask="disk"):
         # ispar, itpar, tpar = self.get_ittime("profiles", "prof")
 
-        data_path = Paths.ppr_sims+self.sim+'/' + 'profiles/'
+        data_path = self.path+self.sim+'/' + 'profiles/'
 
         if not os.path.isdir(data_path):
             # print("No dir: {}".format())
@@ -342,7 +344,7 @@ class LOAD_FILES(LOAD_ITTIME):
 
         if v_n == "disk_mass.txt" or v_n == "remnant_mass.txt":
             for it in list_iterations:
-                fpath = Paths.ppr_sims+self.sim+'/'+"profiles/" + str(int(it))  + '/' + mask + '/' + v_n
+                fpath = self.path+self.sim+'/'+"profiles/" + str(int(it))  + '/' + mask + '/' + v_n
                 time_ = self.get_time_for_it(it, "profiles", "prof")
                 time_arr.append(time_)
                 iter_arr.append(it)
@@ -359,7 +361,7 @@ class LOAD_FILES(LOAD_ITTIME):
             # res = (iter_arr, time_arr, data_arr)
         else:
             for it in list_iterations:
-                fpath = Paths.ppr_sims+self.sim+'/'+"profiles/" + str(int(it)) + '/' + mask + '/' + v_n
+                fpath = self.path+self.sim+'/'+"profiles/" + str(int(it)) + '/' + mask + '/' + v_n
                 time_ = self.get_time_for_it(it, "profiles", "prof")
                 time_arr.append(time_)
                 iter_arr.append(it)
@@ -381,7 +383,7 @@ class LOAD_FILES(LOAD_ITTIME):
 
             # n = 0
             # for it in list_iterations:
-            #     fpath = Paths.ppr_sims + self.sim + '/' + "profiles/" + str(int(it)) + '/' + v_n
+            #     fpath = self.path + self.sim + '/' + "profiles/" + str(int(it)) + '/' + v_n
             #     time_ = self.get_time_for_it(it, "prof")
             #     time_arr.append(time_)
             #     if os.path.isfile(fpath):
