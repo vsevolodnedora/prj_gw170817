@@ -1540,14 +1540,14 @@ def task_plot_final_disk_structure():
         # "set_under_right": "black", "set_over_right": "blue",
 
         "plot_dir": __outplotdir__, #+ task["sim"] + "/",
-        "title": r"BLh* q=1.00 (SR), $t-t_{\rm merg}=88$ [ms]",
+        "title": r"BLh q=1.00 (SR), $t-t_{\rm merg}=88$ [ms]",
         # "figname": "it",
         "figname": "slice_xy_entr_ye_blh_q1_rl{}.png".format(task["rl"]),
         "savepdf": True,
         "mirror_z": False,
         "fontsize": 14,
     }
-    #plot_slice_2halfs__with_morror_function(task, plot_dic)
+    plot_slice_2halfs__with_morror_function(task, plot_dic)
 
     # xz blh
     task["plane"], task["v_n_y"] = "xz", "z"
@@ -1560,7 +1560,7 @@ def task_plot_final_disk_structure():
     task["sim"] = "DD2_M13641364_M0_LK_SR_R04"
     task["iterations"] = [2532732]
     plot_dic["mirror_z"] = False
-    plot_dic["title"] = r"DD2* q=1.00 (SR), $t-t_{\rm merg}=109$ [ms]"
+    plot_dic["title"] = r"DD2 q=1.00 (SR), $t-t_{\rm merg}=109$ [ms]"
     plot_dic["ylabel"], plot_dic["figname"] = "$Y$ [km]", "slice_xy_entr_ye_dd2_q1_rl{}.png".format(task["rl"])
 
     #plot_slice_2halfs__with_morror_function(task, plot_dic)
@@ -1872,12 +1872,12 @@ def task_plot_final_disk_hist_3():
 def custom_task_plot_final_disk_hist_3():
 
     task = [
-        {"sim": "BLh_M13641364_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh* q=1.00 (SR)", "drawstyle":"steps"}},
-        {"sim": "BLh_M11461635_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh* q=1.43 (SR)", "drawstyle":"steps"}},
-        {"sim": "DD2_M13641364_M0_LK_SR_R04", "type": "long", "v_n": None, "t": 60/1.e3, "ext": {}, "plot": {"color": "cyan", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.00 (SR)", "drawstyle":"steps"}},
-        {"sim": "DD2_M15091235_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.22 (SR)", "drawstyle":"steps"}},
-        {"sim": "SFHo_M11461635_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SFHo* q=1.43 (SR)","drawstyle":"steps"}},
-        {"sim": "SLy4_M11461635_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "red", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SLy4* q=1.43 (SR)","drawstyle":"steps"}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh q=1.00 (SR)", "drawstyle":"steps"}},
+        {"sim": "BLh_M11461635_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh q=1.43 (SR)", "drawstyle":"steps"}},
+        {"sim": "DD2_M13641364_M0_LK_SR_R04", "type": "long", "v_n": None, "t": 60/1.e3, "ext": {}, "plot": {"color": "cyan", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.00 (SR)", "drawstyle":"steps"}},
+        {"sim": "DD2_M15091235_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.22 (SR)", "drawstyle":"steps"}},
+        {"sim": "SFHo_M11461635_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SFHo q=1.43 (SR)","drawstyle":"steps"}},
+        {"sim": "SLy4_M11461635_M0_LK_SR", "type": "long", "v_n": None, "t": -1, "ext": {}, "plot": {"color": "red", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SLy4 q=1.43 (SR)","drawstyle":"steps"}},
     ]
 
     for t in task:
@@ -1945,17 +1945,17 @@ def task_plot_total_disk_mass_evo_2():
         # 2 prompt collapse
         #{"sim": "BLh_M10201856_M0_LK_LR_AHfix", "label": r"BLh** q=1.82 (LR)", "color": "black", "ls": ":", "lw": 0.8, "alpha": 1., "type": "long"},
         #{"sim": "BLh_M10201856_M0_LK_LR", "label": r"BLh* q=1.82 (LR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
-        {"sim": "BLh_M10201856_M0_SR", "label": r"BLh q=1.82 (SR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
-        {"sim": "BLh_M10651772_M0_LK_LR", "label": r"BLh* q=1.66 (LR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
+        {"sim": "BLh_M10201856_M0_SR", "label": r"BLh* q=1.82 (SR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
+        {"sim": "BLh_M10651772_M0_LK_LR", "label": r"BLh q=1.66 (LR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
         #{"sim": "BLh_M11841581_M0_LK_SR", "label": r"BLh q=1.34 (SR)", "color": "black", "ls": "-.", "lw": 1.0, "alpha": 1., "type": "long"},
         # 3 short lived
-        {"sim": "LS220_M11461635_M0_LK_SR", "label": r"LS220* q=1.43 (SR)",  "color": "red", "ls": "-.", "lw": 1.0, "alpha": 1., "type": "short"},
-        {"sim": "SLy4_M13641364_M0_SR", "label": r"SLy4 q=1.00 (SR)", "color": "magenta", "ls": "-", "lw": 1.0, "alpha": 1., "type": "short"},
-        {"sim": "SFHo_M13641364_M0_SR", "label": r"SFHo q=1.00 (SR)", "color": "green", "ls": "-", "lw": 1.0, "alpha": 1., "type": "short"},
+        {"sim": "LS220_M11461635_M0_LK_SR", "label": r"LS220 q=1.43 (SR)",  "color": "red", "ls": "-.", "lw": 1.0, "alpha": 1., "type": "short"},
+        {"sim": "SLy4_M13641364_M0_SR", "label": r"SLy4* q=1.00 (SR)", "color": "magenta", "ls": "-", "lw": 1.0, "alpha": 1., "type": "short"},
+        {"sim": "SFHo_M13641364_M0_SR", "label": r"SFHo* q=1.00 (SR)", "color": "green", "ls": "-", "lw": 1.0, "alpha": 1., "type": "short"},
         # long
-        {"sim": "BLh_M13641364_M0_LK_SR", "label": r"BLh* q=1.00 (SR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
+        {"sim": "BLh_M13641364_M0_LK_SR", "label": r"BLh q=1.00 (SR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
         #{"sim": "DD2_M13641364_M0_LK_SR_R04", "label": r"DD2* q=1.00 (SR)", "color": "blue", "ls": "--", "lw": 1.0, "alpha": 1., "type": "long", "t1": 40},
-        {"sim": "DD2_M13641364_M0_SR", "label": r"DD2 q=1.00 (SR)", "color": "blue", "ls": ":", "lw": 1.0, "alpha": 1., "type": "long"}
+        {"sim": "DD2_M13641364_M0_SR", "label": r"DD2* q=1.00 (SR)", "color": "blue", "ls": ":", "lw": 1.0, "alpha": 1., "type": "long"}
     ]
 
     for t in task:
@@ -2037,7 +2037,7 @@ def task_plot_disk_timecorr_2():
                    "xscale": "linear",
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$\langle Y_e \rangle$",
-                   "title": "BLh* q=1.00 (SR)",  # + "[{}ms]".format(task["t1"]),
+                   "title": "BLh q=1.00 (SR)",  # + "[{}ms]".format(task["t1"]),
                    "clabel": r"$M_{\rm disk}/M$",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
@@ -2073,7 +2073,7 @@ def task_plot_disk_timecorr_2():
                    "xscale": "linear",
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$\langle Y_e \rangle$",
-                   "title": r"LS220* q=1.43 (SR)",# + "[{}ms]".format(task["t1"]),
+                   "title": r"LS220 q=1.43 (SR)",# + "[{}ms]".format(task["t1"]),
                    "clabel": r"$M_{\rm disk}/M$",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
@@ -2109,7 +2109,7 @@ def task_plot_disk_timecorr_2():
                    "xscale": "linear",
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$\langle Y_e \rangle$",
-                   "title": r"LS220* q=1.43 (SR)",# + "[{}ms]".format(task["t1"]),
+                   "title": r"LS220 q=1.43 (SR)",# + "[{}ms]".format(task["t1"]),
                    "clabel": r"$M_{\rm disk}/M$",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
@@ -2503,12 +2503,12 @@ if __name__ == "__main__":
 
     """ -- disk mass ecolution --- """
 
-    task_plot_total_disk_mass_evo_2()
+    #task_plot_total_disk_mass_evo_2()
 
     """ -- disk final structure histogram --- """
 
     # task_plot_final_disk_hist_3()
-    # custom_task_plot_final_disk_hist_3()
+    custom_task_plot_final_disk_hist_3()
 
     """ --- disk time corr --- """
     #task_plot_disk_timecorr_2()

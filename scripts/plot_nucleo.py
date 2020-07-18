@@ -973,10 +973,10 @@ def task_plot_yields_2():
 
     task = [
         {"sim": "BLh_M13641364_M0_LK_SR", "mask": "geo",             "plot": {"color": "black", "ls": "--", "lw": 0.8, "alpha": 1.}},
-        {"sim": "BLh_M13641364_M0_LK_SR", "mask": "geo bern_geoend", "plot": {"color": "black", "ls": "-", "lw": 1.0, "label":"BLh* q=1.00 (SR)", "alpha": 1.}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "mask": "geo bern_geoend", "plot": {"color": "black", "ls": "-", "lw": 1.0, "label":"BLh q=1.00 (SR)", "alpha": 1.}},
 
         {"sim": "DD2_M13641364_M0_LK_SR_R04", "mask": "geo",             "plot": {"color": "blue", "ls": "--", "lw": 0.8, "alpha": 1.}},
-        {"sim": "DD2_M13641364_M0_LK_SR_R04", "mask": "geo bern_geoend", "plot": {"color": "blue", "ls": "-", "lw": 1.0, "label":"DD2* q=1.00 (SR)", "alpha": 1.}},
+        {"sim": "DD2_M13641364_M0_LK_SR_R04", "mask": "geo bern_geoend", "plot": {"color": "blue", "ls": "-", "lw": 1.0, "label":"DD2 q=1.00 (SR)", "alpha": 1.}},
     ]
 
     for t in task:
@@ -1094,11 +1094,11 @@ def task_plot_colocoded_yileds3():
 
 if __name__ == "__main__":
     ''' --- separate models --- '''
-    #task_plot_yields_2()
+    task_plot_yields_2()
 
     ''' --- colorcoded q --- '''
 
-    task_plot_colocoded_yileds3()
+    # task_plot_colocoded_yileds3()
     # task_plot_colocoded_yileds3()
 
 ''' --- iteration 2 --- '''

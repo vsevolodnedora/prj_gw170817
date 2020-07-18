@@ -41,7 +41,7 @@ class Options(object):
 options = Options()
 
 class Paths:
-    to_rns_sequences = "../Data/RNS/RNS.dat.gz"
+    to_rns_sequences = "../../Data/RNS/RNS.dat.gz"
 
 # rns = globals()
 seq = {}# globals() # seq[EOS] cotaining shit

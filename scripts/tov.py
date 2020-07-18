@@ -17,7 +17,7 @@ import scipy.optimize as opt # for least square method
 __outplotdir__ = "../figs/all3/tov_sequences/"
 
 class Paths:
-    to_tovs = "../Data/TOVs/"
+    to_tovs = "../../Data/TOVs/"
 
 M_of_M0 = {} # function
 # seq = {}

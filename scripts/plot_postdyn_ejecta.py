@@ -2548,13 +2548,13 @@ def task_plot_total_ejecta_flux_2():
     v_n = "Mej"
 
     task = [
-        {"sim": "BLh_M13641364_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh* q=1.00 (SR)"}},
-        {"sim": "BLh_M11461635_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label":  r"BLh* q=1.43 (SR)"}},
-        {"sim": "BLh_M10651772_M0_LK_LR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label":  r"BLh* q=1.66 (LR)"}},
-        {"sim": "DD2_M13641364_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "blue", "ls": "-", "lw": 0.8, "alpha": 1., "label":  r"DD2 q=1.00 (SR)"}},
-        {"sim": "DD2_M13641364_M0_LK_SR_R04","type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "cyan", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.00 (SR)"}},
-        {"sim": "DD2_M14971245_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.19 (SR)"}},
-        {"sim": "DD2_M15091235_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.22 (SR)"}},
+        {"sim": "BLh_M13641364_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh q=1.00 (SR)"}},
+        {"sim": "BLh_M11461635_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label":  r"BLh q=1.43 (SR)"}},
+        {"sim": "BLh_M10651772_M0_LK_LR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label":  r"BLh q=1.66 (LR)"}},
+        {"sim": "DD2_M13641364_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "blue", "ls": "-", "lw": 0.8, "alpha": 1., "label":  r"DD2* q=1.00 (SR)"}},
+        {"sim": "DD2_M13641364_M0_LK_SR_R04","type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "cyan", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.00 (SR)"}},
+        {"sim": "DD2_M14971245_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.19 (SR)"}},
+        {"sim": "DD2_M15091235_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.22 (SR)"}},
         #{"sim": "SFHo_M11461635_M0_LK_SR", "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SFHo* q=1.43 (SR)"}},
         #{"sim": "SLy4_M11461635_M0_LK_SR", "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "red", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SLy4* q=1.43 (SR)"}},
     ]
@@ -2735,13 +2735,13 @@ def task_plot_total_ejecta_hist_2():
 def custom_task_plot_total_ejecta_hist_2():
     v_n = "None"
     task = [
-        {"sim": "BLh_M13641364_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh* q=1.00 (SR)", "drawstyle":"steps"}},
-        {"sim": "BLh_M11461635_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh* q=1.43 (SR)", "drawstyle":"steps"}},
-        {"sim": "BLh_M10651772_M0_LK_SR", "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh* q=1.66 (SR)","drawstyle": "steps"}},
-        {"sim": "DD2_M13641364_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "blue", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.00 (SR)", "drawstyle":"steps"}},
-        {"sim": "DD2_M13641364_M0_LK_SR_R04","type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "cyan", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.00 (SR)", "drawstyle":"steps"}},
-        {"sim": "DD2_M14971245_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.19 (SR)", "drawstyle":"steps"}},
-        {"sim": "DD2_M15091235_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.22 (SR)", "drawstyle":"steps"}},
+        {"sim": "BLh_M13641364_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh q=1.00 (SR)", "drawstyle":"steps"}},
+        {"sim": "BLh_M11461635_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh q=1.43 (SR)", "drawstyle":"steps"}},
+        {"sim": "BLh_M10651772_M0_LK_SR", "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"BLh q=1.66 (SR)","drawstyle": "steps"}},
+        {"sim": "DD2_M13641364_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "blue", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.00 (SR)", "drawstyle":"steps"}},
+        {"sim": "DD2_M13641364_M0_LK_SR_R04","type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "cyan", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.00 (SR)", "drawstyle":"steps"}},
+        {"sim": "DD2_M14971245_M0_SR",      "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2* q=1.19 (SR)", "drawstyle":"steps"}},
+        {"sim": "DD2_M15091235_M0_LK_SR",   "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"DD2 q=1.22 (SR)", "drawstyle":"steps"}},
         # {"sim": "SFHo_M11461635_M0_LK_SR", "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "green", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SFHo* q=1.43 (SR)"}},
         # {"sim": "SLy4_M11461635_M0_LK_SR", "type": "long", "v_n": v_n, "t2": -1, "ext": {}, "plot": {"color": "red", "ls": "-", "lw": 0.8, "alpha": 1., "label": r"SLy4* q=1.43 (SR)"}},
     ]
@@ -3075,12 +3075,12 @@ if __name__ == '__main__':
 
     ''' ------ Ejecta mass evolution ------- '''
 
-    task_plot_total_ejecta_flux_2()
+    #task_plot_total_ejecta_flux_2()
 
     ''' ------ Ejecta 1D histrograms ------- '''
 
     #task_plot_total_ejecta_hist_2()
-    #custom_task_plot_total_ejecta_hist_2() # subplots
+    # custom_task_plot_total_ejecta_hist_2() # subplots
 
     ''' ------ Slices XZ Ye & hu ----------- '''
 

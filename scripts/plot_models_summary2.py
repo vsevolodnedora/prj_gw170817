@@ -291,8 +291,14 @@ def plot_datasets_scatter2(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets):
                 assert len(eos) > 0
                 markers, colors = [], []
                 for ieos in eos:
-                    markers.append(ourmd.eos_dic_marker[ieos])
                     colors.append(ourmd.eos_dic_color[ieos])
+
+                if marker == "#EOS":
+                    for ieos in eos:
+                        markers.append(ourmd.eos_dic_marker[ieos])
+                else:
+                    for ieos in eos:
+                        markers.append(marker)
                 # sc = mscatter(x, y_, ax=ax[1], c=c, norm=norm, s=mss, cmap=cm, m=markers, label=None,
                 #               alpha=plot_dic['alpha'], edgecolor=edgecolors)
                 #print
@@ -1500,7 +1506,7 @@ def task_plot_mej_q_vs_fit():
     # datasets["dietrich15"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True, "color": None, "plot_errorbar": False, "err": di15.params.Mdisk_err}
 
     for t in datasets.keys():
-        datasets[t]["marker"] = ourmd.datasets_markers[t]
+        datasets[t]["marker"] = "d"#ourmd.datasets_markers[t]
         datasets[t]["label"] = ourmd.datasets_labels[t]
         datasets[t]["ms"] = 40
     # datasets[t]["fill_style"] = "none"
@@ -1699,7 +1705,7 @@ def task_plot_mej():
         datasets[t]["fill_style"] = "none"
         datasets[t]["edgecolor"] = "#EOS"
         datasets[t]["facecolor"] = "none"
-        datasets[t]["marker"] = "#EOS"
+        datasets[t]["marker"] = "d" # #EOS
         datasets[t]["plot_errorbar"] = True
         datasets[t]["plot_xerrorbar"] = False
 
@@ -2279,7 +2285,7 @@ def task_plot_vej():
         datasets[t]["fill_style"] = "none"
         datasets[t]["edgecolor"] = "#EOS"
         datasets[t]["facecolor"] = "none"
-        datasets[t]["marker"] = "#EOS"
+        datasets[t]["marker"] = "d" #EOS"
         datasets[t]["plot_errorbar"] = True
         datasets[t]["plot_xerrorbar"] = False
 
@@ -2794,7 +2800,7 @@ def task_plot_yeej():
         datasets[t]["fill_style"] = "none"
         datasets[t]["edgecolor"] = "#EOS"
         datasets[t]["facecolor"] = "none"
-        datasets[t]["marker"] = "#EOS"
+        datasets[t]["marker"] = "d" #EOS"
         datasets[t]["plot_errorbar"] = True
         datasets[t]["plot_xerrorbar"] = False
 
@@ -3342,7 +3348,139 @@ def task_plot_mej_vs_ye_all():
     #     datasets[k]["plot_errorbar"] = False
 
     plot_datasets_scatter2(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets)
+def task_plot_mej_vs_yeej():
 
+    from model_sets import models_vincent2019 as vi
+    from model_sets import models_radice2018 as rd
+    from model_sets import groups as md
+    from model_sets import models_kiuchi2019 as ki                  #
+    from model_sets import models_sekiguchi2016 as se16         # [23] arxive:1603.01918 # no Mb
+    from model_sets import models_sekiguchi2015 as se15         # [-]  arxive:1502.06660 # no Mb
+    from model_sets import models_bauswein2013 as bs            # [20] arxive:1302.6530
+    from model_sets import models_lehner2016 as lh              # [22] arxive:1603.00501
+    from model_sets import models_hotokezaka2013 as hz          # [19] arxive:1212.0905
+    from model_sets import models_dietrich_ujevic2016 as du
+    from model_sets import models_dietrich2015 as di15          # [21] arxive:1504.01266
+    from model_sets import models_dietrich2016 as di16          # [24] arxive:1607.06636
+
+    # -------------------------------------------
+    from collections import OrderedDict
+    datasets = OrderedDict() #
+    # datasets["bauswein"] =  {'marker': 's', 'ms': 60, "color": "slategray", "models": bs.simulations, "data": bs, "err": bs.params.Mej_err, "label": r"Bauswein+2013", "fit": False}
+    # datasets["hotokezaka"] ={'marker': '>', 'ms': 60, "color": "gray", "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "fit": False}
+    # datasets["dietrich15"]= {'marker': 'd', "ms": 60, "color": "gray", "models": di15.simulations[di15.mask_for_with_sr], "data": di15, "err": di15.params.Mej_err, "label": r"Dietrich+2015", "fit": False}
+    # datasets["sekiguchi15"]={'marker': 'p', "ms": 60, "color": "black", "models": se15.simulations[se15.mask_for_with_sr], "data": se15, "err": se15.params.Mej_err, "label": r"Sekiguchi+2015",  "fit": False}
+    # datasets["dietrich16"]= {'marker': 'D', "ms": 60, "color": "gray", "models": di16.simulations[di16.mask_for_with_sr], "data": di16, "err": di16.params.Mej_err, "label": r"Dietrich+2016", "fit": False}
+    # datasets["sekiguchi16"]={'marker': 'h', "ms": 60, "color": "black", "models": se16.simulations[se16.mask_for_with_sr], "data": se16, "err": se16.params.Mej_err, "label": r"Sekiguchi+2016", "fit": False}
+    # datasets["lehner"] =    {'marker': 'P', 'ms': 60, "color": "orange", "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016",  "fit": False}
+    # datasets["radice"] =    {'marker': '*', "ms": 60, "color": "green", "models": rd.simulations[rd.fiducial], "data": rd, "err": rd.params.Mej_err, "label": r"Radice+2018",  "fit": False}
+    # datasets["kiuchi"] =    {'marker': "X", "ms": 60, "color": "gray", "models": ki.simulations, "data": ki, "err": ki.params.Mej_err, "label": r"Kiuchi+2019",  "fit": False}
+    # datasets["vincent"] =   {'marker': 'v', 'ms': 60, "color": "red", "models": vi.simulations, "data": vi, "err": vi.params.Mej_err,"label": r"Vincent+2019",  "fit": False}  # di.simulations[di.mask_for_with_sr & di.mask_for_with_disk]
+    datasets['our'] =       {"models": md.groups,  "data": md, "err": "v_n", "fit": False, "plot_errorbar":True, "plot_xerrorbar":True,
+                             "color": "#EOS", "label": r"#EOS", "marker":"d", 'ms': 60,
+                             "facecolor":"none","edgecolor":"#EOS"}
+
+    datasets['our_total'] = {"v_n_x": "Ye_ave-geo-tot", "v_n_y":"Mej_tot-tot", "data": md, "err": "v_n", "plot_errorbar":False, "plot_xerrorbar":False,
+                             "models": md.groups[(md.groups.tend_wind > 0.035) | (md.groups["group"] == "BLh_M10651772_M0_LK")],
+                             'marker': 'P', 'ms': 60, "color": "#EOS",  "label": r"None", "fit": False, "edgecolor":"none", "facecolor":"#EOS"}
+
+    # datasets['our_sec'] = {"v_n_x": "vel_inf_ave-tot", "v_n_y": "0.4Mdisk3D", "data": md, "err": "v_n", "plot_errorbar":False, "plot_xerrorbar":False,
+    #                          "models": md.groups[(md.groups.tend_wind > 0.035) | (md.groups["group"] == "BLh_M10651772_M0_LK")],
+    #                          'marker': 'v', 'ms': 60, "color": "#EOS", "label": r"None", "fit": False,
+    #                          "edgecolor": "none", "facecolor": "#EOS"}
+
+    #### datasets["dietrich"] =  {'marker': 'd', "ms": 20, "models": du.simulations, "data": du, "err": du.params.Mej_err, "label": r"Dietrich\&Ujevic+2016", "color": "black", "fit": False}
+
+    for t in datasets.keys():
+        # datasets[t]["marker"] = ourmd.datasets_markers[t]
+        datasets[t]["fill_style"] = "none"
+
+    y_dic    = {"v_n": "Mej_tot-geo",     "err": "ud", "deferr": 0.2,  "mod": {}}#"mod": {"mult": [1e3]}
+    x_dic    = {"v_n": "Ye_ave-geo", "err": "ud", "deferr": 0.2,  "mod": {}}#"mod": {"mult": [1e3]}
+    col_dic  = {"v_n": "Lambda", "err": None, "mod": {}, "deferr": None}
+    #
+    plot_dic = {
+        "figsize": (6.0, 5.5),
+        "left" : 0.15, "bottom" : 0.14, "top" : 0.92, "right" : 0.95, "hspace" : 0,
+        "dpi": 128, "fontsize": 16, "labelsize": 16,
+        "fit_panel": False,
+        "plot_diagonal":False,
+        "vmin": 350, "vmax": 900.0, "cmap": "jet", "plot_cbar": False,  # "tab10",
+        "xmin": 0.025, "xmax": 0.35, "xscale": "linear",
+        "ymin": 6e-4, "ymax": 2e-1, "yscale": "log",
+        "ylabel": r"$M_{\rm ej}$ $[M_{\odot}]$",#$[10^{-3}M_{\odot}]$",
+        "xlabel": r"$\langle Y_{e;\:\rm ej} \rangle$",
+        "cbar_label": r"$\tilde{\Lambda}$",
+        "figname": __outplotdir__ + "ej_mej_yeej_our.png",
+        "legend": {"fancybox": False, "loc": 'upper right',
+                   #"bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 3, "fontsize": 12, "columnspacing":0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "alpha":0.8,
+
+        "add_marker":
+            [
+             # {"marker": 'P', "color": "gray", "ms": 8, "alpha": 1., "label": "Tot.Ej.", "linestyle": "none",
+             #  'zorder': -1},
+             {"marker": 'v', "color": "gray", "ms": 8, "alpha": 1., "label": r"Sec.Ej",
+              "linestyle": "none", 'zorder': -1},
+             ],
+
+        "patch":
+            [{"data":{"x":0.27,"y":0.016,"xerr":(0.25, 0.50),"yerr":(1e-2,2e-2)},
+             "plot":{"facecolor":"blue", "alpha":0.4, "edgecolor":"none", "label":"Blue kN [S]"}},
+             {"data": {"x": 0.1, "y": 0.05, "xerr": (0.0, 0.25), "yerr": (4e-2, 6e-2)},
+              "plot": {"facecolor": "red", "alpha": 0.4, "edgecolor": "none", "label": "Red kN [S]"}},
+             #
+             {"data": {"x": None, "y": None, "xerr": (0, 0.5), "yerr": (1e-2, 5e-3)},
+              "plot": {"facecolor": "none", "alpha": 0.4, "edgecolor": "red", "label": "Dyn. kN [P]"}},
+             {"data": {"x": None, "y": None, "xerr": (0.25, 0.5), "yerr": (0.001*0.08, 0.2*0.12)},
+              "plot": {"facecolor": "none", "alpha": 0.4, "edgecolor": "blue", "label": "Wind kN [P]"}},
+             {"data": {"x": None, "y": None, "xerr": (0.25, 0.5), "yerr": (0.4 * 0.08, 0.2*0.1)},
+              "plot": {"facecolor": "none", "alpha": 0.4, "edgecolor": "purple", "label": "Sec. kN [P]"}},
+             ],
+
+        # "legend":{"fancybox":True, "loc":'upper right',
+        #        # bbox_to_anchor=(0.5, 0.5),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+        #        "shadow":False, "ncol":2, "fontsize":9,
+        #        "framealpha":0., "borderaxespad":0.},
+        "savepdf":True,
+        "tight_layout":True
+    }
+
+    # ---------------- fit ------------------
+    #from make_fit import fitting_function_mej, fitting_coeffs_mej_our
+    fit_dic =  {}
+    # {
+    #     "func":fit_funcs.mej_flat_mean, "coeffs": fit_coefs.mej_all_2(),
+    #     "xmin": 0.95, "xmax": 2.0, "xscale": "linear", "xlabel": "$M_1/M_2$",#r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+    #     "ymin": -2.0, "ymax": 2.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+    #     "plot_zero":True
+    # }
+
+    # Fit
+    from make_fit import fitting_function_mej
+    #from make_fit import fitting_coeffs_mej_david, fitting_coeffs_mej_our
+    #from make_fit import complex_fic_data_mej_module
+    #complex_fic_data_mej_module(datasets, fitting_coeffs_mej_our(), key_for_usable_dataset="fit")
+
+
+    # -------------- colorcoding models with data ------------
+    # for k in datasets.keys():
+    #     if k == "kiuchi": datasets["kiuchi"]["color"]           = "gray"
+    #     if k == "dietrich": datasets["dietrich"]["color"]       = "gray"
+    #     if k == "bauswein": datasets["bauswein"]["color"]       = "gray"
+    #     if k == "hotokezaka": datasets["hotokezaka"]["color"]   = "gray"
+    #     if k == "lehner": datasets["lehner"]["color"]           = "gray"
+    #     if k == "radice": datasets["radice"]["color"]           = None
+    #     if k == "vincent": datasets["vincent"]["color"]         = None
+    #     if k == "our": datasets["our"]["color"]                 = None
+    # for k in datasets.keys():
+    #     if k!="our_total":
+    #         datasets[k]["plot_errorbar"] = True
+    #         datasets[k]["plot_xerrorbar"] = True
+
+    plot_datasets_scatter2(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets)
 
 def task_plot_vej_vs_ye():
 
@@ -3465,14 +3603,14 @@ if __name__ == "__main__":
     # task_plot_mej_vs_fit()
     #task_plot_mej_all()
     #task_plot_mej()
-    ### task_plot_mej_q_vs_fit()
+    # # # task_plot_mej_q_vs_fit()
 
     # task_plot_mej_fits_only()
     ''' --- vej --- '''
     #task_plot_vej_vs_fit_all()
     # task_plot_vej_vs_fit()
     # task_plot_vej_all()
-    #task_plot_vej()
+    # task_plot_vej()
 
     # task_plot_vej_fits_only()
 
@@ -3480,22 +3618,23 @@ if __name__ == "__main__":
     #task_plot_ye_vs_fit_all()
     # task_plot_ye_vs_fit()
     #task_plot_yeej_all()
-    # task_plot_yeej()
+    #task_plot_yeej()
 
     # task_plot_yeej_fits_only()
     ''' --- Mej vs vej ---  '''
     #task_plot_mej_vs_vej_all()
-    # task_plot_mej_vs_vej()
+    #task_plot_mej_vs_vej()
 
     ''' --- Mej vs ye ---  '''
-    # task_plot_mej_vs_ye_all()
+    #task_plot_mej_vs_ye_all()
+    task_plot_mej_vs_yeej()
     ''' --- vej vs ye ---  '''
     # task_plot_vej_vs_ye()
 
     ''' --- Mdisk --- '''
     # task_plot_mdisk_vs_fit_all()
     # task_plot_mdisk_vs_fit()
-    task_plot_mdisk_q_vs_fit_all()
+    #task_plot_mdisk_q_vs_fit_all()
     # task_plot_mdisk_q_vs_fit()
     # task_plot_mdisk()
     # task_plot_mdisk_fits_only()

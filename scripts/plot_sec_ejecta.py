@@ -1777,7 +1777,7 @@ def task_plot_j0_mb_RNS_j3D_m3D_evo_2():
                    # "bbox_to_anchor": (0.5, 0.5),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
                    "shadow": "False", "ncol": 1, "fontsize": 10,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
-        "title": "BLh* q=1.00 (SR)",
+        "title": "BLh q=1.00 (SR)",
         "figname": __outplotdir__ + "secular_j_mb_RNS_{}.png".format("blh"),
         "plot_fill_disk":   {},#{"color":"deepskyblue", "alpha":0.3, "zorder":-2, "label":"Disk ejecta"},
         "plot_fill_remnant":{},#{"color":"cornflowerblue", "alpha":0.3, "zorder":-2, "label":"Remnant ejecta"},

@@ -195,12 +195,22 @@ def plot_dens_modes_2D_2(tasks, plotdic):
             tmerg = o_par.get_par("tmerg")
             times = (times - tmerg) * 1e3  # ms
             #
+            # print("Tmerg:{}".format(tmerg))
+            # print("times", times)
+            # print("limit: {} ".format((task["t2pm"]*1.e-3+tmerg)))
+            #
             if "t1" in task.keys():
                 mags = mags[times >= task["t1"]*1.e-3]
                 times = times[times >= task["t1"]*1.e-3]
             if "t2" in task.keys():
                 mags = mags[times < task["t2"]*1.e-3]
                 times = times[times < task["t2"]*1.e-3]
+            if "t2pm" in task.keys():
+                mags = mags[times < task["t2pm"]]
+                times = times[times < task["t2pm"]]
+            # if "t1pm" in task.keys():
+            #     mags = mags[times > (task["t2pm"]*1.e-3+tmerg)]
+            #     times = times[times > (task["t2pm"]*1.e-3+tmerg)]
             #
             if "mmean" in task.keys():
                 # moving mean smoothing
@@ -256,6 +266,8 @@ def plot_dens_modes_2D_2(tasks, plotdic):
                 # times = grid_times
                 # mags = int_mags
 
+            # print (task["sim"], times)
+            # print (task["sim"], mags); exit(1)
             ax.plot(times, mags, **task["plot"])
 
     ax.set_yscale(plotdic["yscale"])
@@ -2168,38 +2180,38 @@ def task_plot_rho_modes_2D_3():
     task = [
         # BLh q = 1
         {"sim": "BLh_M13641364_M0_LK_SR",    "m":1, "plot": {"color": "black", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "long"}, # 0
-        {"sim": "BLh_M13641364_M0_LK_SR",    "m":2, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": "BLh* q=1.00 (SR)"}, "type": "long"}, # 1
+        {"sim": "BLh_M13641364_M0_LK_SR",    "m":2, "plot": {"color": "black", "ls": "-", "lw": 0.8, "alpha": 1., "label": "BLh q=1.00 (SR)"}, "type": "long"}, # 1
         # BLh q = 1.66
         {"sim": "BLh_M11461635_M0_LK_SR",    "m":1, "plot": {"color": "gray", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "long"}, # 2
-        {"sim": "BLh_M11461635_M0_LK_SR",    "m":2, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": "BLh* q=1.42 (SR)"}, "type": "long"}, # 3
+        {"sim": "BLh_M11461635_M0_LK_SR",    "m":2, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": "BLh q=1.42 (SR)"}, "type": "long"}, # 3
 
         # DD2 q = 1 noLK
         {"sim": "DD2_M13641364_M0_SR_R04",  "m": 1, "plot": {"color": "green", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long", "t1": 40, "mmean":10},  # 4
-        {"sim": "DD2_M13641364_M0_SR_R04",  "m": 2, "plot":  {"color": "green", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2 q=1.00 (SR)"}, "type": "long", "mmean":10},  # 5
+        {"sim": "DD2_M13641364_M0_SR_R04",  "m": 2, "plot":  {"color": "green", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2* q=1.00 (SR)"}, "type": "long", "mmean":10},  # 5
         # DD2 q = 1.0 LK
         {"sim": "DD2_M13641364_M0_LK_SR_R04","m":1, "plot": {"color": "blue", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long", "t1": 40, "mmean":10}, # 6
-        {"sim": "DD2_M13641364_M0_LK_SR_R04","m":2, "plot": {"color": "blue", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2* q=1.00 (SR)"}, "type": "long", "t1": 40, "mmean":10},# 7
+        {"sim": "DD2_M13641364_M0_LK_SR_R04","m":2, "plot": {"color": "blue", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2 q=1.00 (SR)"}, "type": "long", "t1": 40, "mmean":10},# 7
         # DD2 q = 1.22
         {"sim": "DD2_M15091235_M0_LK_SR",    "m":1, "plot": {"color": "green", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long"}, # 8
-        {"sim": "DD2_M15091235_M0_LK_SR",    "m":2, "plot": {"color": "green", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2* q=1.22 (SR)"}, "type": "long"}, # 9
+        {"sim": "DD2_M15091235_M0_LK_SR",    "m":2, "plot": {"color": "green", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2 q=1.22 (SR)"}, "type": "long"}, # 9
 
         # LS220 q=1 noLK
-        {"sim": "LS220_M13641364_M0_SR", "m":1, "plot": {"color": "orange", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short"}, # 10
-        {"sim": "LS220_M13641364_M0_SR", "m":2, "plot": {"color": "orange", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220 q=1.00 (SR)"}, "type": "short"}, # 11
+        {"sim": "LS220_M13641364_M0_SR", "m":1, "plot": {"color": "orange", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short", "t2pm":16, "mmean":3}, # 10 "mmean":3,
+        {"sim": "LS220_M13641364_M0_SR", "m":2, "plot": {"color": "orange", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220* q=1.00 (SR)"}, "type": "short", "t2pm":16, "mmean":3}, # 11
         # LS220 q=1 LK
-        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 1, "plot": {"color": "red", "ls": ":", "lw": 1.0, "alpha": 1.}, "type": "short"},  # 12
-        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 2, "plot": {"color": "red", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220* q=1.00 (SR)"}, "type": "short"},  # 13
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 1, "plot": {"color": "red", "ls": ":", "lw": 1.0, "alpha": 1.}, "type": "short", "t2pm":14, "mmean":3},  # 12
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 2, "plot": {"color": "red", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220 q=1.00 (SR)"}, "type": "short", "t2pm":14, "mmean":3},  # 13
 
         # LS220 q=1.43
         {"sim": "LS220_M11461635_M0_LK_SR",  "m":1, "plot": {"color": "orange", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short"}, # 14
-        {"sim": "LS220_M11461635_M0_LK_SR",  "m":2, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": "LS220* q=1.43 (SR)"}, "type": "short"}, # 15
+        {"sim": "LS220_M11461635_M0_LK_SR",  "m":2, "plot": {"color": "orange", "ls": "-", "lw": 0.8, "alpha": 1., "label": "LS220 q=1.43 (SR)"}, "type": "short"}, # 15
 
         # SLy4  q=1
         {"sim": "SLy4_M13641364_M0_SR",      "m":1, "plot": {"color": "magenta", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short"}, # 16
-        {"sim": "SLy4_M13641364_M0_SR",      "m":2, "plot": {"color": "magenta", "ls": "-", "lw": 0.8, "alpha": 1., "label": "SLy4 q=1.00 (SR)"}, "type": "short"}, # 17
+        {"sim": "SLy4_M13641364_M0_SR",      "m":2, "plot": {"color": "magenta", "ls": "-", "lw": 0.8, "alpha": 1., "label": "SLy4* q=1.00 (SR)"}, "type": "short"}, # 17
         # SLy4  q=1.13
         {"sim": "SLy4_M14521283_M0_SR",      "m":1, "plot": {"color": "purple", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short"}, # 18
-        {"sim": "SLy4_M14521283_M0_SR",      "m":2, "plot": {"color": "purple", "ls": "-", "lw": 0.8, "alpha": 1., "label": "SLy4 q=1.13 (SR)"}, "type": "short"}, # 19
+        {"sim": "SLy4_M14521283_M0_SR",      "m":2, "plot": {"color": "purple", "ls": "-", "lw": 0.8, "alpha": 1., "label": "SLy4* q=1.13 (SR)"}, "type": "short"}, # 19
     ]
 
     for t in task:
@@ -2258,7 +2270,7 @@ def task_plot_rho_modes_2D_3():
     def_plot_dic["title"] = r"Long-lived DD2 q=1.00"
     def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_dd2_long.png"
     tasks=[task[i] for i in [4,5,6,7]]
-    plot_dens_modes_2D_2(tasks, def_plot_dic)
+    #plot_dens_modes_2D_2(tasks, def_plot_dic)
 
     ''' ----------+--------- '''
 
@@ -2273,7 +2285,7 @@ def task_plot_rho_modes_2D_3():
     # # Short with ls220
     def_plot_dic["title"] = r"Short-lived LS220 q=1.00"
     def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_ls220_short.png"
-    def_plot_dic["xmax"] = 30
+    def_plot_dic["xmax"] = 20
     tasks=[task[i] for i in [10,11,12,13]]
     plot_dens_modes_2D_2(tasks, def_plot_dic)
 
@@ -2882,7 +2894,7 @@ def task_plot_total_angular_momentum_flux_colormesh_2():
                    "xscale": "linear",
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$R_{\rm cyl}$ [km]",
-                   "title": "BLh* q=1.00 (SR)",  # + "[{}ms]".format(task["t1"]),
+                   "title": "BLh q=1.00 (SR)",  # + "[{}ms]".format(task["t1"]),
                    "clabel": r"$Jf_{r}$ [$G\, c^{-1} M_\odot$]",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
@@ -2898,7 +2910,7 @@ def task_plot_total_angular_momentum_flux_colormesh_2():
 
     plot_dic = copy.deepcopy(def_plotdic)
     task["sim"] = "BLh_M11461635_M0_LK_SR"
-    plot_dic["title"] = r"BLh* q=1.43 (SR)"  # + "[{}ms]".format(task["t1"]),
+    plot_dic["title"] = r"BLh q=1.43 (SR)"  # + "[{}ms]".format(task["t1"]),
     plot_dic["figname"] = "evol_jflux_2d_{}_R1.png".format(task["sim"])
     plot_total_angular_momentum_colormesh(task, plot_dic)
     #
@@ -2909,12 +2921,12 @@ def task_plot_total_angular_momentum_flux_colormesh_2():
     #
 
     task["sim"] = "DD2_M13641364_M0_LK_SR_R04"
-    plot_dic["title"] = r"DD2* q=1.00 (SR)"  # + "[{}ms]".format(task["t1"]),
+    plot_dic["title"] = r"DD2 q=1.00 (SR)"  # + "[{}ms]".format(task["t1"]),
     plot_dic["figname"] = "evol_jflux_2d_{}_R1.png".format(task["sim"])
     plot_total_angular_momentum_colormesh(task, plot_dic)
     #
     task["sim"] = "DD2_M13641364_M0_SR"
-    plot_dic["title"] = r"DD2 q=1.00 (SR)"  # + "[{}ms]".format(task["t1"]),
+    plot_dic["title"] = r"DD2* q=1.00 (SR)"  # + "[{}ms]".format(task["t1"]),
     plot_dic["figname"] = "evol_jflux_2d_{}_R1.png".format(task["sim"])
     plot_total_angular_momentum_colormesh(task, plot_dic)
 
@@ -3085,14 +3097,14 @@ if __name__ == '__main__':
     ''' --- density modes --- '''
 
     # task_plot_rho_modes_2D_3()
-    task_plot_dens_modes_2D_3()
+    # task_plot_dens_modes_2D_3()
 
     ''' --- total angular momentum evolution --- '''
 
     # task_plot_total_angular_momentum_2()
 
     ''' --- angular momentum flux colormesh --- '''
-    #task_plot_total_angular_momentum_flux_colormesh_2()
+    task_plot_total_angular_momentum_flux_colormesh_2()
 
 ''' --- iteration 3 --- '''
 
