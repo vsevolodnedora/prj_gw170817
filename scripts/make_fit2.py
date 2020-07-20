@@ -4458,20 +4458,20 @@ def task_predict_for_event():
 
 if __name__ == '__main__':
 
-    print_chirp_mass()
+    #print_chirp_mass()
 
     ''' --- tasks | mej --- '''
     # task_mej_chi2dofs()
-    #task_mej_print_stats()
-    # task_mej_print_table_overall()
+    # task_mej_print_stats()
+    #task_mej_print_table_overall()
     # task_mej_print_table_overall_2()
     #task_mj_print_table_overall_linear_regresion()
-    #task_mj_print_table_overall_linear_regresion2()
+    # task_mj_print_table_overall_linear_regresion2()
 
 
     ''' --- tasks | vej --- '''
     # task_vej_chi2dofs()
-    # task_vej_print_stats()
+    task_vej_print_stats()
     # task_vej_print_table_overall()
     #task_vmj_print_table_overall_linear_regresion()
     # task_vmj_print_table_overall_linear_regresion2()
@@ -4479,16 +4479,16 @@ if __name__ == '__main__':
     ''' --- task | Ye --- '''
     # task_ye_chi2dofs()
     # task_ye_print_stats()
-    #task_ye_print_table_overall()
+    # task_ye_print_table_overall()
     # task_ye_print_table_overall_linear_regresion()
-    # task_ye_print_table_overall_linear_regresion2()
+    #task_ye_print_table_overall_linear_regresion2()
     ''' --- task | Mdisk --- '''
     #task_mdisk_chi2dofs()
     # task_mdisk_print_stats()
-    # task_mdisk_print_table_overall()
-    # task_mdisk_print_table_overall_2()
+    #task_mdisk_print_table_overall()
+    #task_mdisk_print_table_overall_2()
     #task_mdisk_print_table_overall_linear_regresion()
-    # task_mdisk_print_table_overall_linear_regresion2()
+    #task_mdisk_print_table_overall_linear_regresion2()
 
     ''' -------------------- '''
 

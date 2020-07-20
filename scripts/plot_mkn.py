@@ -32,7 +32,7 @@ from utils import Paths, Lists, Labels, Constants, Printcolor, UTILS, Files, PHY
 
 from make_fit2 import Fitting_Coefficients, Fitting_Functions, Fit_Data
 
-
+from model_sets import groups as md
 from data import ADD_METHODS_ALL_PAR
 from comparison import TWO_SIMS, THREE_SIMS
 from settings import resolutions
@@ -1363,6 +1363,7 @@ class COMBINE_LIGHTCURVES(EXTRACT_LIGHTCURVE):
         # pass
 
 ''' --- '''
+
 def predic_value_from_fitfuncs(data, tasks):
 
     # res = []
@@ -1403,6 +1404,8 @@ def predic_value_from_fitfuncs(data, tasks):
             raise NameError("v_n:{} ".format(task["v_n"]))
 
         task["res"] = res
+
+
 
 ''' --- '''
 
@@ -1518,10 +1521,92 @@ def fitting_function_predict():
 
     plot_lighcurves(plot_dic, line_dics)
 
+def get_times_mags_from_pars(pars, band = "Ks"):
+
+    # compute MKN
+    o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+    o_mkn.set_glob_par_var_source(False, False)
+    o_mkn.set_dyn_iso_aniso = "aniso"
+    o_mkn.set_dyn_par_var("aniso")
+    o_mkn.ejecta_vars['dynamics']["mej"] = pars["mej"]
+    o_mkn.ejecta_vars["dynamics"]["central_vel"] = pars["vej"]
+    o_mkn.compute_save_lightcurve(write_output=True)
+
+    load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+    times, mags = load_mkn.get_model_median(band)
+
+    return times, mags
+
 ''' --- plotting methods --- '''
 
 ''' --- tasks --- '''
 
+def task_plot_lightcurve_synthetic_model():
+
+    # model
+    sim = "BLh_M13641364_M0_LK"
+    model = md.groups[md.groups.index == sim]
+
+    # fitted vals
+    mej_mean = 5.220e-03 # Msun
+    mej_poly22 = Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)
+    mej_diet = Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model) / 1e3
+    mej_krug = Fitting_Functions.mej_kruger20([-0.981, 12.880, -35.148, 2.030], model) / 1e3
+
+    vej_mean = 0.189 # \pm 0.049
+    vej_poly22 = Fitting_Functions.poly_2_qLambda([0.182, 0.159, -1.509e-04, -1.046e-01, 9.233e-05, -1.581e-08], model)
+    vej_diet = Fitting_Functions.vej_dietrich16([-0.422, 0.834, -1.510], model)
+
+    yeej_poly22 = Fitting_Functions.poly_2_qLambda([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07], model)
+    yeej_our = Fitting_Functions.yeej_like_vej([0.177, 0.452, -4.611], Vals)
+
+    mdisk = Fitting_Functions.poly_2_qLambda([-8.951e-01, 1.195, 4.292e-04, -3.991e-01, 4.778e-05, -2.266e-07], model)
+    mdisk = Fitting_Functions.mdisk_radice18([0.070, 0.101, 305.009, 189.952], model)
+    mdisk = Fitting_Functions.mdisk_kruger20([-0.013, 1.000, 1325.652], model)
+
+    print("\t-------------------")
+    print("\t model: {}".format(sim))
+    print("\t Mej Mean " + "{:.1f}".format(mej_mean * 1e3))
+    print("\t Mej Eq.1~\cite{Dietrich:2016fpt}"  + "{:.1f}".format(mej_diet * 1e3) + "[10^{3} M_{\odot}]")
+    print("\t Mej Eq.6~\cite{Kruger:2020gig} " + "{:.1f}".format(mej_krug * 1e3) + "[10^{3} M_{\odot}]")
+    print("\t Mej Eq.P22 " + "{:.1f}".format(mej_poly22 * 1e3) + "[10^{3} M_{\odot}]")
+    print("\t-------------------")
+    print("\t vej Mean " + "{:.3f}".format(vej_mean))
+    print("\t Mej Eq.5~\cite{Dietrich:2016fpt}" + "{:.1f}".format(vej_diet * 1e3) + "[c]")
+    print("\t Mej Eq.P22 " + "{:.1f}".format(vej_diet * 1e3) + "[c]")
+
+
+    # compute MKN
+    pars = {"mej":mej, "vej":vej, "mdisk":mdisk}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    linedic_poly22 = {"x":times,"y":mags, "color": "red", "ls": ':', "lw": 0.8, "label": r"(Poly22)"}
+
+
+    plot_dic = {
+        # "subplots":{"figsize": (6.0, 6.0), "ncols":1,"nrows":3, "sharex":True,"sharey":False},
+        "figsize": (4.2, 3.6),
+        'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
+        'ymin': 23, 'ymax': 18, 'ylabel': r"AB magnitude at 40 Mpc",
+        'fontsize': 14,
+        'labelsize': 14,
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "legend": {"fancybox": False, "loc": 'upper right',
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 2, "fontsize": 12, "columnspacing": 0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        # "text": {'x': 0.85, 'y': 0.90, 's': r"Poly2", 'fontsize': 14, 'color': 'black',
+        #          'horizontalalignment': 'center'},
+        "savepdf": True,
+        "figname": __outplotdir__ + "mkn_dyn_fit_target.png",
+        "dpi": 128,
+        "tight_layout": True
+    }
+
+    plot_lighcurves(plot_dic, line_dics)
 
 
 if __name__ == "__main__":

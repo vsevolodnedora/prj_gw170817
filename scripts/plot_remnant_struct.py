@@ -2233,7 +2233,7 @@ def task_plot_rho_modes_2D_3():
         # "mask_below": 1e-15,
         "xscale": "linear", "yscale": "log",
         "xlabel": r"$t-t_{\rm merg}$ [ms]",
-        "ylabel": r'$C_m(\rho)/C_0(\rho)$',
+        "ylabel": r'$|C_m|/C_0$',#r'$C_m(\rho)/C_0(\rho)$',
         "title": r"Long-lived remnants",
         "figname": __outplotdir__ + "total_rho_mode.png",
         "savepdf": True,
@@ -2270,7 +2270,7 @@ def task_plot_rho_modes_2D_3():
     def_plot_dic["title"] = r"Long-lived DD2 q=1.00"
     def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_dd2_long.png"
     tasks=[task[i] for i in [4,5,6,7]]
-    #plot_dens_modes_2D_2(tasks, def_plot_dic)
+    plot_dens_modes_2D_2(tasks, def_plot_dic)
 
     ''' ----------+--------- '''
 
@@ -2467,7 +2467,7 @@ def task_plot_dens_modes_2D_3():
         # "mask_below": 1e-15,
         "xscale": "linear", "yscale": "log",
         "xlabel": r"$t-t_{\rm merg}$ [ms]",
-        "ylabel": r'$C_m/C_0$',
+        "ylabel": r'$|C_m|/C_0$', #r'$C_m/C_0$',
         "title": r"Long-lived remnants",
         "figname": __outplotdir__ + "modes_dens.png",
         "savepdf": True,
@@ -3096,15 +3096,15 @@ if __name__ == '__main__':
 
     ''' --- density modes --- '''
 
-    # task_plot_rho_modes_2D_3()
-    # task_plot_dens_modes_2D_3()
+    task_plot_rho_modes_2D_3()
+    task_plot_dens_modes_2D_3()
 
     ''' --- total angular momentum evolution --- '''
 
     # task_plot_total_angular_momentum_2()
 
     ''' --- angular momentum flux colormesh --- '''
-    task_plot_total_angular_momentum_flux_colormesh_2()
+    # task_plot_total_angular_momentum_flux_colormesh_2()
 
 ''' --- iteration 3 --- '''
 
