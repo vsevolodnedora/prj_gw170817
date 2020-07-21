@@ -1528,7 +1528,7 @@ def task_plot_final_disk_structure():
         "cont_plot": {"levels":[1e8, 1e9, 1e10, 1e11, 1e12, 1e13], "color": "black", "lw":0.4},
 
         "vmin_left": 0, "vmax_left": 50,
-        "clabel_left": r"$s$ [$k_b$]",  ##r"$Q_{eff}(\nu_a) / D$",
+        "clabel_left": r"$s$ [$k_b/\rm{baryon}$]",  ##r"$Q_{eff}(\nu_a) / D$",
         "cmap_left": "jet_r",
         "norm_left": "linear",
         # "set_under_left": "black", "set_over_left": "blue",
@@ -1931,7 +1931,7 @@ def custom_task_plot_final_disk_hist_3():
     plot_dic3["xmax"] = 0
     plot_dic3["xmax"] = 30
     plot_dic3["legend"] = {}
-    plot_dic3["xlabel"] = r"$\langle s \rangle$ [$k_B$]"
+    plot_dic3["xlabel"] = r"$\langle s \rangle$ [$k_B/\rm{baryon}$]"
     plot_dic3["task_v_n"] = "entr"
     # for dic in task: dic["v_n"] = "Y_e"
     # plot_total_ejecta_hist(task, plot_dic)
@@ -2038,7 +2038,7 @@ def task_plot_disk_timecorr_2():
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$\langle Y_e \rangle$",
                    "title": "BLh q=1.00 (SR)",  # + "[{}ms]".format(task["t1"]),
-                   "clabel": r"$M_{\rm disk}/M$",
+                   "clabel": r"$M_{\rm disk}/M_b$",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
                    #          "transform": None},
@@ -2074,7 +2074,7 @@ def task_plot_disk_timecorr_2():
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$\langle Y_e \rangle$",
                    "title": r"LS220 q=1.43 (SR)",# + "[{}ms]".format(task["t1"]),
-                   "clabel": r"$M_{\rm disk}/M$",
+                   "clabel": r"$M_{\rm disk}/M_b$",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
                    #          "transform": None},
@@ -2110,7 +2110,7 @@ def task_plot_disk_timecorr_2():
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$\langle Y_e \rangle$",
                    "title": r"LS220 q=1.43 (SR)",# + "[{}ms]".format(task["t1"]),
-                   "clabel": r"$M_{\rm disk}/M$",
+                   "clabel": r"$M_{\rm disk}/M_b$",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
                    #          "transform": None},
@@ -2511,7 +2511,7 @@ if __name__ == "__main__":
     custom_task_plot_final_disk_hist_3()
 
     """ --- disk time corr --- """
-    #task_plot_disk_timecorr_2()
+    # task_plot_disk_timecorr_2()
 
     """ --- disk slice structure --- """
 

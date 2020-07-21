@@ -707,7 +707,6 @@ class COMPUTE_LIGHTCURVE():
         print(r'\label{tbl:mkn_components}')
         print('\\end{table}')
 
-
     def load_ej_profile_for_mkn(self, fpath):
         th, mass, vel, ye = np.loadtxt(fpath,
                                        unpack=True, usecols=(0, 1, 2, 3))
@@ -1405,8 +1404,6 @@ def predic_value_from_fitfuncs(data, tasks):
 
         task["res"] = res
 
-
-
 ''' --- '''
 
 def plot_lighcurves(plotdic, linedics):
@@ -1441,7 +1438,23 @@ def plot_lighcurves(plotdic, linedics):
         if "text" in plotdic.keys():
             plotdic["text"]["transform"] = ax.transAxes
             ax.text(**plotdic["text"])
-        if "legend" in plotdic.keys():
+        if "add_lines" in plotdic.keys() and not "add_legend" in plotdic.keys(): # and not "add_legend" in plotdic.keys():
+            for entry in plotdic["add_lines"]:
+                ax.plot(**entry)
+
+        elif "add_lines" in plotdic.keys() and "add_legend" in plotdic.keys():
+
+            for entry in plotdic["add_lines"]:
+                ax.plot([-1e5,-2e5],[-1e5,-2e5], **entry)
+
+            n = len(plotdic["add_lines"])
+
+            han, lab = ax.get_legend_handles_labels()
+            print(len(han), len(lab))
+            ax.add_artist(ax.legend(han[:-1 * n], lab[:-1 * n], **plotdic["legend"]))
+            #
+            ax.add_artist( ax.legend(han[len(han) - n:], lab[len(lab) - n:], **plotdic["add_legend"]))
+        else:
             ax.legend(**plotdic["legend"])
 
     print("plotted: \n")
@@ -1543,48 +1556,242 @@ def get_times_mags_from_pars(pars, band = "Ks"):
 
 def task_plot_lightcurve_synthetic_model():
 
+
+
+    line_dics = []
+    ''' --- mode1 --- '''
+
     # model
-    sim = "BLh_M13641364_M0_LK"
-    model = md.groups[md.groups.index == sim]
+    sim = "DD2_M13641364_M0_LK_R04"
+    models = md.groups
+
+
+    #models.drop(params.blacklist, axis=0)
+    # mdoels = models.set_index("group")
+    #print(models); exit(0)
+    model = models[models.group == sim]
+    print(model)
+    #model = md.groups[md.groups.index == sim]
 
     # fitted vals
     mej_mean = 5.220e-03 # Msun
-    mej_poly22 = Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)
-    mej_diet = Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model) / 1e3
-    mej_krug = Fitting_Functions.mej_kruger20([-0.981, 12.880, -35.148, 2.030], model) / 1e3
+    mej_poly22 = float(Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)) / 1e3
+    mej_diet = float(Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model)) / 1e3
+    mej_krug = float(Fitting_Functions.mej_kruger20([-0.981, 12.880, -35.148, 2.030], model)) / 1e3
 
     vej_mean = 0.189 # \pm 0.049
-    vej_poly22 = Fitting_Functions.poly_2_qLambda([0.182, 0.159, -1.509e-04, -1.046e-01, 9.233e-05, -1.581e-08], model)
-    vej_diet = Fitting_Functions.vej_dietrich16([-0.422, 0.834, -1.510], model)
+    vej_poly22 = float(Fitting_Functions.poly_2_qLambda([0.182, 0.159, -1.509e-04, -1.046e-01, 9.233e-05, -1.581e-08], model))
+    vej_diet = float(Fitting_Functions.vej_dietrich16([-0.422, 0.834, -1.510], model))
 
-    yeej_poly22 = Fitting_Functions.poly_2_qLambda([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07], model)
-    yeej_our = Fitting_Functions.yeej_like_vej([0.177, 0.452, -4.611], Vals)
+    yeej_mean = 0.167 # \pm 0.057
+    yeej_poly22 = float(Fitting_Functions.poly_2_qLambda([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07], model))
+    yeej_our = float(Fitting_Functions.yeej_like_vej([0.177, 0.452, -4.611], model))
 
-    mdisk = Fitting_Functions.poly_2_qLambda([-8.951e-01, 1.195, 4.292e-04, -3.991e-01, 4.778e-05, -2.266e-07], model)
-    mdisk = Fitting_Functions.mdisk_radice18([0.070, 0.101, 305.009, 189.952], model)
-    mdisk = Fitting_Functions.mdisk_kruger20([-0.013, 1.000, 1325.652], model)
+    mdisk_mean = 0.122 # \pm 0.088
+    mdisk_poly22 = float(Fitting_Functions.poly_2_qLambda([-8.951e-01, 1.195, 4.292e-04, -3.991e-01, 4.778e-05, -2.266e-07], model))
+    mdisk_radi = float(Fitting_Functions.mdisk_radice18([0.070, 0.101, 305.009, 189.952], model))
+    mdisk_krug = float(Fitting_Functions.mdisk_kruger20([-0.013, 1.000, 1325.652], model))
 
-    print("\t-------------------")
+    print("\t--------------------")
     print("\t model: {}".format(sim))
-    print("\t Mej Mean " + "{:.1f}".format(mej_mean * 1e3))
-    print("\t Mej Eq.1~\cite{Dietrich:2016fpt}"  + "{:.1f}".format(mej_diet * 1e3) + "[10^{3} M_{\odot}]")
-    print("\t Mej Eq.6~\cite{Kruger:2020gig} " + "{:.1f}".format(mej_krug * 1e3) + "[10^{3} M_{\odot}]")
-    print("\t Mej Eq.P22 " + "{:.1f}".format(mej_poly22 * 1e3) + "[10^{3} M_{\odot}]")
+    print("\t--------------------")
+    print("\t Mej Model                        " + "{:.1f}".format(float(model["Mej_tot-geo"]) * 1e3))
+    print("\t Mej Mean                         " + "{:.1f}".format(mej_mean * 1e3))
+    print("\t Mej Eq.1~\cite{Dietrich:2016fpt} "  + "{:.1f}".format(mej_diet * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t Mej Eq.6~\cite{Kruger:2020gig}   " + "{:.1f}".format(mej_krug * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(mej_poly22 * 1e3) + " [10^{3} M_{\odot}]")
     print("\t-------------------")
-    print("\t vej Mean " + "{:.3f}".format(vej_mean))
-    print("\t Mej Eq.5~\cite{Dietrich:2016fpt}" + "{:.1f}".format(vej_diet * 1e3) + "[c]")
-    print("\t Mej Eq.P22 " + "{:.1f}".format(vej_diet * 1e3) + "[c]")
+    print("\t vej Model                        " + "{:.3f}".format(float(model["vel_inf_ave-geo"])) + " [c]")
+    print("\t vej Mean                         " + "{:.3f}".format(vej_mean) + " [c]")
+    print("\t Mej Eq.5~\cite{Dietrich:2016fpt} " + "{:.1f}".format(vej_diet) + " [c]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(vej_poly22) + " [c]")
+    print("\t-------------------")
+    print("\t Ye Model                         " + "{:.3f}".format(float(model["Ye_ave-geo"])))
+    print("\t Ye Mean                          " + "{:.3f}".format(yeej_mean))
+    print("\t Mej Eq.~OUR                      " + "{:.1f}".format(yeej_our))
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(yeej_poly22))
+    print("\t-------------------")
+    print("\t Mdisk Model                      " + "{:.3f}".format(float(model["Mdisk3D"])) + " [M_{\odot}]")
+    print("\t Mdisk mean                       " + "{:.3f}".format(mdisk_mean) + " [M_{\odot}]")
+    print("\t Mej Eq.25~\cite{Radice:2018pdn}  " + "{:.3f}".format(mdisk_radi) + " [M_{\odot}]")
+    print("\t Mej Eq.4~\cite{Kruger:2020gig}   " + "{:.3f}".format(mdisk_krug) + " [M_{\odot}]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(mdisk_poly22) + " [M_{\odot}]")
 
+    #exit(1)
 
-    # compute MKN
-    pars = {"mej":mej, "vej":vej, "mdisk":mdisk}
+    # define MKN parameters
+
+    pars = {"mej": mej_mean, "vej": vej_mean, "mdisk": mdisk_mean}
     times, mags = get_times_mags_from_pars(pars, "Ks")
-    linedic_poly22 = {"x":times,"y":mags, "color": "red", "ls": ':', "lw": 0.8, "label": r"(Poly22)"}
+    line_dics.append({"x": times, "y": mags, "color": "blue", "ls": '-', "lw": 0.8, "label": r"$M_{\rm ej}$ Mean $v_{\rm ej}$ Mean"})
 
+    pars = {"mej": mej_poly22, "vej": vej_poly22, "mdisk": mdisk_poly22}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "blue", "ls": '--', "lw": 0.8, "label": r"$M_{\rm ej}$ P22 $v_{\rm ej}$ P22"})
+
+    pars = {"mej": mej_diet, "vej": vej_diet, "mdisk": mdisk_radi}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "blue", "ls": '-.', "lw": 0.8, "label": r"$M_{\rm ej}$ D+16 $v_{\rm ej}$ D+16"})
+
+    pars = {"mej": mej_krug, "vej": vej_poly22, "mdisk": mdisk_krug}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "blue", "ls": ':', "lw": 0.8, "label": r"$M_{\rm ej}$ K+19 $v_{\rm ej}$ P22"})
+
+
+    ''' --- mode2 --- '''
+
+    sim = "SFHo_M13641364_M0_LK_p2019"
+    models = md.groups
+
+    model = models[models.group == sim]
+    print(model)
+
+    mej_mean = 5.220e-03 # Msun
+    mej_poly22 = float(Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)) / 1e3
+    mej_diet = float(Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model)) / 1e3
+    mej_krug = float(Fitting_Functions.mej_kruger20([-0.981, 12.880, -35.148, 2.030], model)) / 1e3
+
+    vej_mean = 0.189 # \pm 0.049
+    vej_poly22 = float(Fitting_Functions.poly_2_qLambda([0.182, 0.159, -1.509e-04, -1.046e-01, 9.233e-05, -1.581e-08], model))
+    vej_diet = float(Fitting_Functions.vej_dietrich16([-0.422, 0.834, -1.510], model))
+
+    yeej_mean = 0.167 # \pm 0.057
+    yeej_poly22 = float(Fitting_Functions.poly_2_qLambda([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07], model))
+    yeej_our = float(Fitting_Functions.yeej_like_vej([0.177, 0.452, -4.611], model))
+
+    mdisk_mean = 0.122 # \pm 0.088
+    mdisk_poly22 = float(Fitting_Functions.poly_2_qLambda([-8.951e-01, 1.195, 4.292e-04, -3.991e-01, 4.778e-05, -2.266e-07], model))
+    mdisk_radi = float(Fitting_Functions.mdisk_radice18([0.070, 0.101, 305.009, 189.952], model))
+    mdisk_krug = float(Fitting_Functions.mdisk_kruger20([-0.013, 1.000, 1325.652], model))
+
+    print("\t--------------------")
+    print("\t model: {}".format(sim))
+    print("\t--------------------")
+    print("\t Mej Model                        " + "{:.1f}".format(float(model["Mej_tot-geo"]) * 1e3))
+    print("\t Mej Mean                         " + "{:.1f}".format(mej_mean * 1e3))
+    print("\t Mej Eq.1~\cite{Dietrich:2016fpt} "  + "{:.1f}".format(mej_diet * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t Mej Eq.6~\cite{Kruger:2020gig}   " + "{:.1f}".format(mej_krug * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(mej_poly22 * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t-------------------")
+    print("\t vej Model                        " + "{:.3f}".format(float(model["vel_inf_ave-geo"])) + " [c]")
+    print("\t vej Mean                         " + "{:.3f}".format(vej_mean) + " [c]")
+    print("\t Mej Eq.5~\cite{Dietrich:2016fpt} " + "{:.1f}".format(vej_diet) + " [c]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(vej_poly22) + " [c]")
+    print("\t-------------------")
+    print("\t Ye Model                         " + "{:.3f}".format(float(model["Ye_ave-geo"])))
+    print("\t Ye Mean                          " + "{:.3f}".format(yeej_mean))
+    print("\t Mej Eq.~OUR                      " + "{:.1f}".format(yeej_our))
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(yeej_poly22))
+    print("\t-------------------")
+    print("\t Mdisk Model                      " + "{:.3f}".format(float(model["Mdisk3D"])) + " [M_{\odot}]")
+    print("\t Mdisk mean                       " + "{:.3f}".format(mdisk_mean) + " [M_{\odot}]")
+    print("\t Mej Eq.25~\cite{Radice:2018pdn}  " + "{:.3f}".format(mdisk_radi) + " [M_{\odot}]")
+    print("\t Mej Eq.4~\cite{Kruger:2020gig}   " + "{:.3f}".format(mdisk_krug) + " [M_{\odot}]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(mdisk_poly22) + " [M_{\odot}]")
+
+    #exit(1)
+
+
+    # define MKN parameters
+
+    pars = {"mej": mej_mean, "vej": vej_mean, "mdisk": mdisk_mean}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "red", "ls": '-', "lw": 0.8})#, "label": r"$M_{\rm ej}$ Mean $v_{\rm rj}$ Mean"})
+
+    pars = {"mej": mej_poly22, "vej": vej_poly22, "mdisk": mdisk_poly22}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "red", "ls": '--', "lw": 0.8})#, "label": r"$M_{\rm ej}$ P22 $v_{\rm rj}$ P22"})
+
+    pars = {"mej": mej_diet, "vej": vej_diet, "mdisk": mdisk_radi}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "red", "ls": '-.', "lw": 0.8})#, "label": r"$M_{\rm ej}$ D+16 $v_{\rm rj}$ D+16"})
+
+    pars = {"mej": mej_krug, "vej": vej_poly22, "mdisk": mdisk_krug}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "red", "ls": ':', "lw": 0.8})#, "label": r"$M_{\rm ej}$ K+19 $v_{\rm rj}$ P22"})
+
+    ''' --- mode3 --- '''
+
+    sim = "BLh_M11461635_M0_LK"
+    models = md.groups
+
+    model = models[models.group == sim]
+    print(model)
+
+    mej_mean = 5.220e-03  # Msun
+    mej_poly22 = float(
+        Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)) / 1e3
+    mej_diet = float(Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model)) / 1e3
+    mej_krug = float(Fitting_Functions.mej_kruger20([-0.981, 12.880, -35.148, 2.030], model)) / 1e3
+
+    vej_mean = 0.189  # \pm 0.049
+    vej_poly22 = float(
+        Fitting_Functions.poly_2_qLambda([0.182, 0.159, -1.509e-04, -1.046e-01, 9.233e-05, -1.581e-08], model))
+    vej_diet = float(Fitting_Functions.vej_dietrich16([-0.422, 0.834, -1.510], model))
+
+    yeej_mean = 0.167  # \pm 0.057
+    yeej_poly22 = float(
+        Fitting_Functions.poly_2_qLambda([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07], model))
+    yeej_our = float(Fitting_Functions.yeej_like_vej([0.177, 0.452, -4.611], model))
+
+    mdisk_mean = 0.122  # \pm 0.088
+    mdisk_poly22 = float(
+        Fitting_Functions.poly_2_qLambda([-8.951e-01, 1.195, 4.292e-04, -3.991e-01, 4.778e-05, -2.266e-07], model))
+    mdisk_radi = float(Fitting_Functions.mdisk_radice18([0.070, 0.101, 305.009, 189.952], model))
+    mdisk_krug = float(Fitting_Functions.mdisk_kruger20([-0.013, 1.000, 1325.652], model))
+
+    print("\t--------------------")
+    print("\t model: {}".format(sim))
+    print("\t--------------------")
+    print("\t Mej Model                        " + "{:.1f}".format(float(model["Mej_tot-geo"]) * 1e3))
+    print("\t Mej Mean                         " + "{:.1f}".format(mej_mean * 1e3))
+    print("\t Mej Eq.1~\cite{Dietrich:2016fpt} " + "{:.1f}".format(mej_diet * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t Mej Eq.6~\cite{Kruger:2020gig}   " + "{:.1f}".format(mej_krug * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(mej_poly22 * 1e3) + " [10^{3} M_{\odot}]")
+    print("\t-------------------")
+    print("\t vej Model                        " + "{:.3f}".format(float(model["vel_inf_ave-geo"])) + " [c]")
+    print("\t vej Mean                         " + "{:.3f}".format(vej_mean) + " [c]")
+    print("\t Mej Eq.5~\cite{Dietrich:2016fpt} " + "{:.1f}".format(vej_diet) + " [c]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(vej_poly22) + " [c]")
+    print("\t-------------------")
+    print("\t Ye Model                         " + "{:.3f}".format(float(model["Ye_ave-geo"])))
+    print("\t Ye Mean                          " + "{:.3f}".format(yeej_mean))
+    print("\t Mej Eq.~OUR                      " + "{:.1f}".format(yeej_our))
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(yeej_poly22))
+    print("\t-------------------")
+    print("\t Mdisk Model                      " + "{:.3f}".format(float(model["Mdisk3D"])) + " [M_{\odot}]")
+    print("\t Mdisk mean                       " + "{:.3f}".format(mdisk_mean) + " [M_{\odot}]")
+    print("\t Mej Eq.25~\cite{Radice:2018pdn}  " + "{:.3f}".format(mdisk_radi) + " [M_{\odot}]")
+    print("\t Mej Eq.4~\cite{Kruger:2020gig}   " + "{:.3f}".format(mdisk_krug) + " [M_{\odot}]")
+    print("\t Mej Eq.P22                       " + "{:.1f}".format(mdisk_poly22) + " [M_{\odot}]")
+
+    # exit(1)
+
+    # define MKN parameters
+
+    pars = {"mej": mej_mean, "vej": vej_mean, "mdisk": mdisk_mean}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "green", "ls": '-',
+                      "lw": 0.8})  # , "label": r"$M_{\rm ej}$ Mean $v_{\rm rj}$ Mean"})
+
+    pars = {"mej": mej_poly22, "vej": vej_poly22, "mdisk": mdisk_poly22}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "green", "ls": '--',
+                      "lw": 0.8})  # , "label": r"$M_{\rm ej}$ P22 $v_{\rm rj}$ P22"})
+
+    pars = {"mej": mej_diet, "vej": vej_diet, "mdisk": mdisk_radi}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "green", "ls": '-.',
+                      "lw": 0.8})  # , "label": r"$M_{\rm ej}$ D+16 $v_{\rm rj}$ D+16"})
+
+    pars = {"mej": mej_krug, "vej": vej_poly22, "mdisk": mdisk_krug}
+    times, mags = get_times_mags_from_pars(pars, "Ks")
+    line_dics.append({"x": times, "y": mags, "color": "green", "ls": ':',
+                      "lw": 0.8})  # , "label": r"$M_{\rm ej}$ K+19 $v_{\rm rj}$ P22"})
 
     plot_dic = {
         # "subplots":{"figsize": (6.0, 6.0), "ncols":1,"nrows":3, "sharex":True,"sharey":False},
-        "figsize": (4.2, 3.6),
+        "figsize": (6.0, 5.5),
         'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
         'ymin': 23, 'ymax': 18, 'ylabel': r"AB magnitude at 40 Mpc",
         'fontsize': 14,
@@ -1596,12 +1803,22 @@ def task_plot_lightcurve_synthetic_model():
                         "bottom": True, "top": True, "left": True, "right": True},
         "legend": {"fancybox": False, "loc": 'upper right',
                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 2, "fontsize": 12, "columnspacing": 0.4,
+                   "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
-        # "text": {'x': 0.85, 'y': 0.90, 's': r"Poly2", 'fontsize': 14, 'color': 'black',
-        #          'horizontalalignment': 'center'},
+        "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        # "add_legend"
+        "add_lines":[
+            {"ls" : "-", "color": "blue", "label": "DD2 q=1.00 (SR)"},
+            {"ls" : "-", "color": "red", "label": "SFho q=1.00 (SR)"},
+            {"ls":  "-", "color": "green", "label": "BLh q=1.43 (SR)"},
+        ],
+        "add_legend": {"fancybox": False, "loc": 'lower left',
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "savepdf": True,
-        "figname": __outplotdir__ + "mkn_dyn_fit_target.png",
+        "figname": __outplotdir__ + "Ks_dyn_fit.png",
         "dpi": 128,
         "tight_layout": True
     }
@@ -1610,6 +1827,17 @@ def task_plot_lightcurve_synthetic_model():
 
 
 if __name__ == "__main__":
+
+    o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+    o_mkn.set_glob_par_var_source(False, False)
+    o_mkn.set_dyn_iso_aniso = "aniso"
+    o_mkn.set_dyn_par_var("aniso")
+    # o_mkn.print_latex_table_of_glob_pars()
+    o_mkn.print_latex_table_of_ejecta_pars(["dynamics"])
+    #o_mkn.compute_save_lightcurve(write_output=True)
+
+
+    #task_plot_lightcurve_synthetic_model()
 
     # o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
     # o_mkn.set_glob_par_var_source(False, False)
@@ -1622,4 +1850,4 @@ if __name__ == "__main__":
     # load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
     #print(load_mkn.get_model_peaks("g", "mkn_model.h5"))
 
-    fitting_function_predict()
+    #fitting_function_predict()

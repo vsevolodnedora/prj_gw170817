@@ -1727,7 +1727,7 @@ def plot_slice_2halfs__with_morror_function(task, plotdic):
                 plotdic["text"]["transform"] = ax.transAxes
                 ax.text(**plotdic["text"])
             #
-            ax.set_title(r'$t-t_{merg}:$' + r'${:.1f}$'.format((time_ - tmerg) * 1e3))
+            ax.set_title(r'$t-t_{merg} = $' + r'${:.1f}$'.format((time_ - tmerg) * 1e3))
             #
             ax.tick_params(axis='both', which='both', labelleft=True,
                            labelright=False, tick1On=True, tick2On=True,
@@ -3084,8 +3084,8 @@ if __name__ == '__main__':
 
     ''' ------ Slices XZ Ye & hu ----------- '''
 
-    # tasl_plot_slice_2halfs_xz_2()
-    # tasl_plot_slice_2halfs_xy_2()
+    tasl_plot_slice_2halfs_xz_2()
+    tasl_plot_slice_2halfs_xy_2()
 
 ''' --- iteration 2 --- '''
 

@@ -631,9 +631,12 @@ def plot_total_angular_momentum_colormesh(task, plotdic):
     #
     if "title" in plotdic.keys(): ax.set_title(plotdic["title"], fontsize=plotdic["fontsize"])
     #
+
     clb = fig.colorbar(im, ax=ax)
     plt.tight_layout()
-    clb.ax.set_title(plotdic["clabel"], fontsize=plotdic["fontsize"])
+    if "clabel" in plotdic.keys(): clb.set_label(plotdic["clabel"], fontsize=plotdic["fontsize"])
+    if "ctitle" in plotdic.keys(): clb.ax.set_title(plotdic["clabel"], fontsize=plotdic["fontsize"])
+
     clb.ax.tick_params(labelsize=plotdic["fontsize"])
     clb.ax.minorticks_off()
     #
@@ -2895,7 +2898,8 @@ def task_plot_total_angular_momentum_flux_colormesh_2():
                    "xlabel": r"$t-t_{\rm merg}$ [ms]",
                    "ylabel": r"$R_{\rm cyl}$ [km]",
                    "title": "BLh q=1.00 (SR)",  # + "[{}ms]".format(task["t1"]),
-                   "clabel": r"$Jf_{r}$ [$G\, c^{-1} M_\odot$]",
+                   "clabel": r"Angualr momentum flux [$G\, c^{-1} M_\odot$]",# r"$Jf_{r}$ [$G\, c^{-1} M_\odot$]",
+                   #"ctitle": r"$Jf_{r}$ [$G\, c^{-1} M_\odot$]",
                    # "text": {"x": 0.3, "y": 0.95, "s": r"$\theta>60\deg$", "ha": "center", "va": "top", "fontsize": 11,
                    #          "color": "white",
                    #          "transform": None},
@@ -3096,15 +3100,15 @@ if __name__ == '__main__':
 
     ''' --- density modes --- '''
 
-    task_plot_rho_modes_2D_3()
-    task_plot_dens_modes_2D_3()
+    # task_plot_rho_modes_2D_3()
+    # task_plot_dens_modes_2D_3()
 
     ''' --- total angular momentum evolution --- '''
 
     # task_plot_total_angular_momentum_2()
 
     ''' --- angular momentum flux colormesh --- '''
-    # task_plot_total_angular_momentum_flux_colormesh_2()
+    task_plot_total_angular_momentum_flux_colormesh_2()
 
 ''' --- iteration 3 --- '''
 

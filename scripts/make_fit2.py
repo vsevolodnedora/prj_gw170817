@@ -912,14 +912,18 @@ class Fit_Data:
         #dataframe.to_csv("/data01/numrel/vsevolod.nedora/tmp/dataset.csv")
 
     def get_err(self, vals):
+        res = np.zeros(0,)
         if self.error_method == "std":
-            return np.std(vals)
+            res =  np.std(vals)
         elif self.error_method == "2std":
-            return 2. * np.std(vals)
+            res = 2. * np.std(vals)
         elif self.error_method == "arr":
-            return self.dataframe["err_" + self.fit_v_n]
+            res = self.dataframe["err_" + self.fit_v_n]
         else:
             raise NameError("no err method: {}".format(self.error_method))
+
+        if self.fit_v_n == "Mej_tot-geo": res = res * 1e3
+        return res
 
     def get_chi2(self, y_vals, y_expets, y_errs):
         assert len(y_vals) == len(y_expets)
@@ -4471,7 +4475,7 @@ if __name__ == '__main__':
 
     ''' --- tasks | vej --- '''
     # task_vej_chi2dofs()
-    task_vej_print_stats()
+    # task_vej_print_stats()
     # task_vej_print_table_overall()
     #task_vmj_print_table_overall_linear_regresion()
     # task_vmj_print_table_overall_linear_regresion2()
@@ -4481,14 +4485,14 @@ if __name__ == '__main__':
     # task_ye_print_stats()
     # task_ye_print_table_overall()
     # task_ye_print_table_overall_linear_regresion()
-    #task_ye_print_table_overall_linear_regresion2()
+    # task_ye_print_table_overall_linear_regresion2()
     ''' --- task | Mdisk --- '''
     #task_mdisk_chi2dofs()
-    # task_mdisk_print_stats()
+    task_mdisk_print_stats()
     #task_mdisk_print_table_overall()
     #task_mdisk_print_table_overall_2()
     #task_mdisk_print_table_overall_linear_regresion()
-    #task_mdisk_print_table_overall_linear_regresion2()
+    # task_mdisk_print_table_overall_linear_regresion2()
 
     ''' -------------------- '''
 
