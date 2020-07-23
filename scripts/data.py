@@ -727,7 +727,7 @@ class COMPUTE_ARR(LOAD_FILES):
         else:
             return np.zeros(0,), np.zeros(0,), np.zeros(2,)
 
-    def get_enclosed_mj(self, reshape=False):
+    def get_enclosed_mj(self, reshape=False, mask=None):
         """
         Angualr momentum, mass, I, within a given shell
         To obtain the total quantity -- use
@@ -741,7 +741,7 @@ class COMPUTE_ARR(LOAD_FILES):
         :param options_Jfac_fidu:
         :return:
         """
-        iterations, times, dataset = self.get_3d_data("MJ_encl.txt")
+        iterations, times, dataset = self.get_3d_data("MJ_encl.txt", mask=mask)
         dic = {}
         for i, t in enumerate(times):
             dic[t] = dataset[i]
@@ -795,13 +795,13 @@ class COMPUTE_ARR(LOAD_FILES):
             #
             return all_iterations, all_times, rc, all_j, all_jf, all_m, all_i
 
-    def get_total_enclosed_j_jf_mb(self, extraction_radius=None):
+    def get_total_enclosed_j_jf_mb(self, extraction_radius=None, mask=None):
 
         iterations, times, rc, all_j, all_jf, all_m, all_i = \
-            self.get_enclosed_mj(reshape=False)
+            self.get_enclosed_mj(reshape=False, mask=mask)
         tot_j, tot_jf, tot_mb = [], [], []
         for i in range(len(iterations)):
-            #
+
             if extraction_radius != None:
                 if isinstance(extraction_radius, str):
                     sign = extraction_radius[0]
@@ -833,10 +833,10 @@ class COMPUTE_ARR(LOAD_FILES):
         #
         return iterations, times, tot_j, tot_jf, tot_mb
 
-    def get_total_enclosed_djdt(self, reinterpolate="None", extraction_radius=None):
+    def get_total_enclosed_djdt(self, reinterpolate="None", extraction_radius=None, mask=None):
 
         iterations, times, tot_j, tot_jf, tot_mb = \
-            self.get_total_enclosed_j_jf_mb(extraction_radius)
+            self.get_total_enclosed_j_jf_mb(extraction_radius, mask=mask)
         # convert times into GEO units (for the dJ/dt to be in the same units)
 
 

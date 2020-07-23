@@ -1837,9 +1837,9 @@ def task_plot_j0_mb_RNS_j3D_m3D_evo_2():
 if __name__ == "__main__":
 
     ''' --- --- J0 Mb from init data with RNS --- --- '''
-    task_plot_j0_mb_RNS_j3D_m3D_evo_2()
+    #task_plot_j0_mb_RNS_j3D_m3D_evo_2()
 
-    exit(0)
+    #exit(0)
 
 if __name__ == "__main__":
 
@@ -1856,7 +1856,7 @@ if __name__ == "__main__":
     # task_plot_j0_mb_RNS_j3D_M3D_mej_final()
 
     ''' --- --- J0 Mb from init data with RNS --- --- '''
-    task_plot_j0_mb_RNS_j3D_m3D_evo()
+    #task_plot_j0_mb_RNS_j3D_m3D_evo()
 
     ''' --- Mb/M_rns vs Mej_sec --- '''
     # task_plot_mbsupramss_sec_ev_mass()

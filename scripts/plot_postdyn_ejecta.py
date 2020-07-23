@@ -929,8 +929,6 @@ def plot_total_ejecta_hist(tasks, plotdic):
 
 def custom_plot_total_ejecta_hist(tasks, plotdics):
 
-
-
     fig, axes = plt.subplots(figsize=plotdics[0]["figsize"], ncols=len(plotdics), nrows=1, sharey=True)
     # ax = fig.add_subplot(111)
     i = 0
@@ -1727,7 +1725,7 @@ def plot_slice_2halfs__with_morror_function(task, plotdic):
                 plotdic["text"]["transform"] = ax.transAxes
                 ax.text(**plotdic["text"])
             #
-            ax.set_title(r'$t-t_{merg} = $' + r'${:.1f}$'.format((time_ - tmerg) * 1e3))
+            ax.set_title(r'$t-t_{merg} = $' + r'${:.1f}$ ms'.format((time_ - tmerg) * 1e3))
             #
             ax.tick_params(axis='both', which='both', labelleft=True,
                            labelright=False, tick1On=True, tick2On=True,
@@ -3080,7 +3078,7 @@ if __name__ == '__main__':
     ''' ------ Ejecta 1D histrograms ------- '''
 
     #task_plot_total_ejecta_hist_2()
-    # custom_task_plot_total_ejecta_hist_2() # subplots
+    custom_task_plot_total_ejecta_hist_2() # subplots
 
     ''' ------ Slices XZ Ye & hu ----------- '''
 

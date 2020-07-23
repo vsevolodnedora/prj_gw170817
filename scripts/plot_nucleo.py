@@ -244,7 +244,7 @@ def plot_yields_2(tasks, plotdic):
 
     # PLOT Models
     for task in tasks:
-        if plotdic["type"] == "all" or task["type"] == plotdic["type"]:
+        if True:
 
             o_data = ADD_METHODS_ALL_PAR(task["sim"], add_mask=task["mask"])
             a_sim, y_sim = o_data.get_nucleo_outflow(task["det"], task["mask"], method=task["method"], solardataset=task["solar"])
@@ -457,7 +457,7 @@ def plot_yields_colocoded2(tasks, plotdic):
     cmap = matplotlib.cm.get_cmap(plotdic["cmap"])
     #
     # print(models.EOS); exit(1)
-    for eos in ["DD2", "LS220", "SFHo", "SLy4", "BLh"]:
+    for eos in ["BLh", "DD2", "LS220", "SFHo", "SLy4"]:
         # fig = plt.figure()
         # ax = fig.add_axes([0.15, 0.12, 0.82 - 0.15, 0.92 - 0.12])
         # cax = fig.add_axes([0.84, 0.12, 0.02, 0.92 - 0.12])
@@ -471,8 +471,8 @@ def plot_yields_colocoded2(tasks, plotdic):
 
         for task in tasks:
             o_data = ADD_METHODS_ALL_PAR(task["sim"], add_mask=task["mask"])
-            meos = o_data.get_initial_data_par("EOS")
-            if meos == eos:
+            meos = task["EOS"]#o_data.get_initial_data_par("EOS")
+            if eos == meos:
                 a_sim, y_sim = o_data.get_nucleo_outflow(task["det"], task["mask"], method=task["method"], solardataset=task["solar"])
                 q = o_data.get_initial_data_par("q")
                 print(task["sim"], y_sim.max())
@@ -980,6 +980,7 @@ def task_plot_yields_2():
     ]
 
     for t in task:
+
         t["plot"]["color"] = md.sim_dic_color[t["sim"]]
         #t["plot"]["ls"] = md.sim_dic_ls[t["sim"]]
 
@@ -1022,6 +1023,60 @@ def task_plot_yields_2():
 
     plot_yields_2(task, plot_dic)
 
+def task_plot_yields_2test():
+
+    task = [
+        #{"sim": "BLh_M13641364_M0_LK_SR", "mask": "geo",             "plot": {"color": "black", "ls": "--", "lw": 0.8, "alpha": 1.}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "mask": "geo bern_geoend", "plot": {"color": "black", "ls": "-", "lw": 1.0, "label":"BLh q=1.00 (SR)", "alpha": 1.}},
+
+        #{"sim": "DD2_M13641364_M0_LK_SR_R04", "mask": "geo",             "plot": {"color": "blue", "ls": "--", "lw": 0.8, "alpha": 1.}},
+        {"sim": "DD2_M13641364_M0_LK_SR_R04", "mask": "geo bern_geoend", "plot": {"color": "blue", "ls": "-", "lw": 1.0, "label":"DD2 q=1.00 (SR)", "alpha": 1.}},
+    ]
+
+    for t in task:
+        pass
+        t["plot"]["color"] = md.sim_dic_color[t["sim"]]
+        #t["plot"]["ls"] = md.sim_dic_ls[t["sim"]]
+
+    for t in task:
+        for t in task: t["det"] = 0
+        for t in task: t["plot"]["drawstyle"] = "steps"
+        for t in task: t["method"] = "Asol=195"
+        for t in task: t["solar"] = "Prantzos2019" #"Sneden2008"# "old"
+
+    plot_dic = {
+        "type": "all",
+        "figsize": (6., 5.5),
+        "xmin": 50, "xmax": 250.,
+        "ymin": 1e-5, "ymax": 2e-2,
+        # "mask_below": 1e-15, 'ymin': 1e-5, 'ymax': 2e-1, 'xmin': 50, 'xmax': 210,
+        "xscale": "linear", "yscale": "log",
+        "xlabel": r"Mass number, A",
+        "ylabel": r'Relative final abundances',
+        "legend": {"fancybox": False, "loc": 'upper right',
+                   #"bbox_to_anchor": (1.0, 0.5),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 14,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "multilegend": {
+            "lines": [
+                {"label": "Solar", 'color': 'gray', 'marker': 'o', 'ms': 4, 'alpha': 0.4, "linestyle": "None"},
+                {"label": r"Dyn.", "ls": "--", "lw": 0.8, "alpha": 1., "color": "gray"},
+                {"label": r"Dyn.+Wind", "ls": "-", "lw": 0.8, "alpha": 1., "color": "gray"}
+            ],
+            "legend": {"fancybox": False, "loc": 'lower left',
+                       "shadow": "False", "ncol": 1, "fontsize": 14,
+                       "framealpha": 0., "borderaxespad": 0., "frameon": False}
+        },
+        "title": None, #r"Long-lived remnants",
+        "text": {},#{"x": 0.7, "y": 0.95, "s": "Dyn. Ej.", "ha": "center", "va": "top", "fontsize": 11, "color": "black", "transform": None},
+        "plot_solar": {'color': 'gray', 'marker': 'o', 'ms': 4, 'alpha': 0.4, "linestyle": "None"},
+        "fontsize":14,
+        "savepdf":True,
+        "figname": __outplotdir__ + "nucleo_dd2_blh.png"
+    }
+
+    plot_yields_2(task, plot_dic)
+
 def task_plot_colocoded_yileds3():
 
     #
@@ -1032,41 +1087,43 @@ def task_plot_colocoded_yileds3():
 
     task = [
         # BLh
-        {"sim": "BLh_M13641364_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "BLh_M13651365_M0_SR",    "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "BLh_M11841581_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "BLh_M11461635_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "BLh_M10651772_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "BLh_M10201856_M0_SR",    "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "BLh_M10201856_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "EOS": "BLh", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "BLh_M13651365_M0_SR",    "EOS": "BLh", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "BLh_M11841581_M0_LK_SR", "EOS": "BLh", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "BLh_M11461635_M0_LK_SR", "EOS": "BLh", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "BLh_M10651772_M0_LK_SR", "EOS": "BLh", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "BLh_M10201856_M0_SR",    "EOS": "BLh", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "BLh_M10201856_M0_LK_SR", "EOS": "BLh", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
         # DD2
-        {"sim": "DD2_M13641364_M0_SR_R04", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "DD2_M13641364_M0_LK_SR_R04","det": 0, "mask": "geo", "method": "Asol=195","type": "long", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "DD2_M14971245_M0_SR",    "det": 0, "mask": "geo", "method": "Asol=195",  "type": "long", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "DD2_M15091235_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "DD2_M13641364_M0_SR_R04", "EOS": "DD2", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "DD2_M13641364_M0_LK_SR_R04", "EOS": "DD2", "det": 0, "mask": "geo", "method": "Asol=195","type": "long", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "DD2_M14971245_M0_SR",    "EOS": "DD2", "det": 0, "mask": "geo", "method": "Asol=195",  "type": "long", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "DD2_M15091235_M0_LK_SR", "EOS": "DD2", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
         # LS220
-        {"sim": "LS220_M13641364_M0_SR",   "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "LS220_M13641364_M0_LK_SR_restart","det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "LS220_M14691268_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "LS220_M14691268_M0_SR",    "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "LS220_M11461635_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "LS220_M10651772_M0_LK_SR", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "LS220_M13641364_M0_SR",   "EOS": "LS220", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "EOS": "LS220", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "LS220_M14691268_M0_LK_SR", "EOS": "LS220", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "LS220_M14691268_M0_SR",    "EOS": "LS220", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "LS220_M11461635_M0_LK_SR", "EOS": "LS220", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "LS220_M10651772_M0_LK_SR", "EOS": "LS220", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
         # SFHo
-        {"sim": "SFHo_M13641364_M0_SR",     "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "SFHo_M13641364_M0_LK_SR_2019pizza", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "SFHo_M14521283_M0_SR",     "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "SFHo_M11461635_M0_LK_SR",  "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "SFHo_M13641364_M0_SR",     "EOS": "SFHo", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "SFHo_M13641364_M0_LK_SR_2019pizza", "EOS": "SFHo", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "SFHo_M14521283_M0_SR",     "EOS": "SFHo", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "SFHo_M11461635_M0_LK_SR",  "EOS": "SFHo", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
         #
-        {"sim": "SLy4_M13641364_M0_SR",     "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "SLy4_M14521283_M0_SR",     "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
-        {"sim": "SLy4_M11461635_M0_LK_SR",  "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "SLy4_M13641364_M0_SR",     "EOS": "SLy4", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "SLy4_M14521283_M0_SR",     "EOS": "SLy4", "det": 0, "mask": "geo", "method": "Asol=195", "type": "short", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+        {"sim": "SLy4_M11461635_M0_LK_SR",  "EOS": "SLy4", "det": 0, "mask": "geo", "method": "Asol=195", "type": "long", "plot": {"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
     ]
 
     for t in task:
         t["solar"] = "Prantzos2019"
 
     for t in task:
-        if t["type"] == "long": t["mask"] = "geo bern_geoend"
+        if t["type"] == "long":
+            t["mask"] = "geo bern_geoend"
+        # t["mask"] = "geo bern_geoend"
 
     #
     plot_dic = {
@@ -1076,7 +1133,7 @@ def task_plot_colocoded_yileds3():
         "cmap": "jet",
         "vmin":1.0, "vmax":1.8, "scale": "linear", "label": r"$q$",#r"$M_1/M_2$",
         "xmin": 50, "xmax": 250., "xscale": "linear", "xlabel": r"Mass number, A",
-        "ymin": 1e-5, "ymax": 2e-2,"yscale": "log", "ylabel": r'Relative final abundances',
+        "ymin": 1e-5, "ymax": 2e-1,"yscale": "log", "ylabel": r'Relative final abundances',
         "legend": {"fancybox": False, "loc": 'upper right',
                    #"bbox_to_anchor":(1.0, 0.0),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
                    "shadow": "False", "ncol": 1, "fontsize": 14,
@@ -1095,11 +1152,12 @@ def task_plot_colocoded_yileds3():
 if __name__ == "__main__":
     ''' --- separate models --- '''
     task_plot_yields_2()
+    # task_plot_yields_2test()
 
     ''' --- colorcoded q --- '''
 
     # task_plot_colocoded_yileds3()
-    # task_plot_colocoded_yileds3()
+    task_plot_colocoded_yileds3()
 
 ''' --- iteration 2 --- '''
 

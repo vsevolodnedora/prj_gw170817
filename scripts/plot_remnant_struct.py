@@ -801,6 +801,160 @@ def plot_total_angular_momentum(tasks, plotdic):
     if "savepdf" in plotdic.keys() and plotdic["savepdf"]: plt.savefig(plotdic["figname"].replace(".png", ".pdf"))
     plt.close()
 
+def plot_total_angular_momentum2(tasks, plotdic):
+    fig = plt.figure(figsize=plotdic["figsize"])
+    ax = fig.add_subplot(111)
+
+    for task in tasks:
+        if plotdic["type"] == "all" or task["type"] == plotdic["type"]:
+
+            o_data = ADD_METHODS_ALL_PAR(task["sim"])
+            if task["v_n"] == "J":
+                iterations, times, array, tot_jf, tot_mb = \
+                    o_data.get_total_enclosed_j_jf_mb(mask=task["mask"])
+
+            elif task["v_n"] == "Jflux":
+                iterations, times, tot_j, array, tot_mb = \
+                    o_data.get_total_enclosed_j_jf_mb(mask=task["mask"])
+            elif task["v_n"] == "dJ/dt":
+                times, array = o_data.get_total_enclosed_djdt(task["intmethod"], mask=task["mask"])
+                times = times[array<0]
+                array = -1.*array[array<0]
+                # array = np.abs(array)
+                #
+                # if len(array) % 3 == 0:
+                #     array = np.mean(array.reshape(-1, 3), axis=1).flatten()
+                #     times = np.mean(times.reshape(-1, 3), axis=1).flatten()
+                # elif len(array) % 4 == 0:
+                #     array = np.mean(array.reshape(-1, 4), axis=1).flatten()
+                #     times = np.mean(times.reshape(-1, 4), axis=1).flatten()
+                # elif len(array) % 5 == 0:
+                #     array = np.mean(array.reshape(-1, 5), axis=1).flatten()
+                #     times = np.mean(times.reshape(-1, 5), axis=1).flatten()
+                # elif len(array) % 6 == 0:
+                #     array = np.mean(array.reshape(-1, 6), axis=1).flatten()
+                #     times = np.mean(times.reshape(-1, 6), axis=1).flatten()
+            elif task["v_n"] == "dJ/dt-Jflux":
+                times, djdt = o_data.get_total_enclosed_djdt(mask=task["mask"])
+                iterations, times, tot_j, tot_jflux, tot_mb = \
+                    o_data.get_total_enclosed_j_jf_mb(mask=task["mask"])
+                #
+                times = times
+                array = djdt - tot_jflux
+
+                times = times[array>0]
+                array = array[array>0]
+            elif task["v_n"] == "-(dJ/dt-Jflux)":
+                times, djdt = o_data.get_total_enclosed_djdt(mask=task["mask"])
+                iterations, times, tot_j, tot_jflux, tot_mb = \
+                    o_data.get_total_enclosed_j_jf_mb(mask=task["mask"])
+                #
+                times = times
+                array = djdt - tot_jflux
+
+                times = times[array < 0]
+                array = -1. * array[array < 0]
+            elif task["v_n"] == "-(dJ/dt+Jflux)":
+                times, djdt = o_data.get_total_enclosed_djdt(mask=task["mask"])
+                iterations, times, tot_j, tot_jflux, tot_mb = \
+                    o_data.get_total_enclosed_j_jf_mb(mask=task["mask"])
+                #
+                times = times
+                array = -1. * (djdt + tot_jflux)
+                print("djdt:")
+                print(djdt)
+                print('\n')
+                print("jflux")
+                print(tot_jflux)
+                # exit(1)
+                times = times[array > 0]
+                array = array[array > 0]
+            elif task["v_n"] == "(dJ/dt-Jflux)/(dJ/dt)":
+                times, djdt = o_data.get_total_enclosed_djdt(mask=task["mask"])
+                iterations, times, tot_j, tot_jflux, tot_mb = \
+                    o_data.get_total_enclosed_j_jf_mb(mask=task["mask"])
+                #
+                times = times
+                array = (djdt + tot_jflux)/djdt
+                #
+                times = times[array>0]
+                array = array[array>0]
+            elif task["v_n"] == "(dJ/dt+Jflux)/(dJ/dt)":
+                times, djdt = o_data.get_total_enclosed_djdt(mask=task["mask"])
+                iterations, times, tot_j, tot_jflux, tot_mb = \
+                    o_data.get_total_enclosed_j_jf_mb(mask=task["mask"])
+                #
+                times = times
+                array = (djdt + tot_jflux) / djdt
+                #
+                times = times[array > 0]
+                array = array[array > 0]
+            else:
+                raise NameError("v_n {} is not recognized".format(task["v_n"]))
+
+            tmerg = o_data.get_par("tmerg")
+            times = (times - tmerg) * 1.e3  # ms
+            #
+            if "tmin" in task.keys():
+                array = array[times > task["tmin"]]
+                times = times[times > task["tmin"]]
+            if "tmax" in task.keys():
+                array = array[times <= task["tmax"]]
+                times = times[times <= task["tmax"]]
+
+
+            print(array)
+            if "plot" in task.keys():
+                ax.plot(times, array, **task["plot"])
+            else:
+                ax.plot(times, array, color=task["color"], ls=task["ls"], lw=task["lw"], alpha=task["alpha"],
+                        label=task["label"])
+
+    if not "fontsize" in plotdic.keys(): plotdic["fontsize"] = 12
+
+    if len(plotdic["multilegend"].keys())>0:
+        lines = plotdic["multilegend"]["lines"]
+        for line in lines:
+            ax.plot([-10, -10], [-20, -20], **line)
+        #
+        han, lab = ax.get_legend_handles_labels()
+        ax.add_artist(ax.legend(han[:-1 * len(lines)], lab[:-1 * len(lines)], **plotdic["legend"]))
+        #
+        ax.add_artist(ax.legend(han[len(han)-len(lines):], lab[len(lab)-len(lines):], **plotdic["multilegend"]["legend"]))
+    else:
+        ax.legend(**plotdic["legend"])
+
+    ax.set_yscale(plotdic["yscale"])
+    ax.set_xscale(plotdic["xscale"])
+
+    ax.set_xlabel(plotdic["xlabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+    ax.set_ylabel(plotdic["ylabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+
+    ax.set_xlim(plotdic["xmin"], plotdic["xmax"])
+    ax.set_ylim(plotdic["ymin"], plotdic["ymax"])
+    #
+    ax.tick_params(axis='both', which='both', labelleft=True,
+                   labelright=False, tick1On=True, tick2On=True,
+                   labelsize=plotdic["fontsize"],
+                   direction='in',
+                   bottom=True, top=True, left=True, right=True)
+    ax.minorticks_on()
+    # #
+    ax.set_title(plotdic["title"], fontsize=plotdic["fontsize"])
+    # #
+
+    #
+    #ax.legend(**plotdic["legend"])
+
+    plt.tight_layout()
+    #
+
+    print("plotted: \n")
+    print(plotdic["figname"])
+    plt.savefig(plotdic["figname"], dpi=128)
+    if "savepdf" in plotdic.keys() and plotdic["savepdf"]: plt.savefig(plotdic["figname"].replace(".png", ".pdf"))
+    plt.close()
+
 """ ----------- TASKS ----------- """
 
 def task_plot_rho_max():
@@ -2936,13 +3090,22 @@ def task_plot_total_angular_momentum_flux_colormesh_2():
 
 def task_plot_total_angular_momentum_2():
 
+    # task = [
+    #
+    #     {"sim":"BLh_M13641364_M0_LK_SR", "v_n": "J", "rext": ">8.2","plot":{"color":"black","ls":"-","lw":0.8,"label":r"BLh* q=1.00 (SR)"}},
+    #     {"sim": "BLh_M13641364_M0_LK_SR", "v_n": "J", "rext": "<8.2", "plot": {"color": "gray", "ls": "--", "lw": 0.8}},
+    #
+    #     {"sim": "DD2_M13641364_M0_SR", "v_n": "J", "rext": ">8.2", "plot": {"color": "blue", "ls": "-", "lw": 0.8, "label": r"DD2 q=1.00 (SR)"}},
+    #     {"sim": "DD2_M13641364_M0_SR", "v_n": "J", "rext": "<8.2", "plot": {"color": "cyan", "ls": "--", "lw": 0.8}}
+    # ]
+
     task = [
 
-        {"sim":"BLh_M13641364_M0_LK_SR", "v_n": "J", "rext":">8.2","plot":{"color":"black","ls":"-","lw":0.8,"label":r"BLh* q=1.00 (SR)"}},
-        {"sim": "BLh_M13641364_M0_LK_SR", "v_n": "J", "rext": "<8.2", "plot": {"color": "gray", "ls": "--", "lw": 0.8}},
+        {"sim":"BLh_M13641364_M0_LK_SR", "v_n": "J", "mask": "disk", "plot":{"color":"black","ls":"-","lw":0.8,"label":r"BLh* q=1.00 (SR)"}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "v_n": "J", "mask": "remnant", "plot": {"color": "gray", "ls": "--", "lw": 0.8}},
 
-        {"sim": "DD2_M13641364_M0_SR", "v_n": "J", "rext": ">8.2", "plot": {"color": "blue", "ls": "-", "lw": 0.8, "label": r"DD2 q=1.00 (SR)"}},
-        {"sim": "DD2_M13641364_M0_SR", "v_n": "J", "rext": "<8.2", "plot": {"color": "cyan", "ls": "--", "lw": 0.8}}
+        {"sim": "DD2_M13641364_M0_SR", "v_n": "J", "mask": "disk", "plot": {"color": "blue", "ls": "-", "lw": 0.8, "label": r"DD2 q=1.00 (SR)"}},
+        {"sim": "DD2_M13641364_M0_SR", "v_n": "J", "mask": "remnant", "plot": {"color": "cyan", "ls": "--", "lw": 0.8}}
     ]
 
     for t in task:
@@ -3026,19 +3189,21 @@ def task_plot_total_angular_momentum_2():
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "multilegend": {
             "lines": [
-                {"label": r"$R_{\rm ext}>12$km", "ls": "-", "lw": 0.8, "alpha": 1., "color": "gray"},
-                {"label": r"$R_{\rm ext}<12$km", "ls": "--", "lw": 0.8, "alpha": 1., "color": "gray"}
+                # {"label": r"$R_{\rm ext}>12$km", "ls": "-", "lw": 0.8, "alpha": 1., "color": "gray"},
+                # {"label": r"$R_{\rm ext}<12$km", "ls": "--", "lw": 0.8, "alpha": 1., "color": "gray"}
+                {"label": r"Disk", "ls": "-", "lw": 0.8, "alpha": 1., "color": "gray"},
+                {"label": r"Remnant", "ls": "--", "lw": 0.8, "alpha": 1., "color": "gray"}
             ],
             "legend": {"fancybox": False, "loc": 'upper left',
                        "shadow": "False", "ncol": 1, "fontsize": 14,
                        "framealpha": 0., "borderaxespad": 0., "frameon": False}
         },
         "title": r"BLh* q=1.00 (SR)",
-        "figname": __outplotdir__ + "ang_mom_evo.png",
+        "figname": __outplotdir__ + "ang_mom_evo_mask.png",
         "savepdf":True,
         "fontsize":14
     }
-    plot_total_angular_momentum(task, plot_dic)
+    plot_total_angular_momentum2(task, plot_dic)
 
     # ''' ---- r < 15 ---- '''
     # rext = "<8.2"
@@ -3105,10 +3270,10 @@ if __name__ == '__main__':
 
     ''' --- total angular momentum evolution --- '''
 
-    # task_plot_total_angular_momentum_2()
+    task_plot_total_angular_momentum_2()
 
     ''' --- angular momentum flux colormesh --- '''
-    task_plot_total_angular_momentum_flux_colormesh_2()
+    # task_plot_total_angular_momentum_flux_colormesh_2()
 
 ''' --- iteration 3 --- '''
 
@@ -3169,7 +3334,7 @@ if __name__ == '__main__':
     # task_plot_total_angular_momentum_flux_colormesh()
 
     """ --- total angular momentum --- """
-    #task_plot_total_angular_momentum()
+    task_plot_total_angular_momentum()
 
     """ --- total angular momentum flux --- """
     # task_plot_total_angular_momentum_flux()

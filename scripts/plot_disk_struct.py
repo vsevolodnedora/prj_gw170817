@@ -1540,7 +1540,7 @@ def task_plot_final_disk_structure():
         # "set_under_right": "black", "set_over_right": "blue",
 
         "plot_dir": __outplotdir__, #+ task["sim"] + "/",
-        "title": r"BLh q=1.00 (SR), $t-t_{\rm merg}=88$ [ms]",
+        "title": r"BLh q=1.00 (SR), $t-t_{\rm merg}=88$ ms",
         # "figname": "it",
         "figname": "slice_xy_entr_ye_blh_q1_rl{}.png".format(task["rl"]),
         "savepdf": True,
@@ -1560,7 +1560,7 @@ def task_plot_final_disk_structure():
     task["sim"] = "DD2_M13641364_M0_LK_SR_R04"
     task["iterations"] = [2532732]
     plot_dic["mirror_z"] = False
-    plot_dic["title"] = r"DD2 q=1.00 (SR), $t-t_{\rm merg}=109$ [ms]"
+    plot_dic["title"] = r"DD2 q=1.00 (SR), $t-t_{\rm merg}=109$ ms"
     plot_dic["ylabel"], plot_dic["figname"] = "$Y$ [km]", "slice_xy_entr_ye_dd2_q1_rl{}.png".format(task["rl"])
 
     #plot_slice_2halfs__with_morror_function(task, plot_dic)
@@ -2503,12 +2503,12 @@ if __name__ == "__main__":
 
     """ -- disk mass ecolution --- """
 
-    #task_plot_total_disk_mass_evo_2()
+    task_plot_total_disk_mass_evo_2()
 
     """ -- disk final structure histogram --- """
 
     # task_plot_final_disk_hist_3()
-    custom_task_plot_final_disk_hist_3()
+    # custom_task_plot_final_disk_hist_3()
 
     """ --- disk time corr --- """
     # task_plot_disk_timecorr_2()

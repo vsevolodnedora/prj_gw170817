@@ -38,6 +38,8 @@ from comparison import TWO_SIMS, THREE_SIMS
 from settings import resolutions
 from uutils import *
 
+from model_sets import models as ourmd
+
 #from sys import path
 sys.path.append(Paths.mkn)
 try:
@@ -182,12 +184,12 @@ class COMPUTE_LIGHTCURVE():
 
     def set_dyn_par_var(self, iso_or_aniso, det=0, mask="dyn"):
 
-        if not self.sim == None and self.set_use_dyn_NR:
-            mej = self.o_data.get_outflow_par(det,mask,"Mej_tot")
-            if np.isnan(mej):
-                raise ValueError("Ejecta mass for det:{} mask:{} is not avialble (nan)".format(det,mask))
-        else:
-            mej = 0.015
+        # if not self.sim == None and self.set_use_dyn_NR:
+        #     mej = self.o_data.get_outflow_par(det,mask,"Mej_tot")
+        #     if np.isnan(mej):
+        #         raise ValueError("Ejecta mass for det:{} mask:{} is not avialble (nan)".format(det,mask))
+        # else:
+        #     mej = 0.015
 
         if iso_or_aniso == 'iso':
             self.ejecta_params['dynamics'] = {'mass_dist':'uniform', 'vel_dist':'uniform', 'op_dist':'uniform',
@@ -210,7 +212,7 @@ class COMPUTE_LIGHTCURVE():
                                               'therm_model':'BKWM', 'eps_ye_dep':'PBR', 'entropy': 20., 'tau':5,
                                               'v_law':'poly', 'use_kappa_table':False}#, 'use_kappa_table':False}
             self.ejecta_vars['dynamics'] = {'xi_disk':          None,
-                                           'm_ej':              mej, # 0.00169045, # - LS220 | 0.00263355 - DD2
+                                           'm_ej':              1.0,#0.015, # 0.00169045, # - LS220 | 0.00263355 - DD2
                                            'step_angle_mass':   None,
                                            'high_lat_flag':     None,
                                            'central_vel':       0.30, # changed from 0.33
@@ -342,8 +344,8 @@ class COMPUTE_LIGHTCURVE():
             self.ejecta_params['secular'] = {'mass_dist':'sin2', 'vel_dist':'uniform', 'op_dist':'uniform',
                                              'therm_model':'BKWM', 'eps_ye_dep':'PBR', 'entropy': 10., 'tau':33, 'v_law':'poly'}
             self.ejecta_vars['secular'] = {
-                            'xi_disk':          None, # default: 0.2
-                            'm_ej':             0.03,
+                            'xi_disk':          0.2, # default: 0.2
+                            'm_ej':             None,#0.03,
                             'step_angle_mass':  None,
                             'high_lat_flag':    None,
                             'central_vel':      0.08, # F: 0.04 def:0.06
@@ -1552,7 +1554,831 @@ def get_times_mags_from_pars(pars, band = "Ks"):
 
 ''' --- plotting methods --- '''
 
+
+def custom_plot_mkns_several_bands(plotdic, subplot_dics):
+    bands = [subplot_dic["band"] for subplot_dic in subplot_dics]
+    fig, axes = plt.subplots(figsize=plotdic["figsize"], ncols=len(bands), nrows=1, sharey=True)
+    # ax = fig.add_subplot(111)
+    i = 0
+    for ax, band, subplot_dic in zip(axes, bands, subplot_dics):
+
+        # lineset[band][simulation][label] = dict{linedic}
+        band_liens = subplot_dic["lines"]
+        for sel_model in band_liens.keys():
+            for sel_parset in band_liens[sel_model].keys():
+                dic = band_liens[sel_model][sel_parset]
+                x, y = dic["x"], dic["y"]
+                del dic["x"]
+                del dic["y"]
+                ax.plot(x, y, **dic)
+        #
+        ax.set_yscale(plotdic["yscale"])
+        ax.set_xscale(plotdic["xscale"])
+        #
+        ax.set_xlabel(plotdic["xlabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        if i == 0: ax.set_ylabel(plotdic["ylabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        #
+        if 'xmin' in subplot_dic.keys() and 'xmax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["xmin"], subplot_dic["xmax"])
+        else:
+            ax.set_xlim(plotdic["xmin"], plotdic["xmax"])
+
+        if 'ymin' in subplot_dic.keys() and 'ymax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["ymin"], subplot_dic["ymax"])
+        else:
+            ax.set_ylim(plotdic["ymin"], plotdic["ymax"])
+        #
+        ax.tick_params(axis='both', which='both', labelleft=True,
+                       labelright=False, tick1On=True, tick2On=True,
+                       labelsize=plotdic["fontsize"],
+                       direction='in',
+                       bottom=True, top=True, left=True, right=True)
+        ax.minorticks_on()
+        # #
+
+        if "add_lines" in subplot_dic.keys():
+            for entry in subplot_dic["add_lines"]:
+                ax.plot([-100, -100], [-200, -200], **entry)
+        #
+        if "title" in subplot_dic:
+            ax.set_title(subplot_dic["title"])
+        #
+        if "title" in plotdic.keys():
+            if plotdic["title"] == "#band":
+                ax.set_title(band)
+            else:
+                ax.set_title(plotdic["title"])
+        #
+        if i > 0:
+            ax.tick_params(labelleft=False)
+            # ax.get_yaxis().set_ticks([])
+            # ax.get_yaxis().set_visible(False)
+
+        if "legend" in subplot_dic.keys():
+            ax.legend(**subplot_dic["legend"])
+        if len(plotdic["legend"].keys()) > 0: ax.legend(**plotdic["legend"])
+        i = i + 1
+    #
+    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.)
+    #
+    print("plotted: \n")
+    print(plotdic["figname"])
+    plt.savefig(plotdic["figname"], dpi=128)
+    if "savepdf" in plotdic.keys() and plotdic["savepdf"]:
+        plt.savefig(plotdic["figname"].replace(".png", ".pdf"))
+    plt.close()
+    # exit(1)
 ''' --- tasks --- '''
+
+class Fit:
+
+    def __init__(self, model):
+        self.mej_mean = 5.220e-03  # Msun
+        self.mej_poly22 = float(Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)) / 1e3
+        self.mej_diet = float(Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model)) / 1e3
+        self.mej_krug = float(Fitting_Functions.mej_kruger20([-0.981, 12.880, -35.148, 2.030], model)) / 1e3
+
+        self.vej_mean = 0.189  # \pm 0.049
+        self.vej_poly22 = float(Fitting_Functions.poly_2_qLambda([0.182, 0.159, -1.509e-04, -1.046e-01, 9.233e-05, -1.581e-08], model))
+        self.vej_diet = float(Fitting_Functions.vej_dietrich16([-0.422, 0.834, -1.510], model))
+
+        self.yeej_mean = 0.167  # \pm 0.057
+        self.yeej_poly22 = float(Fitting_Functions.poly_2_qLambda([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07], model))
+        self.yeej_our = float(Fitting_Functions.yeej_like_vej([0.177, 0.452, -4.611], model))
+
+        self.mdisk_mean = 0.122  # \pm 0.088
+        self.mdisk_poly22 = float(Fitting_Functions.poly_2_qLambda([-8.951e-01, 1.195, 4.292e-04, -3.991e-01, 4.778e-05, -2.266e-07], model))
+        self.mdisk_radi = float(Fitting_Functions.mdisk_radice18([0.070, 0.101, 305.009, 189.952], model))
+        self.mdisk_krug = float(Fitting_Functions.mdisk_kruger20([-0.013, 1.000, 1325.652], model))
+
+    def value(self, v_n, fitmodelname="mean"):
+
+        #  = FitVals(model)
+        if v_n == "Mej_tot-geo":
+            if fitmodelname == "mean":      return self.mej_mean
+            elif fitmodelname == "poly22":  return self.mej_poly22
+            elif fitmodelname == "diet16":  return self.mej_diet
+            elif fitmodelname == "krug19":  return self.mej_krug
+            else: raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
+        elif v_n == "vel_inf_ave-geo":
+            if fitmodelname == "mean":      return self.vej_mean
+            elif fitmodelname == "poly22":  return self.vej_poly22
+            elif fitmodelname == "diet16":  return self.vej_diet
+            else: raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
+        elif v_n == "Ye_ave-geo":
+            if fitmodelname == "mean":      return self.yeej_mean
+            elif fitmodelname == "poly22":  return self.yeej_poly22
+            elif fitmodelname == "our":     return self.yeej_our
+            else: raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
+        if v_n == "Mdisk3D":
+            if fitmodelname == "mean":      return self.mdisk_mean
+            elif fitmodelname == "poly22":  return self.mdisk_poly22
+            elif fitmodelname == "radi18":  return self.mdisk_radi
+            elif fitmodelname == "krug19":  return self.mdisk_krug
+            else: raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
+        else:
+            raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
+
+
+def print_tex_table_fit_for_models_Mej():
+
+    task = [
+        {"sim": "DD2_M13641364_M0_LK_R04", "label": r"DD2 q=1.00 (SR)", "type": "long"},
+        {"sim": "DD2_M15091235_M0_LK", "label": r"DD2 q=1.22 (SR)", "type": "long"},
+        {"sim": "BLh_M13641364_M0_LK", "label": r"BLh q=1.00 (SR)", "type": "long"},
+        {"sim": "BLh_M11461635_M0_LK", "label": r"BLh q=1.43 (SR)", "type": "long"},
+        {"sim": "SLy4_M13641364_M0", "label": r"SLy4* q=1.00 (SR)", "type": "long"},
+        {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)", "type": "long"},
+
+    ]
+
+    # task = [
+    #     # 2 prompt collapse
+    #     # {"sim": "BLh_M10201856_M0_LK_LR_AHfix", "label": r"BLh** q=1.82 (LR)", "color": "black", "ls": ":", "lw": 0.8, "alpha": 1., "type": "long"},
+    #     # {"sim": "BLh_M10201856_M0_LK_LR", "label": r"BLh* q=1.82 (LR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
+    #     {"sim": "BLh_M10201856_M0", "label": r"BLh* q=1.82 (SR)", "type": "long"},
+    #     {"sim": "BLh_M10651772_M0_LK", "label": r"BLh q=1.66 (LR)", "type": "long"},
+    #     # {"sim": "BLh_M11841581_M0_LK_SR", "label": r"BLh q=1.34 (SR)", "color": "black", "ls": "-.", "lw": 1.0, "alpha": 1., "type": "long"},
+    #     # 3 short lived
+    #     {"sim": "LS220_M11461635_M0_LK", "label": r"LS220 q=1.43 (SR)", "type": "short"},
+    #     {"sim": "SLy4_M13641364_M0", "label": r"SLy4* q=1.00 (SR)", "type": "short"},
+    #     {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)", "type": "short"},
+    #     # long
+    #     {"sim": "BLh_M13641364_M0_LK", "label": r"BLh q=1.00 (SR)",  "type": "long"},
+    #     # {"sim": "DD2_M13641364_M0_LK_SR_R04", "label": r"DD2* q=1.00 (SR)", "color": "blue", "ls": "--", "lw": 1.0, "alpha": 1., "type": "long", "t1": 40},
+    # ]
+
+    v_ns = [
+        #"label", "q", "M1", "M2", "C1", "C2", "Lambda", "Mej_tot-geo", "Mej_tot-geo-poly22",
+        'label', 'Mej_tot-geo', 'Mej_tot-geo-mean', 'Mej_tot-geo-poly22', "Mej_tot-geo-diet16", 'Mej_tot-geo-krug19'
+    ]
+    vlabels = [
+        "Model", r"$\md$", r"$\bar{\amd}$", r"$P_2(q,\tilde\Lambda)$", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}"
+    ]
+    fmts = [
+        "", ".1f", ".1f", ".1f", ".1f", ".1f"
+    ]
+    units = [
+        "", "[$10^{3}M_{\odot}$]", "[$10^{3}M_{\odot}$]", "[$10^{3}M_{\odot}$]", "[$10^{3}M_{\odot}$]", "[$10^{3}M_{\odot}$]"
+    ]
+    mults = [
+        #1., 1., 1., 1., 1., 1.,
+        1e3, 1e3, 1e3, 1e3, 1e3, 1e3,
+    ]
+
+
+    cells = "c" * 11
+    cells = "c" * len(v_ns) # coefs + chi2 + ch2dof + r2
+    #
+
+
+    models = md.groups
+
+    lines = []
+    for modeldic in task:
+        print("\t processing: {}".format(modeldic["sim"]))
+        line = ''
+        model = models[models.group == modeldic["sim"]]
+        print(model)
+        fit = Fit(model)
+        for v_n, fmt, mult in zip(v_ns, fmts, mults):
+            if v_n == "label":
+                value = modeldic["label"]
+            elif v_n in model.keys():
+                value = "%{}".format(fmt) % float(model[v_n] * mult)
+            elif v_n.__contains__("-mean"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-mean", ""), "mean") * mult)
+            elif v_n.__contains__("-poly22"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-poly22", ""), "poly22") * mult)
+            elif v_n.__contains__("-diet16"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-diet16", ""), "diet16") * mult)
+            elif v_n.__contains__("-our"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-our", ""), "our") * mult)
+            elif v_n.__contains__("-krug19"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-krug19", ""), "krug19") * mult)
+            elif v_n.__contains__("-radi18"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-radi18", ""), "radi18") * mult)
+            else:
+                raise NameError("name: {} is not recognzied".format(v_n))
+
+            if v_n == v_ns[-1]:
+                line = line + value + r" \\ "
+            else:
+                line = line + value + " & "
+        lines.append(line)
+
+    print("\n")
+    print(r"\begin{table}")
+    print(r"\caption{I am your little table}")
+    print(r"\begin{tabular}{l|" + cells + "}")
+
+    vline = ""
+    for i, vlabel in enumerate(vlabels):
+        if i == len(vlabels)-1: vline = vline + vlabel + r" \\ "
+        else: vline = vline + vlabel + " & "
+    print(vline)
+
+    uline = ""
+    for i, ulabel in enumerate(units):
+        if i == len(units)-1: uline = uline + ulabel + r" \\ "
+        else: uline = uline + ulabel + " & "
+    print(uline)
+
+    for line in lines: print(line)
+
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+def print_tex_table_fit_for_models_vej():
+    task = [
+        {"sim": "DD2_M13641364_M0_LK_R04", "label": r"DD2 q=1.00 (SR)", "type": "long"},
+        {"sim": "DD2_M15091235_M0_LK", "label": r"DD2 q=1.22 (SR)", "type": "long"},
+        {"sim": "BLh_M13641364_M0_LK", "label": r"BLh q=1.00 (SR)", "type": "long"},
+        {"sim": "BLh_M11461635_M0_LK", "label": r"BLh q=1.43 (SR)", "type": "long"},
+        {"sim": "SLy4_M13641364_M0", "label": r"SLy4* q=1.00 (SR)", "type": "long"},
+        {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)", "type": "long"},
+
+    ]
+
+    v_ns = [
+        #"label", "q", "M1", "M2", "C1", "C2", "Lambda", "Mej_tot-geo", "Mej_tot-geo-poly22",
+        'label', 'vel_inf_ave-geo', 'vel_inf_ave-geo-mean', 'vel_inf_ave-geo-poly22', "vel_inf_ave-geo-diet16"#, 'vel_inf_ave-geo-krug19'
+    ]
+    vlabels = [
+        "Model", r"$\vd$", r"$\avd$", r"$P_2(q,\tilde\Lambda)$", r"Eq.~\eqref{eq:fit_vej}"#, r"Eq.~\eqref{eq:fit_Mej_Kruger}"
+    ]
+    fmts = [
+        "", ".3f", ".3f", ".3f", ".3f"#, ".1f"
+    ]
+    units = [
+        "", "[c]", "[c]", "[c]", "[c]"#, "[$10^{3}M_{\odot}$]"
+    ]
+    mults = [
+        1., 1., 1., 1., 1., 1.,
+        #1e3, 1e3, 1e3, 1e3, 1e3, 1e3,
+    ]
+
+
+    #cells = "c" * 11
+    cells = "c" * len(v_ns) # coefs + chi2 + ch2dof + r2
+    #
+
+
+    models = md.groups
+
+    lines = []
+    for modeldic in task:
+        print("\t processing: {}".format(modeldic["sim"]))
+        line = ''
+        model = models[models.group == modeldic["sim"]]
+        print(model)
+        fit = Fit(model)
+        for v_n, fmt, mult in zip(v_ns, fmts, mults):
+            if v_n == "label":
+                value = modeldic["label"]
+            elif v_n in model.keys():
+                value = "%{}".format(fmt) % float(model[v_n] * mult)
+            elif v_n.__contains__("-mean"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-mean", ""), "mean") * mult)
+            elif v_n.__contains__("-poly22"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-poly22", ""), "poly22") * mult)
+            elif v_n.__contains__("-diet16"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-diet16", ""), "diet16") * mult)
+            elif v_n.__contains__("-our"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-our", ""), "our") * mult)
+            elif v_n.__contains__("-krug19"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-krug19", ""), "krug19") * mult)
+            elif v_n.__contains__("-radi18"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-radi18", ""), "radi18") * mult)
+            else:
+                raise NameError("name: {} is not recognzied".format(v_n))
+
+            if v_n == v_ns[-1]:
+                line = line + value + r" \\ "
+            else:
+                line = line + value + " & "
+        lines.append(line)
+
+    print("\n")
+    print(r"\begin{table}")
+    print(r"\caption{I am your little table}")
+    print(r"\begin{tabular}{l|" + cells + "}")
+
+    vline = ""
+    for i, vlabel in enumerate(vlabels):
+        if i == len(vlabels)-1: vline = vline + vlabel + r" \\ "
+        else: vline = vline + vlabel + " & "
+    print(vline)
+
+    uline = ""
+    for i, ulabel in enumerate(units):
+        if i == len(units)-1: uline = uline + ulabel + r" \\ "
+        else: uline = uline + ulabel + " & "
+    print(uline)
+
+    for line in lines: print(line)
+
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+def print_tex_table_fit_for_models_yeej():
+    task = [
+        {"sim": "DD2_M13641364_M0_LK_R04", "label": r"DD2 q=1.00 (SR)", "type": "long"},
+        {"sim": "DD2_M15091235_M0_LK", "label": r"DD2 q=1.22 (SR)", "type": "long"},
+        {"sim": "BLh_M13641364_M0_LK", "label": r"BLh q=1.00 (SR)", "type": "long"},
+        {"sim": "BLh_M11461635_M0_LK", "label": r"BLh q=1.43 (SR)", "type": "long"},
+        {"sim": "SLy4_M13641364_M0", "label": r"SLy4* q=1.00 (SR)", "type": "long"},
+        {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)", "type": "long"},
+
+    ]
+
+    v_ns = [
+        #"label", "q", "M1", "M2", "C1", "C2", "Lambda", "Mej_tot-geo", "Mej_tot-geo-poly22",
+        'label', 'Ye_ave-geo', 'Ye_ave-geo-mean', 'Ye_ave-geo-poly22', "Ye_ave-geo-our"#, 'vel_inf_ave-geo-krug19'
+    ]
+    vlabels = [
+        "Model", r"$\yd$", r"$\ayd$", r"$P_2(q,\tilde\Lambda)$", r"Eq.~\eqref{eq:fit_Yeej}"#, r"Eq.~\eqref{eq:fit_Mej_Kruger}"
+    ]
+    fmts = [
+        "", ".3f", ".3f", ".3f", ".3f"#, ".1f"
+    ]
+    units = [
+        "", "", "", "", ""#, "[$10^{3}M_{\odot}$]"
+    ]
+    mults = [
+        1., 1., 1., 1., 1., 1.,
+        #1e3, 1e3, 1e3, 1e3, 1e3, 1e3,
+    ]
+
+
+    #cells = "c" * 11
+    cells = "c" * len(v_ns) # coefs + chi2 + ch2dof + r2
+    #
+
+
+    models = md.groups
+
+    lines = []
+    for modeldic in task:
+        print("\t processing: {}".format(modeldic["sim"]))
+        line = ''
+        model = models[models.group == modeldic["sim"]]
+        print(model)
+        fit = Fit(model)
+        for v_n, fmt, mult in zip(v_ns, fmts, mults):
+            if v_n == "label":
+                value = modeldic["label"]
+            elif v_n in model.keys():
+                value = "%{}".format(fmt) % float(model[v_n] * mult)
+            elif v_n.__contains__("-mean"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-mean", ""), "mean") * mult)
+            elif v_n.__contains__("-poly22"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-poly22", ""), "poly22") * mult)
+            elif v_n.__contains__("-diet16"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-diet16", ""), "diet16") * mult)
+            elif v_n.__contains__("-our"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-our", ""), "our") * mult)
+            elif v_n.__contains__("-krug19"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-krug19", ""), "krug19") * mult)
+            elif v_n.__contains__("-radi18"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-radi18", ""), "radi18") * mult)
+            else:
+                raise NameError("name: {} is not recognzied".format(v_n))
+
+            if v_n == v_ns[-1]:
+                line = line + value + r" \\ "
+            else:
+                line = line + value + " & "
+        lines.append(line)
+
+    print("\n")
+    print(r"\begin{table}")
+    print(r"\caption{I am your little table}")
+    print(r"\begin{tabular}{l|" + cells + "}")
+
+    vline = ""
+    for i, vlabel in enumerate(vlabels):
+        if i == len(vlabels)-1: vline = vline + vlabel + r" \\ "
+        else: vline = vline + vlabel + " & "
+    print(vline)
+
+    uline = ""
+    for i, ulabel in enumerate(units):
+        if i == len(units)-1: uline = uline + ulabel + r" \\ "
+        else: uline = uline + ulabel + " & "
+    print(uline)
+
+    for line in lines: print(line)
+
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+def print_tex_table_fit_for_models_Mdisk():
+    task = [
+        {"sim": "DD2_M13641364_M0_LK_R04", "label": r"DD2 q=1.00 (SR)", "type": "long"},
+        {"sim": "DD2_M15091235_M0_LK", "label": r"DD2 q=1.22 (SR)", "type": "long"},
+        {"sim": "BLh_M13641364_M0_LK", "label": r"BLh q=1.00 (SR)", "type": "long"},
+        {"sim": "BLh_M11461635_M0_LK", "label": r"BLh q=1.43 (SR)", "type": "long"},
+        {"sim": "SLy4_M13641364_M0", "label": r"SLy4* q=1.00 (SR)", "type": "long"},
+        {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)", "type": "long"},
+
+    ]
+
+    v_ns = [
+        #"label", "q", "M1", "M2", "C1", "C2", "Lambda", "Mej_tot-geo", "Mej_tot-geo-poly22",
+        'label', 'Mdisk3D', 'Mdisk3D-mean', 'Mdisk3D-poly22', "Mdisk3D-radi18", 'Mdisk3D-krug19'
+    ]
+    vlabels = [
+        "Model", r"$M_{\rm disk}$", r"$\overline{M}_{\rm disk}$", r"$P_2(q,\tilde\Lambda)$", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}"
+    ]
+    fmts = [
+        "", ".3f", ".3f", ".3f", ".3f", ".3f"
+    ]
+    units = [
+        "", "[$M_{\odot}$]", "[$M_{\odot}$]", "[$M_{\odot}$]", "[$M_{\odot}$]", "[$M_{\odot}$]"
+    ]
+    mults = [
+        1., 1., 1., 1., 1., 1.,
+        #1e3, 1e3, 1e3, 1e3, 1e3, 1e3,
+    ]
+
+
+    cells = "c" * 11
+    cells = "c" * len(v_ns) # coefs + chi2 + ch2dof + r2
+    #
+
+
+    models = md.groups
+
+    lines = []
+    for modeldic in task:
+        print("\t processing: {}".format(modeldic["sim"]))
+        line = ''
+        model = models[models.group == modeldic["sim"]]
+        print(model)
+        fit = Fit(model)
+        for v_n, fmt, mult in zip(v_ns, fmts, mults):
+            if v_n == "label":
+                value = modeldic["label"]
+            elif v_n in model.keys():
+                value = "%{}".format(fmt) % float(model[v_n] * mult)
+            elif v_n.__contains__("-mean"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-mean", ""), "mean") * mult)
+            elif v_n.__contains__("-poly22"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-poly22", ""), "poly22") * mult)
+            elif v_n.__contains__("-diet16"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-diet16", ""), "diet16") * mult)
+            elif v_n.__contains__("-our"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-our", ""), "our") * mult)
+            elif v_n.__contains__("-krug19"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-krug19", ""), "krug19") * mult)
+            elif v_n.__contains__("-radi18"):
+                value = "%{}".format(fmt) % float(fit.value(v_n.replace("-radi18", ""), "radi18") * mult)
+            else:
+                raise NameError("name: {} is not recognzied".format(v_n))
+
+            if v_n == v_ns[-1]:
+                line = line + value + r" \\ "
+            else:
+                line = line + value + " & "
+        lines.append(line)
+
+    print("\n")
+    print(r"\begin{table}")
+    print(r"\caption{I am your little table}")
+    print(r"\begin{tabular}{l|" + cells + "}")
+
+    vline = ""
+    for i, vlabel in enumerate(vlabels):
+        if i == len(vlabels)-1: vline = vline + vlabel + r" \\ "
+        else: vline = vline + vlabel + " & "
+    print(vline)
+
+    uline = ""
+    for i, ulabel in enumerate(units):
+        if i == len(units)-1: uline = uline + ulabel + r" \\ "
+        else: uline = uline + ulabel + " & "
+    print(uline)
+
+    for line in lines: print(line)
+
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+
+
+# def task_plot_peak_times():
+#
+#     # task = [
+#     #     # 2 prompt collapse
+#     #     # {"sim": "BLh_M10201856_M0_LK_LR_AHfix", "label": r"BLh** q=1.82 (LR)", "color": "black", "ls": ":", "lw": 0.8, "alpha": 1., "type": "long"},
+#     #     # {"sim": "BLh_M10201856_M0_LK_LR", "label": r"BLh* q=1.82 (LR)", "color": "black", "ls": "-", "lw": 1.0, "alpha": 1., "type": "long"},
+#     #     {"sim": "BLh_M10201856_M0", "label": r"BLh* q=1.82 (SR)", "type": "long", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+#     #     {"sim": "BLh_M10651772_M0_LK", "label": r"BLh q=1.66 (LR)", "type": "long", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+#     #     # {"sim": "BLh_M11841581_M0_LK_SR", "label": r"BLh q=1.34 (SR)", "color": "black", "ls": "-.", "lw": 1.0, "alpha": 1., "type": "long"},
+#     #     # 3 short lived
+#     #     {"sim": "LS220_M11461635_M0_LK", "label": r"LS220 q=1.43 (SR)", "type": "short", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+#     #     {"sim": "SLy4_M13641364_M0", "label": r"SLy4* q=1.00 (SR)", "type": "short", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+#     #     {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)", "type": "short", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+#     #     # long
+#     #     {"sim": "BLh_M13641364_M0_LK", "label": r"BLh q=1.00 (SR)",  "type": "long", "plot":{"color": "black", "ls": "-", "lw": 1.0, "alpha": 1.}},
+#     #     # {"sim": "DD2_M13641364_M0_LK_SR_R04", "label": r"DD2* q=1.00 (SR)", "color": "blue", "ls": "--", "lw": 1.0, "alpha": 1., "type": "long", "t1": 40},
+#     # ]
+#
+#     task = [
+#         {"sim": "BLh_M13641364_M0_LK", "label": r"BLh q=1.00 (SR)", "plot":{}},
+#         {"sim": "DD2_M13641364_M0_LK_R04", "label": r"DD2* q=1.00 (SR)", "plot":{}}
+#         # {"sim": "LS220_M11461635_M0_LK", "label": r"LS220 q=1.43 (SR)",  "plot":{}}
+#         # {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)",
+#     ]
+#
+#     for t in task:
+#         t["plot"]["color"] = md.sim_dic_color[t["sim"]]
+#     #     t["plot"]["ls"] = md.sim_dic_ls[t["sim"]]
+#     #     t["plot"]["lw"] = md.sim_dic_lw[t["sim"]]
+#
+#     bands = ["g", "z", "Ks"]
+#     #components = ["dynamic", "dynamic secular"]
+#
+#     #
+#     parameters = [
+#         # {"label": r"$M_{\rm ej}", "ls":"-", r"v_{\rm ej}$ $P_2(q,\tilde\Lambda)$ ", "Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+#        {"label": r"$M_{\rm ej}, v_{\rm ej}$ Mean", "ls":":",
+#         "Mej_tot-geo": "mean", "vel_inf_ave-geo": "mean", "Mdisk3D": "mean"},
+#         {"label": r"$M_{\rm ej} v_{\rm ej}$ $P_2(q,\tilde\Lambda)$", "ls": "-",
+#          "Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+#         {"label": r"$M_{\rm ej}$ Eq.(6) $v_{\rm ej}$ Eq.(9)", "ls": "--",
+#          "Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
+#         {"label": r"$M_{\rm ej}$ Eq.(7) $v_{\rm ej}$ Eq.(9)", "ls": "-.",
+#          "Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}
+#     ]
+#
+#     # collect data
+#     models = md.groups
+#     lineset = {}
+#     for band in bands:
+#         lineset[band] = {}
+#         #
+#         for modeldic in task:
+#             lineset[band][modeldic["sim"]] = {}
+#             model = models[models.group == modeldic["sim"]]
+#             ofit = Fit(model)
+#             #
+#             for pars in parameters:
+#
+#                 print("\t\t{} {} {}".format(band, modeldic["sim"], pars["label"]))
+#
+#                 lineset[band][modeldic["sim"]][pars["label"]] = {}
+#
+#                 mej = ofit.value("Mej_tot-geo", pars["Mej_tot-geo"])
+#                 vej = ofit.value("vel_inf_ave-geo", pars["vel_inf_ave-geo"])
+#                 mdisk = ofit.value("Mdisk3D", pars["Mdisk3D"])
+#                 #
+#                 vals = {"Mej_tot-geo": mej, "vel_inf_ave-geo": vej, "Mdisk3D": mdisk}
+#                 #
+#                 o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+#                 o_mkn.set_glob_par_var_source(False, False)
+#                 o_mkn.set_dyn_iso_aniso = "aniso"
+#                 o_mkn.set_dyn_par_var("aniso")
+#                 o_mkn.glob_vars['m_disk']                       = vals["Mdisk3D"]
+#                 o_mkn.ejecta_vars['dynamics']["mej"]            = vals["Mej_tot-geo"]
+#                 o_mkn.ejecta_vars["dynamics"]["central_vel"]    = vals["vel_inf_ave-geo"]
+#                 o_mkn.compute_save_lightcurve(write_output=True)
+#                 #
+#                 load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+#                 times, mags = load_mkn.get_model_median(band)
+#                 #
+#                 linedic = {}
+#                 linedic["x"] = times
+#                 linedic["y"] = mags
+#                 linedic["color"] = modeldic["plot"]["color"]
+#                 linedic["ls"] = pars["ls"]
+#                 linedic["alpha"] = 1.
+#                 linedic["lw"] = 1.
+#
+#                 lineset[band][modeldic["sim"]][pars["label"]] = linedic
+#
+#                 #
+#     print("data is collected")
+#
+#     subplot_dics = [
+#         {
+#             "band" : "g",
+#             "data" : lineset["g"],
+#             "add_lines": [
+#                 {"ls": "-", "color": "blue", "label": "DD2 q=1.00 (SR)"},
+#                 {"ls": "-", "color": "red", "label": "SFho q=1.00 (SR)"},
+#                 {"ls": "-", "color": "green", "label": "BLh q=1.43 (SR)"},
+#             ],
+#             "legend": {"fancybox": False, "loc": 'upper right',
+#                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+#                    "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+#                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
+#         },
+#         {
+#             "band": "z",
+#             "data": lineset["z"],
+#             "add_lines": [
+#                 {"ls": "-", "color": "blue", "label": "DD2 q=1.00 (SR)"},
+#                 {"ls": "-", "color": "red", "label": "SFho q=1.00 (SR)"},
+#                 {"ls": "-", "color": "green", "label": "BLh q=1.43 (SR)"},
+#             ],
+#             "legend": {"fancybox": False, "loc": 'upper right',
+#                        # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+#                        "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+#                        "framealpha": 0., "borderaxespad": 0., "frameon": False},
+#         }
+#
+#     ]
+#
+#     #
+#
+#     plot_dic = {
+#         "task_v_n" : "theta",
+#         "type": "long",
+#         "figsize": (16., 5.5),
+#         'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
+#         'ymin': 23, 'ymax': 18, 'ylabel': r"AB magnitude at 40 Mpc",
+#         # "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
+#         #          'horizontalalignment': 'center'},
+#         "xscale": "log", "yscale": "linear",
+#         "legend": {"fancybox": False, "loc": 'upper right',
+#                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+#                    "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+#                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
+#         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+#                         "labelright": False, "tick1On": True, "tick2On": True,
+#                         "labelsize": 14,"direction": 'in',
+#                         "bottom": True, "top": True, "left": True, "right": True},
+#         "figname": __outplotdir__ + "dyn_fit_bands.png",
+#         'fontsize': 14,
+#         'labelsize': 14,
+#         "savepdf": True,
+#         #"title": "#band",
+#         "add_lines": [
+#             {"ls": "-", "color": "blue", "label": "DD2 q=1.00 (SR)"},
+#             {"ls": "-", "color": "red", "label": "SFho q=1.00 (SR)"},
+#             {"ls": "-", "color": "green", "label": "BLh q=1.43 (SR)"},
+#         ],
+#     }
+#
+#     # plot_dic = {
+#     #     # "subplots":{"figsize": (6.0, 6.0), "ncols":1,"nrows":3, "sharex":True,"sharey":False},
+#     #     "figsize": (6.0, 5.5),
+#     #     'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
+#     #     'ymin': 23, 'ymax': 18, 'ylabel': r"AB magnitude at 40 Mpc",
+#     #     'fontsize': 14,
+#     #     'labelsize': 14,
+#     #     "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+#     #                     "labelright": False, "tick1On": True, "tick2On": True,
+#     #                     "labelsize": 14,
+#     #                     "direction": 'in',
+#     #                     "bottom": True, "top": True, "left": True, "right": True},
+#     #     "legend": {"fancybox": False, "loc": 'upper right',
+#     #                # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+#     #                "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+#     #                "framealpha": 0., "borderaxespad": 0., "frameon": False},
+#     #     "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
+#     #              'horizontalalignment': 'center'},
+#     #     # "add_legend"
+#     #     "add_lines": [
+#     #         {"ls": "-", "color": "blue", "label": "DD2 q=1.00 (SR)"},
+#     #         {"ls": "-", "color": "red", "label": "SFho q=1.00 (SR)"},
+#     #         {"ls": "-", "color": "green", "label": "BLh q=1.43 (SR)"},
+#     #     ],
+#     #     "add_legend": {"fancybox": False, "loc": 'lower left',
+#     #                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+#     #                    "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+#     #                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
+#     #     "savepdf": True,
+#     #     "figname": __outplotdir__ + "Ks_dyn_fit.png",
+#     #     "dpi": 128,
+#     #     "tight_layout": True
+#     # }
+#
+#     custom_plot_mkns_several_bands(plot_dic, bands, lineset)
+
+def task_plot_fromfit_model_mkn_multiband():
+
+    bands = ["g", "z", "Ks"]
+    task = [
+        {"sim": "BLh_M13641364_M0_LK", "plot": {"label": r"BLh q=1.00 (SR)"}},
+        {"sim": "DD2_M13641364_M0_LK_R04", "plot": {"label": r"DD2* q=1.00 (SR)"}}
+        # {"sim": "LS220_M11461635_M0_LK", "label": r"LS220 q=1.43 (SR)",  "plot":{}}
+        # {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)",
+    ]
+    for t in task:
+        t["plot"]["color"] = md.sim_dic_color[t["sim"]]
+
+    pardics = [
+        {"Mej_tot-geo": "mean", "vel_inf_ave-geo": "mean", "Mdisk3D": "mean",       "plot": {"ls": ":", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Mean"}},
+        {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22", "plot": {"ls": "-", "color": "gray", "label": r"$M_{\rm ej} v_{\rm ej}$ $P_2(q,\tilde\Lambda)$"}},
+        {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18", "plot": {"ls": "--", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(6) $v_{\rm ej}$ Eq.(9)"}},
+        {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19", "plot": {"ls": "-.", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(7) $v_{\rm ej}$ Eq.(9)"}}
+    ]
+
+    ''' --- collecting data --- '''
+
+    models = md.groups
+    lineset = {}
+    for band in bands:
+        lineset[band] = {}
+        #
+        for modeldic in task:
+            lineset[band][modeldic["sim"]] = {}
+            model = models[models.group == modeldic["sim"]]
+            ofit = Fit(model)
+            #
+            for pars in pardics:
+                print("\t\t{} {} {}".format(band, modeldic["sim"], pars["plot"]["label"]))
+
+                lineset[band][modeldic["sim"]][pars["plot"]["label"]] = {}
+
+                mej = ofit.value("Mej_tot-geo",     pars["Mej_tot-geo"])
+                vej = ofit.value("vel_inf_ave-geo", pars["vel_inf_ave-geo"])
+                mdisk = ofit.value("Mdisk3D",       pars["Mdisk3D"])
+                #
+                vals = {"Mej_tot-geo": mej, "vel_inf_ave-geo": vej, "Mdisk3D": mdisk}
+                #
+                o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                o_mkn.set_glob_par_var_source(False, False)
+                o_mkn.set_dyn_iso_aniso = "aniso"
+                o_mkn.set_secular_iso_aniso = "aniso"
+                o_mkn.set_dyn_par_var("aniso")
+                o_mkn.set_secular_par_war("aniso")
+                o_mkn.glob_vars['m_disk']                       = vals["Mdisk3D"]
+                o_mkn.ejecta_vars['dynamics']["m_ej"]           = vals["Mej_tot-geo"]
+                o_mkn.ejecta_vars["dynamics"]["central_vel"]    = vals["vel_inf_ave-geo"]
+                o_mkn.compute_save_lightcurve(write_output=True)
+                #
+                load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                times, mags = load_mkn.get_model_median(band)
+                #
+                linedic = {}
+                linedic["x"] = times
+                linedic["y"] = mags
+                linedic["color"] = modeldic["plot"]["color"]
+                linedic["ls"] = pars["plot"]["ls"]
+                linedic["alpha"] = 1.
+                linedic["lw"] = 1.
+
+                lineset[band][modeldic["sim"]][pars["plot"]["label"]] = linedic
+
+    ''' --- plot settings --- '''
+
+    subplot_dics = [
+        {
+            "band": bands[0],
+            "lines": lineset[bands[0]],
+            "add_lines": [dic["plot"] for dic in pardics],
+            "title": "#band",
+            'xmin': 1e-1, 'xmax': 2e0, 'xlabel': r"time [days]",
+        },
+        {
+            "band": bands[1],
+            "lines": lineset[bands[1]],
+            #"add_lines": [dic["plot"] for dic in pardics],
+            "title": "#band",
+            'xmin': 3e-1, 'xmax': 1e1, 'xlabel': r"time [days]",
+        },
+        {
+            "band": bands[2],
+            "lines": lineset[bands[2]],
+            "add_lines": [dic["plot"] for dic in task],
+            "title": "#band",
+            'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
+        }
+    ]
+
+    plot_dic = {
+        "task_v_n" : "theta",
+        "type": "long",
+        "figsize": (16., 5.5),
+        'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
+        'ymin': 22, 'ymax': 17, 'ylabel': r"AB magnitude at 40 Mpc", # 23, 18
+        # "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
+        #          'horizontalalignment': 'center'},
+        "xscale": "log", "yscale": "linear",
+        "legend": {"fancybox": False, "loc": 'lower center',
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,"direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "figname": __outplotdir__ + "dyn_sec_fit_bands.png",
+        'fontsize': 14,
+        'labelsize': 14,
+        "savepdf": True,
+        "title": "#band",
+        "add_lines": [
+            [dic["plot"] for dic in pardics]
+            # {"ls": ":", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Mean"},
+            # {"ls": "-", "color": "gray", "label": "SFho q=1.00 (SR)"},
+            # {"ls": "-", "color": "gray", "label": "BLh q=1.43 (SR)"},
+            # {"ls": "-", "color": "gray", "label": "BLh q=1.43 (SR)"}
+        ],
+    }
+
+    custom_plot_mkns_several_bands(plot_dic, subplot_dics)
 
 def task_plot_lightcurve_synthetic_model():
 
@@ -1827,13 +2653,25 @@ def task_plot_lightcurve_synthetic_model():
 
 
 if __name__ == "__main__":
+    # print_tex_table_fit_for_models_Mej()
+    # print_tex_table_fit_for_models_vej()
+    # print_tex_table_fit_for_models_yeej()
+    # print_tex_table_fit_for_models_Mdisk()
+
+    # task_plot_fromfit_model_mkn_multiband()
+    # print_tex_table_fit_for_models_Mdisk()
+
+    # exit(1)
 
     o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
     o_mkn.set_glob_par_var_source(False, False)
     o_mkn.set_dyn_iso_aniso = "aniso"
+    o_mkn.set_secular_iso_aniso = "aniso"
     o_mkn.set_dyn_par_var("aniso")
+    o_mkn.set_secular_par_war("aniso")
     # o_mkn.print_latex_table_of_glob_pars()
-    o_mkn.print_latex_table_of_ejecta_pars(["dynamics"])
+    # o_mkn.print_latex_table_of_ejecta_pars(["dynamics"])
+    o_mkn.print_latex_table_of_ejecta_pars(["secular"])
     #o_mkn.compute_save_lightcurve(write_output=True)
 
 
