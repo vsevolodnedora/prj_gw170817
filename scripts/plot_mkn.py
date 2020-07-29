@@ -1634,6 +1634,7 @@ def custom_plot_mkns_several_bands(plotdic, subplot_dics):
 class Fit:
 
     def __init__(self, model):
+        self.m = model
         self.mej_mean = 5.220e-03  # Msun
         self.mej_poly22 = float(Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)) / 1e3
         self.mej_diet = float(Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model)) / 1e3
@@ -1656,23 +1657,27 @@ class Fit:
 
         #  = FitVals(model)
         if v_n == "Mej_tot-geo":
-            if fitmodelname == "mean":      return self.mej_mean
+            if fitmodelname == None:        return float(self.m[v_n])
+            elif fitmodelname == "mean":    return self.mej_mean
             elif fitmodelname == "poly22":  return self.mej_poly22
             elif fitmodelname == "diet16":  return self.mej_diet
             elif fitmodelname == "krug19":  return self.mej_krug
             else: raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
         elif v_n == "vel_inf_ave-geo":
-            if fitmodelname == "mean":      return self.vej_mean
+            if fitmodelname == None:        return float(self.m[v_n])
+            elif fitmodelname == "mean":    return self.vej_mean
             elif fitmodelname == "poly22":  return self.vej_poly22
             elif fitmodelname == "diet16":  return self.vej_diet
             else: raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
         elif v_n == "Ye_ave-geo":
-            if fitmodelname == "mean":      return self.yeej_mean
+            if fitmodelname == None:        return float(self.m[v_n])
+            elif fitmodelname == "mean":    return self.yeej_mean
             elif fitmodelname == "poly22":  return self.yeej_poly22
             elif fitmodelname == "our":     return self.yeej_our
             else: raise NameError("v_n:{} fitmodelname:{} not recognized".format(v_n, fitmodelname))
         if v_n == "Mdisk3D":
-            if fitmodelname == "mean":      return self.mdisk_mean
+            if fitmodelname == None:        return float(self.m[v_n])
+            elif fitmodelname == "mean":    return self.mdisk_mean
             elif fitmodelname == "poly22":  return self.mdisk_poly22
             elif fitmodelname == "radi18":  return self.mdisk_radi
             elif fitmodelname == "krug19":  return self.mdisk_krug
@@ -2259,19 +2264,23 @@ def task_plot_fromfit_model_mkn_multiband():
 
     bands = ["g", "z", "Ks"]
     task = [
-        {"sim": "BLh_M13641364_M0_LK", "plot": {"label": r"BLh q=1.00 (SR)"}},
-        {"sim": "DD2_M13641364_M0_LK_R04", "plot": {"label": r"DD2* q=1.00 (SR)"}}
+        {"sim": "BLh_M13641364_M0_LK", "plot": {"label": r"BLh q=1.00 (SR)", "color":"green"}},
+        {"sim": "BLh_M11461635_M0_LK", "plot": {"label": r"BLh q=1.43 (SR)", "color": "red"}},
+        #{"sim": "BLh_M11461635_M0_LK", "plot": {"label": r"BLh q=1.43 (SR)", "color": "red"}},
+        # {"sim": "DD2_M13641364_M0_LK_R04", "plot": {"label": r"DD2* q=1.00 (SR)"}}
         # {"sim": "LS220_M11461635_M0_LK", "label": r"LS220 q=1.43 (SR)",  "plot":{}}
-        # {"sim": "SFHo_M13641364_M0", "label": r"SFHo* q=1.00 (SR)",
+        # {"sim": "LS220_M13641364_M0_LK", "plot": {"label": r"LS220 q=1.00 (SR)", "color": "red"}},
+        # {"sim": "SFHo_M13641364_M0", "plot": {"label": r"SFHo* q=1.00 (SR)", "color":"red"}},
     ]
-    for t in task:
-        t["plot"]["color"] = md.sim_dic_color[t["sim"]]
+    # for t in task:
+    #     t["plot"]["color"] = md.sim_dic_color[t["sim"]]
 
     pardics = [
-        {"Mej_tot-geo": "mean", "vel_inf_ave-geo": "mean", "Mdisk3D": "mean",       "plot": {"ls": ":", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Mean"}},
-        {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22", "plot": {"ls": "-", "color": "gray", "label": r"$M_{\rm ej} v_{\rm ej}$ $P_2(q,\tilde\Lambda)$"}},
-        {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18", "plot": {"ls": "--", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(6) $v_{\rm ej}$ Eq.(9)"}},
-        {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19", "plot": {"ls": "-.", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(7) $v_{\rm ej}$ Eq.(9)"}}
+        {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None,             "plot": {"lw":2., "ls": "-", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Model"}},
+        {"Mej_tot-geo": "mean", "vel_inf_ave-geo": "mean", "Mdisk3D": "mean",       "plot": {"lw":1., "ls": ":", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Mean"}},
+        {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22", "plot": {"lw":1., "ls": "-", "color": "gray", "label": r"$M_{\rm ej} v_{\rm ej}$ $P_2(q,\tilde\Lambda)$"}},
+        {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18", "plot": {"lw":1., "ls": "--", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(6) $v_{\rm ej}$ Eq.(9)"}},
+        {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19", "plot": {"lw":1., "ls": "-.", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(7) $v_{\rm ej}$ Eq.(9)"}}
     ]
 
     ''' --- collecting data --- '''
@@ -2317,7 +2326,7 @@ def task_plot_fromfit_model_mkn_multiband():
                 linedic["color"] = modeldic["plot"]["color"]
                 linedic["ls"] = pars["plot"]["ls"]
                 linedic["alpha"] = 1.
-                linedic["lw"] = 1.
+                linedic["lw"] = pars["plot"]["lw"]
 
                 lineset[band][modeldic["sim"]][pars["plot"]["label"]] = linedic
 
@@ -2352,11 +2361,11 @@ def task_plot_fromfit_model_mkn_multiband():
         "type": "long",
         "figsize": (16., 5.5),
         'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
-        'ymin': 22, 'ymax': 17, 'ylabel': r"AB magnitude at 40 Mpc", # 23, 18
+        'ymin': 22, 'ymax': 17, 'ylabel': r"AB magnitude at 40 Mpc", # 23, 18 # sec: 22 17
         # "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
         #          'horizontalalignment': 'center'},
         "xscale": "log", "yscale": "linear",
-        "legend": {"fancybox": False, "loc": 'lower center',
+        "legend": {"fancybox": False, "loc": 'lower left',
                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
                    "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
@@ -2658,10 +2667,10 @@ if __name__ == "__main__":
     # print_tex_table_fit_for_models_yeej()
     # print_tex_table_fit_for_models_Mdisk()
 
-    # task_plot_fromfit_model_mkn_multiband()
+    task_plot_fromfit_model_mkn_multiband()
     # print_tex_table_fit_for_models_Mdisk()
 
-    # exit(1)
+    exit(1)
 
     o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
     o_mkn.set_glob_par_var_source(False, False)

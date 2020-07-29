@@ -4459,15 +4459,37 @@ def task_predict_for_event():
     print(r"\end{table}")
 
 
+def __get_str_val(val, fmt, fancy=True):
+    if fmt != None and fmt != "":
+        _val = str(("%{}".format(fmt) % float(val)))
+    else:
+        if str(val) == "nan":
+            _val = " "
+            # exit(1)
+        else:
+            _val = val
+
+    if fancy:
+        if _val.__contains__("e-"):
+            _val = "$"+str(_val).replace("e-", r'\times10^{')+"}$"
+        elif _val.__contains__("e+"):
+            _val = "$" + str(_val).replace("e+", r'\times10^{') + "}$"
+        else:
+            pass
+
+    return _val
+
 
 if __name__ == '__main__':
 
+    # print(__get_str_val(0.00000000002, ".3e"))
+    # print(str(x).replace('.e'))
     #print_chirp_mass()
 
     ''' --- tasks | mej --- '''
     # task_mej_chi2dofs()
     # task_mej_print_stats()
-    #task_mej_print_table_overall()
+    task_mej_print_table_overall()
     # task_mej_print_table_overall_2()
     #task_mj_print_table_overall_linear_regresion()
     # task_mj_print_table_overall_linear_regresion2()
@@ -4477,8 +4499,8 @@ if __name__ == '__main__':
     # task_vej_chi2dofs()
     # task_vej_print_stats()
     # task_vej_print_table_overall()
-    #task_vmj_print_table_overall_linear_regresion()
-    # task_vmj_print_table_overall_linear_regresion2()
+    # task_vmj_print_table_overall_linear_regresion()
+    task_vmj_print_table_overall_linear_regresion2()
 
     ''' --- task | Ye --- '''
     # task_ye_chi2dofs()
@@ -4488,7 +4510,7 @@ if __name__ == '__main__':
     # task_ye_print_table_overall_linear_regresion2()
     ''' --- task | Mdisk --- '''
     #task_mdisk_chi2dofs()
-    task_mdisk_print_stats()
+    # task_mdisk_print_stats()
     #task_mdisk_print_table_overall()
     #task_mdisk_print_table_overall_2()
     #task_mdisk_print_table_overall_linear_regresion()
