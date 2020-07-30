@@ -1901,7 +1901,7 @@ def custom_task_plot_final_disk_hist_3():
         "figsize": (16., 5.5),
         "type": "all",
         "xmin": 5e-2, "xmax": 22,
-        "ymin": 1e-4, "ymax": 1e-1,
+        "ymin": 1e-4, "ymax": 4e-1,
         "normalize": True,
         # "mask_below": 1e-15,
         "xscale": "linear", "yscale": "log",
@@ -2503,12 +2503,12 @@ if __name__ == "__main__":
 
     """ -- disk mass ecolution --- """
 
-    task_plot_total_disk_mass_evo_2()
+    # task_plot_total_disk_mass_evo_2()
 
     """ -- disk final structure histogram --- """
 
     # task_plot_final_disk_hist_3()
-    # custom_task_plot_final_disk_hist_3()
+    custom_task_plot_final_disk_hist_3()
 
     """ --- disk time corr --- """
     # task_plot_disk_timecorr_2()

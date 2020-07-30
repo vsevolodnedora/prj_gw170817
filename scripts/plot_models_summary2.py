@@ -4567,9 +4567,9 @@ def task_plot_mej_vs_vej():
 
         "patch":
             [{"data":{"x":0.27,"y":0.016,"xerr":(0.2,0.3),"yerr":(1e-2,2e-2)},
-             "plot":{"facecolor":"blue", "alpha":0.4, "edgecolor":"none", "label":"Blue kN [S]"}},
+             "plot":{"facecolor":"blue", "alpha":0.4, "edgecolor":"none", "label":"Blue kN"}},
              {"data": {"x": 0.1, "y": 0.05, "xerr": (0.07, 0.14), "yerr": (4e-2, 6e-2)},
-              "plot": {"facecolor": "red", "alpha": 0.4, "edgecolor": "none", "label": "Red kN [S]"}},
+              "plot": {"facecolor": "red", "alpha": 0.4, "edgecolor": "none", "label": "Red kN"}},
              # {"data": {"x": None, "y": None, "xerr": (0.2, 0.23), "yerr": (1e-2, 5e-3)},
              #  "plot": {"facecolor": "none", "alpha": 0.4, "edgecolor": "red", "label": "Dyn. kN [P]"}},
              # {"data": {"x": None, "y": None, "xerr": (0.066, 0.068), "yerr": (0.001*0.08, 0.2*0.12)},
@@ -4770,7 +4770,7 @@ def task_plot_mej_vs_yeej():
         # datasets[t]["marker"] = ourmd.datasets_markers[t]
         datasets[t]["fill_style"] = "none"
 
-    datasets['our_total']["annotate"] = "q"
+    # datasets['our_total']["annotate"] = "q"
 
     y_dic    = {"v_n": "Mej_tot-geo",     "err": "ud", "deferr": 0.2,  "mod": {}}#"mod": {"mult": [1e3]}
     x_dic    = {"v_n": "Ye_ave-geo", "err": "ud", "deferr": 0.2,  "mod": {}}#"mod": {"mult": [1e3]}
@@ -4779,7 +4779,7 @@ def task_plot_mej_vs_yeej():
     plot_dic = {
         "figsize": (6.0, 5.5),
         "left" : 0.15, "bottom" : 0.14, "top" : 0.92, "right" : 0.95, "hspace" : 0,
-        "dpi": 128, "fontsize": 17, "labelsize": 17,
+        "dpi": 128, "fontsize": 16, "labelsize": 16,
         "fit_panel": False,
         "plot_diagonal":False,
         "vmin": 350, "vmax": 900.0, "cmap": "jet", "plot_cbar": False,  # "tab10",
@@ -4788,10 +4788,10 @@ def task_plot_mej_vs_yeej():
         "ylabel": r"$M_{\rm ej}$ $[M_{\odot}]$",#$[10^{-3}M_{\odot}]$",
         "xlabel": r"$\langle Y_{e;\:\rm ej} \rangle$",
         "cbar_label": r"$\tilde{\Lambda}$",
-        "figname": __outplotdir__ + "ej_mej_yeej_our.png",
-        "legend": {"fancybox": False, "loc": 'upper right',
+        "figname": __outplotdir__ + "ej_mej_yeej_our2.png",
+        "legend": {"fancybox": False, "loc": 'upper left',
                    #"bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 3, "fontsize": 12, "columnspacing":0.4,
+                   "shadow": "False", "ncol": 4, "fontsize": 12, "columnspacing":0.3,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "alpha":0.8,
 
@@ -4805,9 +4805,9 @@ def task_plot_mej_vs_yeej():
 
         "patch":
             [{"data":{"x":0.27,"y":0.016,"xerr":(0.25, 0.50),"yerr":(1e-2,2e-2)},
-             "plot":{"facecolor":"blue", "alpha":0.4, "edgecolor":"none", "label":"Blue kN [S]"}},
+             "plot":{"facecolor":"blue", "alpha":0.4, "edgecolor":"none", "label":"Blue kN"}},
              {"data": {"x": 0.1, "y": 0.05, "xerr": (0.0, 0.25), "yerr": (4e-2, 6e-2)},
-              "plot": {"facecolor": "red", "alpha": 0.4, "edgecolor": "none", "label": "Red kN [S]"}},
+              "plot": {"facecolor": "red", "alpha": 0.4, "edgecolor": "none", "label": "Red kN"}},
              #
              # {"data": {"x": None, "y": None, "xerr": (0, 0.5), "yerr": (1e-2, 5e-3)},
              #  "plot": {"facecolor": "none", "alpha": 0.4, "edgecolor": "red", "label": "Dyn. kN [P]"}},
@@ -5003,14 +5003,14 @@ if __name__ == "__main__":
     #task_plot_yeej_cc()
     # task_plot_yeej_fits_only()
     ''' --- Mej vs vej ---  '''
-    task_plot_mej_vs_vej_all()
+    # task_plot_mej_vs_vej_all()
     # task_plot_mej_vs_vej()
 
     ''' --- Mej vs ye ---  '''
-    task_plot_mej_vs_ye_all()
+    # task_plot_mej_vs_ye_all()
     # task_plot_mej_vs_yeej()
     ''' --- vej vs ye ---  '''
-    task_plot_vej_vs_ye()
+    # task_plot_vej_vs_ye()
 
     ''' --- Mdisk --- '''
     # task_plot_mdisk_vs_fit_all()

@@ -2009,7 +2009,7 @@ if __name__ == '__main__':
     ### Mej
     # task_print_stats(v_n = "Mej_tot-geo")
     # task_mej_chi2dofs()
-    # task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="arr", fancy=False)
+    task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="arr", fancy=False)
     # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q", "Lambda"], degree=2, error_method="arr", fancy=False)
     # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="arr",
     #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=False)

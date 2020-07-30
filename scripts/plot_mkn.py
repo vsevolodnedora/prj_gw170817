@@ -32,7 +32,7 @@ from utils import Paths, Lists, Labels, Constants, Printcolor, UTILS, Files, PHY
 
 from make_fit2 import Fitting_Coefficients, Fitting_Functions, Fit_Data
 
-from model_sets import groups as md
+from model_sets import models as md
 from data import ADD_METHODS_ALL_PAR
 from comparison import TWO_SIMS, THREE_SIMS
 from settings import resolutions
@@ -170,6 +170,9 @@ class COMPUTE_LIGHTCURVE():
                 print("\tUsing default disk mass")
                 mdisk = 0.012
 
+        if NR2_data:
+            mdisk = self.o_data.get_par("Mdisk3D")
+
         self.glob_vars = {'m_disk':     mdisk, # mass of the disk [Msun], useful if the ejecta is expressed as a fraction of the disk mass
                          'eps0':        2e19, # prefactor of the nuclear heating rate [erg/s/g]
                          'view_angle':  180/12.,  # [deg]; if None, it uses the one in source properties
@@ -212,7 +215,7 @@ class COMPUTE_LIGHTCURVE():
                                               'therm_model':'BKWM', 'eps_ye_dep':'PBR', 'entropy': 20., 'tau':5,
                                               'v_law':'poly', 'use_kappa_table':False}#, 'use_kappa_table':False}
             self.ejecta_vars['dynamics'] = {'xi_disk':          None,
-                                           'm_ej':              1.0,#0.015, # 0.00169045, # - LS220 | 0.00263355 - DD2
+                                           'm_ej':              0.0,#0.015, # 0.00169045, # - LS220 | 0.00263355 - DD2
                                            'step_angle_mass':   None,
                                            'high_lat_flag':     None,
                                            'central_vel':       0.30, # changed from 0.33
@@ -1636,6 +1639,7 @@ class Fit:
     def __init__(self, model):
         self.m = model
         self.mej_mean = 5.220e-03  # Msun
+        self.mej_poly2 = float(Fitting_Functions.poly_2_Lambda([4.05e+00, -9.92e-04, 4.05e-06], model)) / 1e3
         self.mej_poly22 = float(Fitting_Functions.poly_2_qLambda([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05], model)) / 1e3
         self.mej_diet = float(Fitting_Functions.mej_dietrich16([-1.234, 3.089, -31.801, 17.526, -3.146], model)) / 1e3
         self.mej_krug = float(Fitting_Functions.mej_kruger20([-0.981, 12.880, -35.148, 2.030], model)) / 1e3
@@ -1659,6 +1663,7 @@ class Fit:
         if v_n == "Mej_tot-geo":
             if fitmodelname == None:        return float(self.m[v_n])
             elif fitmodelname == "mean":    return self.mej_mean
+            elif fitmodelname == "poly2":   return self.mej_poly2
             elif fitmodelname == "poly22":  return self.mej_poly22
             elif fitmodelname == "diet16":  return self.mej_diet
             elif fitmodelname == "krug19":  return self.mej_krug
@@ -2389,6 +2394,366 @@ def task_plot_fromfit_model_mkn_multiband():
 
     custom_plot_mkns_several_bands(plot_dic, subplot_dics)
 
+
+def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
+
+    models = md.simulations[md.mask_for_with_dynej]
+
+    bands = [subplot_dic["band"] for subplot_dic in subplot_dics]
+    fig, axes = plt.subplots(figsize=plotdic["figsize"], ncols=len(bands), nrows=1, sharey=True)
+    # ax = fig.add_subplot(111)
+    i = 0
+    for ax, band, subplot_dic in zip(axes, bands, subplot_dics):
+
+        for task in tasks:
+
+            sim = task["sim"]
+            model = models[models.index == sim]
+            ofit = Fit(model)
+
+
+            if "model" in task.keys():
+                # load the NR data, compute lightcurve, plot lightcurve
+
+                # mdisk = ofit.value("Mdisk3D", task["Mdisk3D"])
+                fname = "/data01/numrel/vsevolod.nedora/postprocessed4/{}/outflow_0/geo/ejecta_profile.dat".format(sim)
+                assert os.path.isfile(fname)
+
+                task_dic = task["model"]
+                o_mkn = COMPUTE_LIGHTCURVE(sim, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                o_mkn.dyn_ejecta_profile_fpath = fname
+                o_mkn.set_use_bern_NR = False
+                o_mkn.set_use_dyn_NR = True
+                o_mkn.set_glob_par_var_source(True, False)
+
+                o_mkn.set_dyn_iso_aniso = "aniso"
+                o_mkn.set_secular_iso_aniso = "aniso"
+                o_mkn.set_dyn_par_var("aniso")
+                o_mkn.set_secular_par_war("aniso")
+                # o_mkn.glob_vars['m_disk'] = mdisk
+
+                o_mkn.compute_save_lightcurve(write_output=True)
+
+                load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                times, mags = load_mkn.get_model_median(band)
+                #
+                ax.plot(times, mags, **task_dic["plot"])
+
+            if "best" in task.keys():
+                # extract paramters from the dic, compute lightcurve
+                task_dic = task["best"]
+
+                mej = ofit.value("Mej_tot-geo",     task_dic["Mej_tot-geo"])
+                vej = ofit.value("vel_inf_ave-geo", task_dic["vel_inf_ave-geo"])
+                mdisk = ofit.value("Mdisk3D",       task_dic["Mdisk3D"])
+
+                o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                o_mkn.set_glob_par_var_source(False, False)
+                o_mkn.set_dyn_iso_aniso = "aniso"
+                o_mkn.set_secular_iso_aniso = "aniso"
+                o_mkn.set_dyn_par_var("aniso")
+                o_mkn.set_secular_par_war("aniso")
+                o_mkn.glob_vars['m_disk']                   = mdisk
+                o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
+                o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
+                o_mkn.compute_save_lightcurve(write_output=True)
+                #
+                load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                times, mags = load_mkn.get_model_median(band)
+
+                ax.plot(times, mags, **task_dic["plot"])
+
+            if "fits" in task.keys():
+                # for ever parameter set in parameter dics compute lightcurve, plot a band they span
+                fit_list = task["fits"]
+                all_mags = []
+                times = []
+                for fit_par_dic in fit_list:
+
+                    mej = ofit.value("Mej_tot-geo",     fit_par_dic["Mej_tot-geo"])
+                    vej = ofit.value("vel_inf_ave-geo", fit_par_dic["vel_inf_ave-geo"])
+                    mdisk = ofit.value("Mdisk3D",       fit_par_dic["Mdisk3D"])
+
+                    #compute line
+                    o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                    o_mkn.set_glob_par_var_source(False, False)
+                    o_mkn.set_dyn_iso_aniso = "aniso"
+                    o_mkn.set_secular_iso_aniso = "aniso"
+                    o_mkn.set_dyn_par_var("aniso")
+                    o_mkn.set_secular_par_war("aniso")
+                    o_mkn.glob_vars['m_disk']                   = mdisk
+                    o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
+                    o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
+                    o_mkn.compute_save_lightcurve(write_output=True)
+                    #
+                    load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                    times, mags = load_mkn.get_model_median(band)
+                    all_mags.append(mags)
+                all_mags = np.reshape(np.array(all_mags), (len(fit_list), len(times))).T
+                maxs = np.max(all_mags, axis=1)
+                mins = np.min(all_mags, axis=1)
+                # maxs = np.array([ np.max(all_mags[:, k]) for k in all_mags[:, k] ])
+                # mins = np.array([np.min(all_mags[:, k]) for k in all_mags[:, k]])
+                ax.fill_between(times, mins, maxs, **task["plotfits"])
+        # end of tasks
+
+        ax.set_yscale(plotdic["yscale"])
+        ax.set_xscale(plotdic["xscale"])
+        #
+        ax.set_xlabel(plotdic["xlabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        if i == 0: ax.set_ylabel(plotdic["ylabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        #
+        if 'xmin' in subplot_dic.keys() and 'xmax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["xmin"], subplot_dic["xmax"])
+        else:
+            ax.set_xlim(plotdic["xmin"], plotdic["xmax"])
+
+        if 'ymin' in subplot_dic.keys() and 'ymax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["ymin"], subplot_dic["ymax"])
+        else:
+            ax.set_ylim(plotdic["ymin"], plotdic["ymax"])
+        #
+        ax.tick_params(axis='both', which='both', labelleft=True,
+                       labelright=False, tick1On=True, tick2On=True,
+                       labelsize=plotdic["fontsize"],
+                       direction='in',
+                       bottom=True, top=True, left=True, right=True)
+        ax.minorticks_on()
+        # #
+
+        if "add_lines" in subplot_dic.keys():
+            for entry in subplot_dic["add_lines"]:
+                ax.plot([-100, -100], [-200, -200], **entry)
+        #
+        if "add_bands" in subplot_dic.keys():
+            for entry in subplot_dic["add_bands"]:
+                ax.fill_between([-100, -100], [-200, -200], [-400, -400], **entry)
+        #
+        if "title" in subplot_dic:
+            ax.set_title(subplot_dic["title"])
+        #
+        if "title" in plotdic.keys():
+            if plotdic["title"] == "#band":
+                ax.set_title(band)
+            else:
+                ax.set_title(plotdic["title"])
+        #
+        if i > 0:
+            ax.tick_params(labelleft=False)
+            # ax.get_yaxis().set_ticks([])
+            # ax.get_yaxis().set_visible(False)
+
+        if "legend" in subplot_dic.keys():
+            ax.legend(**subplot_dic["legend"])
+        if len(plotdic["legend"].keys()) > 0: ax.legend(**plotdic["legend"])
+        i = i + 1
+
+    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.)
+    #
+    print("plotted: \n")
+    print(plotdic["figname"])
+    plt.savefig(plotdic["figname"], dpi=128)
+    if "savepdf" in plotdic.keys() and plotdic["savepdf"]:
+        plt.savefig(plotdic["figname"].replace(".png", ".pdf"))
+    plt.close()
+
+def task_plot_fromfit_model_mkn_multiband_band():
+
+    bands = ["g", "z", "Ks"]
+    # task = [
+    #     {"sim": "BLh_M13641364_M0_LK", "plot": {"label": r"BLh q=1.00 (SR)", "color":"green"}},
+    #     {"sim": "BLh_M11461635_M0_LK", "plot": {"label": r"BLh q=1.43 (SR)", "color": "red"}},
+    #     #{"sim": "BLh_M11461635_M0_LK", "plot": {"label": r"BLh q=1.43 (SR)", "color": "red"}},
+    #     # {"sim": "DD2_M13641364_M0_LK_R04", "plot": {"label": r"DD2* q=1.00 (SR)"}}
+    #     # {"sim": "LS220_M11461635_M0_LK", "label": r"LS220 q=1.43 (SR)",  "plot":{}}
+    #     # {"sim": "LS220_M13641364_M0_LK", "plot": {"label": r"LS220 q=1.00 (SR)", "color": "red"}},
+    #     # {"sim": "SFHo_M13641364_M0", "plot": {"label": r"SFHo* q=1.00 (SR)", "color":"red"}},
+    # ]
+    # for t in task:
+    #     t["plot"]["color"] = md.sim_dic_color[t["sim"]]
+
+
+    # pardics = {
+    #     "model":{"sim": "BLh_M13641364_M0_LK", "Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",
+    #              "plot": {"lw": 1., "ls": "--", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Model"}},
+    #     "best":{"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",
+    #             "plot": {"lw":1., "ls": "-", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Best Fit"}},
+    #     "fits":[
+    #         {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
+    #         {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+    #         {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
+    #         {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"},
+    #         {"alpha":0.4, "label":"Other Fits"}
+    #     ]
+    # }
+
+
+    tasks = [
+        {"sim": "BLh_M13641364_M0_LK_SR",
+         "model": {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",
+                   "plot": {"lw": 1., "ls": "--", "color": "green"}},# "label": r"Model"}},
+         "best": {"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",
+                  "plot": {"lw": 1., "ls": "-", "color": "green"}},#, "label": r"Best Fit"}},
+         "fits": [
+             {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
+             {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+             {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
+             {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}],
+         "plotfits":{"color":"green", "alpha": 0.3}#, "label": "Other Fits"}
+         },
+        # --=-=-==-=--=--=-=-=-=-=-=-=-=-=-==-=-=-=-==-=-=-==-==-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        {"sim": "BLh_M11461635_M0_LK_SR",
+         "model": {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",
+                   "plot": {"lw": 1., "ls": "--", "color": "blue"}},  # "label": r"Model"}},
+         "best": {"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",
+                  "plot": {"lw": 1., "ls": "-", "color": "blue"}},  # , "label": r"Best Fit"}},
+         "fits": [
+             {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
+             {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+             {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
+             {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}],
+         "plotfits": {"color": "blue", "alpha": 0.3}  # , "label": "Other Fits"}
+         }
+    ]
+
+    # pardics = [
+    #     {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",    "plot": {"lw": 2., "ls": "-", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Model"}},
+    #     {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None,             "plot": {"lw":2., "ls": "-", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Model"}},
+    #     {"Mej_tot-geo": "mean", "vel_inf_ave-geo": "mean", "Mdisk3D": "mean",       "plot": {"lw":1., "ls": ":", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Mean"}},
+    #     {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22", "plot": {"lw":1., "ls": "-", "color": "gray", "label": r"$M_{\rm ej} v_{\rm ej}$ $P_2(q,\tilde\Lambda)$"}},
+    #     {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18", "plot": {"lw":1., "ls": "--", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(6) $v_{\rm ej}$ Eq.(9)"}},
+    #     {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19", "plot": {"lw":1., "ls": "-.", "color": "gray", "label": r"$M_{\rm ej}$ Eq.(7) $v_{\rm ej}$ Eq.(9)"}}
+    # ]
+
+    ''' --- collecting data --- '''
+
+    # models = md.groups
+    # lineset = {}
+    # for band in bands:
+    #     for modeldic in task:
+
+
+
+
+
+
+
+    # models = md.groups
+    # lineset = {}
+    # for band in bands:
+    #     lineset[band] = {}
+    #     #
+    #     for modeldic in task:
+    #         lineset[band][modeldic["sim"]] = {}
+    #         model = models[models.group == modeldic["sim"]]
+    #         ofit = Fit(model)
+    #         #
+    #         for pardic in pardics:
+    #
+    #             if pardic[""]
+    #
+    #             print("\t\t{} {} {}".format(band, modeldic["sim"], pars["plot"]["label"]))
+    #
+    #             lineset[band][modeldic["sim"]][pars["plot"]["label"]] = {}
+    #
+    #             mej = ofit.value("Mej_tot-geo",     pars["Mej_tot-geo"])
+    #             vej = ofit.value("vel_inf_ave-geo", pars["vel_inf_ave-geo"])
+    #             mdisk = ofit.value("Mdisk3D",       pars["Mdisk3D"])
+    #             #
+    #             vals = {"Mej_tot-geo": mej, "vel_inf_ave-geo": vej, "Mdisk3D": mdisk}
+    #             #
+    #             o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+    #             o_mkn.set_glob_par_var_source(False, False)
+    #             o_mkn.set_dyn_iso_aniso = "aniso"
+    #             o_mkn.set_secular_iso_aniso = "aniso"
+    #             o_mkn.set_dyn_par_var("aniso")
+    #             o_mkn.set_secular_par_war("aniso")
+    #             o_mkn.glob_vars['m_disk']                       = vals["Mdisk3D"]
+    #             o_mkn.ejecta_vars['dynamics']["m_ej"]           = vals["Mej_tot-geo"]
+    #             o_mkn.ejecta_vars["dynamics"]["central_vel"]    = vals["vel_inf_ave-geo"]
+    #             o_mkn.compute_save_lightcurve(write_output=True)
+    #             #
+    #             load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+    #             times, mags = load_mkn.get_model_median(band)
+    #             #
+    #             linedic = {}
+    #             linedic["x"] = times
+    #             linedic["y"] = mags
+    #             linedic["color"] = modeldic["plot"]["color"]
+    #             linedic["ls"] = pars["plot"]["ls"]
+    #             linedic["alpha"] = 1.
+    #             linedic["lw"] = pars["plot"]["lw"]
+    #
+    #             lineset[band][modeldic["sim"]][pars["plot"]["label"]] = linedic
+
+    ''' --- plot settings --- '''
+
+    subplot_dics = [
+        {
+            "band": bands[0],
+            # "add_lines": [dic["plot"] for dic in pardics],
+            "add_lines": [
+                {"lw": 1., "ls": "-", "color": "green", "label": r"BLh q=1.00 (SR)"},
+                {"lw": 1., "ls": "-", "color": "blue", "label": r"BLh q=1.43 (SR)"},
+            ],
+            "title": "#band",
+            'xmin': 1e-1, 'xmax': 2e0, 'xlabel': r"time [days]",
+        },
+        {
+            "band": bands[1],
+            #"add_lines": [dic["plot"] for dic in pardics],
+            "title": "#band",
+            'xmin': 3e-1, 'xmax': 1e1, 'xlabel': r"time [days]",
+        },
+        {
+            "band": bands[2],
+            # "lines": lineset[bands[2]],
+            "add_lines": [
+                {"lw": 1., "ls": "--", "color": "gray", "label": r"Model"},
+                {"lw": 1., "ls": "-", "color": "gray", "label": r"Best Fit"}
+            ],
+            "add_bands": [
+                {"color": "gray", "alpha": 0.4, "label": "Other Fits"}
+            ],
+            "title": "#band",
+            'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
+        }
+    ]
+
+    plot_dic = {
+        "task_v_n" : "theta",
+        "type": "long",
+        "figsize": (16., 5.5),
+        'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
+        'ymin': 22, 'ymax': 17, 'ylabel': r"AB magnitude at 40 Mpc", # 23, 18 # sec: 22 17
+        # "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
+        #          'horizontalalignment': 'center'},
+        "xscale": "log", "yscale": "linear",
+        "legend": {"fancybox": False, "loc": 'lower left',
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,"direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "figname": __outplotdir__ + "dyn_sec_fit_bands.png",
+        'fontsize': 14,
+        'labelsize': 14,
+        "savepdf": True,
+        "title": "#band",
+        # "add_lines": [
+        #     [dic["plot"] for dic in pardics]
+        #     # {"ls": ":", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Mean"},
+        #     # {"ls": "-", "color": "gray", "label": "SFho q=1.00 (SR)"},
+        #     # {"ls": "-", "color": "gray", "label": "BLh q=1.43 (SR)"},
+        #     # {"ls": "-", "color": "gray", "label": "BLh q=1.43 (SR)"}
+        # ],
+    }
+
+    plot_custom_lightcurves(plot_dic, subplot_dics, tasks)
+
 def task_plot_lightcurve_synthetic_model():
 
 
@@ -2667,7 +3032,8 @@ if __name__ == "__main__":
     # print_tex_table_fit_for_models_yeej()
     # print_tex_table_fit_for_models_Mdisk()
 
-    task_plot_fromfit_model_mkn_multiband()
+    task_plot_fromfit_model_mkn_multiband_band()
+    # task_plot_fromfit_model_mkn_multiband()
     # print_tex_table_fit_for_models_Mdisk()
 
     exit(1)
