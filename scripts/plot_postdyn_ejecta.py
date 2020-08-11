@@ -2830,7 +2830,7 @@ def tasl_plot_slice_2halfs_xz_2():
         "xscale": "linear", "yscale": "linear",
 
         "vmin_left": 1e-9, "vmax_left": 1e-4,
-        "clabel_left": r"$E_{\nu}/D$",##r"$Q_{eff}(\nu_a) / D$",
+        "clabel_left": r"$Q_{\rm abs; \:a}/D$ [$c^{5}/(G M_{\odot})$]",##r"$Q_{eff}(\nu_a) / D$",
         "cmap_left": "jet",
         "norm_left": "log",
         # "set_under_left": "black", "set_over_left": "blue",
@@ -2961,7 +2961,7 @@ def tasl_plot_slice_2halfs_xy_2():
         "xscale": "linear", "yscale": "linear",
 
         "vmin_left": 1e-9, "vmax_left": 1e-4,
-        "clabel_left": r"$E_{\nu}/D$",##r"$Q_{eff}(\nu_a) / D$",
+        "clabel_left": r"$Q_{\rm abs; \:a}/D$ [$c^{5}/(G M_{\odot})$]",##r"$Q_{eff}(\nu_a) / D$", [$c^5/GM_{\odot}^2$]
         "cmap_left": "jet",
         "norm_left": "log",
         # "set_under_left": "black", "set_over_left": "blue",
@@ -3078,7 +3078,7 @@ if __name__ == '__main__':
     ''' ------ Ejecta 1D histrograms ------- '''
 
     #task_plot_total_ejecta_hist_2()
-    custom_task_plot_total_ejecta_hist_2() # subplots
+    # custom_task_plot_total_ejecta_hist_2() # subplots
 
     ''' ------ Slices XZ Ye & hu ----------- '''
 

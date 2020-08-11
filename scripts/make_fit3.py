@@ -51,7 +51,8 @@ def __get_str_val(val, fmt, fancy=False):
 
 def create_combine_dataframe2(datasets, v_ns, v_ns_err,
                              special_instructions,
-                             key_for_usable_dataset="fit"):
+                             key_for_usable_dataset="fit",
+                             ifabsent=np.nan):
     print("Datasets: {}".format(datasets.keys()))
 
     import pandas
@@ -84,11 +85,18 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
             dic = datasets[name]
             flag = dic[key_for_usable_dataset]
             if flag:
+
                 d_cl = dic["data"]  # md, rd, ki ...
                 models = dic["models"]
-                print("appending dataset: {}".format(name))
-                x = d_cl.get_mod_data(v_n, special_instructions, models)
-                value_arr = np.append(value_arr, x)
+
+                if not v_n in d_cl.translation.keys():
+                    print("\tWarning: v_n:{} is not in keys for {}".format(v_n, name))
+                    shape = len(models.index)
+                    value_arr = np.append(value_arr, np.full(shape, ifabsent))
+                else:
+                    print("appending dataset: {}".format(name))
+                    x = d_cl.get_mod_data(v_n, special_instructions, models)
+                    value_arr = np.append(value_arr, x)
                 #
         print(len(value_arr))
         new_data_frame[v_n] = value_arr
@@ -109,6 +117,8 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
         new_data_frame["err_" + v_n] = error_arr
 
     df = pandas.DataFrame(new_data_frame, index=new_data_frame["models"])
+
+    # print(df[["Lambda","q","Mej_tot-geo","err_Mej_tot-geo"]]); exit(1)
 
     return df
 
@@ -359,7 +369,7 @@ class Fitting_Functions:
         return b0 + b1 * v.q + b2 * v.Lambda + b3 * v.q ** 2 + b4 * v.q * v.Lambda + b5 * v.Lambda ** 2
         #return b0 + b1 * v.Lambda + b2 * v.q + b3 * v.Lambda ** 2 + b4 * v.Lambda * v.q + b5 * v.q ** 2
 
-class Fit_Data:
+class Fit_Data_old:
     """
     Fit the data with least square  and with polynomial regrression
     """
@@ -444,7 +454,7 @@ class Fit_Data:
         else:
             raise NameError("no err method: {}".format(self.error_method))
 
-        if self.fit_v_n == "Mej_tot-geo": res = res * 1e3
+        # if self.fit_v_n == "Mej_tot-geo": res = res * 1e3
         return res
 
     def get_chi2(self, y_vals, y_expets, y_errs):
@@ -727,9 +737,9 @@ class Fit_Data:
         # print('predicted response:', y_pred)
 
         x = np.array(self.dataframe[v_n_x], dtype=float).reshape((-1, 1))
-        y = np.array(self.dataframe[v_n_y], dtype=float)
+        # y = np.array(self.dataframe[v_n_y], dtype=float)
         if v_n_y == "Mej_tot-geo":
-            y = np.array(self.dataframe[v_n_y], dtype=float) * 1e3
+            y = np.array(self.dataframe[v_n_y], dtype=float) * 1.e3
         else:
             y = np.array(self.dataframe[v_n_y], dtype=float)
         # # new_model = LinearRegression().fit(x, y.reshape((-1, 1)))
@@ -742,6 +752,7 @@ class Fit_Data:
         r_sq = model.score(x_, y)
 
         std = stats.tstd(y)
+        y_pred = model.predict(x_)
 
         print('coefficient of determination R2: {}'.format(r_sq))
         print('intercept b0: {}'.format(model.intercept_))
@@ -852,6 +863,684 @@ class Fit_Data:
 
         y_pred = model.predict(x_)
         chi2 = self.get_chi2(y, y_pred, self.get_err(y))
+        chi2dof = self.get_ch2dof(chi2, self.num, degree+1)
+        #print('predicted response:', y_pred)
+        # if self.chi_method == "scipy":
+        #     print("[poly regres] deg:{} using scipy for chi ddof:{}".format(degree, degree+1))
+        #     chi2, p = stats.chisquare(y, y_pred, ddof=degree+1)
+        # else:
+        #     chi2 = np.sum(((y - y_pred)**2) / std**2)
+        #else: chi2 = np.sum((y - y_pred)**2)
+        print('chi2: {}'.format(chi2))
+
+        print("------------------------------------------------------")
+
+        coeffs = np.zeros(len(model.coef_)+1)
+        coeffs[0] = model.intercept_
+        coeffs[1:] = model.coef_
+
+        # return(model.intercept_, model.coef_, chi2, chi2dof, r_sq)
+        return(coeffs, chi2, chi2dof, r_sq)
+
+    #
+
+    def mean_predict(self):
+        """
+
+        :param x_values:
+        :param err:
+        :return: (mean, mean-std, mean+std)
+        """
+
+        y_vals = np.array(self.dataframe[self.fit_v_n], dtype=float)
+        y_errs = self.get_err(y_vals)
+        mean = np.mean(y_vals)
+        std = stats.tstd(y_vals)
+        if std > mean:
+            return mean, std, mean
+        else:
+            return mean, std, std
+
+    def fit2_predict(self, x_values, ff_name, cf_name, rs_name):
+        """
+
+        :param ff_name:
+        :param cf_name:
+        :param rs_name:
+        :param x_values: [x_val, x_lower, x_upper] or just [x_val]
+        :return: (x, chi2, chi2dof, score, xi)
+        """
+        #assert len(x_values) == 1 or len(x_values) == 3
+        x, chi2, chi2dof, score = self.fit2(ff_name, cf_name, rs_name) # x - coefficients
+        xi = self.fitting_functions(x, x_values, ff_name) # get fitted values
+        if self.fit_v_n == "Mej_tot-geo": xi = xi / 1.e3 # for ejecta mass fitting functions is for 1e3
+        return xi
+
+    def linear_regression_predict(self, vals, degree=1, v_n_x = "Mej_tot-geo", v_n_y="Lambda"):
+
+        #assert len(vals) == 1 or len(vals) == 3
+
+        x = np.array(self.dataframe[v_n_x], dtype=float).reshape((-1, 1))
+        y = np.array(self.dataframe[v_n_y], dtype=float)
+        # # new_model = LinearRegression().fit(x, y.reshape((-1, 1)))
+        # # print('intercept:', new_model.intercept_)
+        print("------ Polynomial regression x:{} y:{} deg:{} ------ ".format(v_n_x, v_n_y, degree))
+        transformer = PolynomialFeatures(degree=degree, include_bias=False)
+        transformer.fit(x)
+        x_ = transformer.transform(x)
+        model = LinearRegression().fit(x_, y)
+        r_sq = model.score(x_, y)
+
+        # std = stats.tstd(y)
+
+        print('coefficient of determination R2: {}'.format(r_sq))
+        print('intercept b0: {}'.format(model.intercept_))
+        print('coefficients bi: {}'.format(model.coef_))
+
+        # y_pred = model.predict(x_)
+        # chi2 = self.get_chi2(y, y_pred, self.get_err(y))
+        # chi2dof = self.get_ch2dof(chi2, self.num, degree + 1)
+
+        y_pred = model.predict(np.array(vals).reshape(-1,1))
+
+        return y_pred
+
+    def linear_regression2_predict(self, vals, degree=1, v_ns_x = ["Mej_tot-geo"], v_ns_y=["Lambda"]):
+
+        '''
+                given x - Mdisk and y - Lambda,
+                find y = b0 + b1 * x
+
+                Here x - dependent variables, outputs, or responses (predicted responses)
+                     y - independent variables, inputs, or predictors.
+                     b0 - intercept (shows the point where the estimated regression line crosses the 'y' axis)
+                     b1 - determines the slope of the estimated regression line.
+
+                y1 - f(x1) = y1 - b0 - b1*x1 for i = 1... n
+                Here y1 -- residuals
+
+                Data fromat
+                y = [ 5 20 14 32 22 38]
+                x = [[ 5]
+                     [15]
+                     [25]
+                     [35]
+                     [45]
+                     [55]]
+
+
+                :return:
+                '''
+        # x = np.array(self.dataframe["Mdisk3D"], dtype=float).reshape((-1, 1)) # dependent variables, outputs, or responses.
+        # y = np.array(self.dataframe["Lambda"], dtype=float) # independent variables, inputs, or predictors.
+        #
+        # model = LinearRegression() # fits the model
+        #
+        # model.fit(x, y)
+        #
+        # r_sq = model.score(x, y)
+        #
+        # print('coefficient of determination:', r_sq)
+        #
+        # print('intercept:', model.intercept_) # which represents the coefficient, b[0]
+        # print('slope:', model.coef_) # which represents b[1]
+        #
+        # y_pred = model.predict(x)
+        # print('predicted response:', y_pred)
+
+        # x = np.array(self.dataframe[v_n_x], dtype=float).reshape((-1, 1))
+        n_fit_vals = 1
+        if len(v_ns_x) == 1:
+            x = np.array(self.dataframe[v_ns_x[0]], dtype=float).reshape((-1,1))
+            fit_vals = np.array(vals).reshape((-1, 1))
+            #print("---", fit_vals)
+        else:
+            # x = []
+            # for i, v_n_x in enumerate(v_ns_x):
+            #     x_ = np.array(self.dataframe[v_n_x], dtype=float)
+            #     x.append(x_.T)
+            # x = np.hstack((x)).T
+            # fit_vals = vals
+
+            #
+            x = []
+            fit_vals = vals
+            for i, v_n_x in enumerate(v_ns_x):
+                x_ = np.array(self.dataframe[v_n_x], dtype=float)
+                x.append(x_)
+                #fit_vals.append(vals[i])
+                #n_fit_vals = len(vals[i])
+                # print(len(x_))
+            x = np.reshape(np.array(x), (len(v_ns_x), len(x_))).T
+            #fit_vals = np.reshape(np.array(fit_vals), (len(v_ns_x), n_fit_vals))
+            # print(x)
+            # exit(1)
+        y = np.array(self.dataframe[v_ns_y[0]], dtype=float)
+        # if len(v_ns_y) == 1:
+        #     y = np.array(self.dataframe[v_ns_y[0]], dtype=float)
+        # else:
+        #     y = []
+        #     for v_n_y in v_ns_y:
+        #         y_ = np.array(self.dataframe[v_n_y], dtype=float)
+        #         y.append(y_)
+        #     y = np.reshape(np.array(y), (len(v_ns_y), len(y_)))
+        #     print(y)
+        #     exit(1)
+
+        print("------ Polynomial regression2 xs:{} ys:{} deg:{} ------ ".format(v_ns_x, v_ns_y, degree))
+        transformer = PolynomialFeatures(degree=degree, include_bias=False)
+        transformer.fit(x)
+        x_ = transformer.transform(x)
+        model = LinearRegression().fit(x_, y)
+        r_sq = model.score(x_, y)
+        #print(x_.shape)
+        #print(model.predict(x_))
+        std = stats.tstd(y)
+
+        print('coefficient of determination R2: {}'.format(r_sq))
+        print('intercept b0: {}'.format(model.intercept_))
+        print('coefficients bi: {}'.format(model.coef_))
+
+        #assert len(vals) == len(v_ns_x)
+        #print(x)
+        #print(x_)
+
+        x2 = transformer.transform(fit_vals)
+        y_pred1 = model.predict(x2)
+        #y_pred2 = model.predict(fit_vals[1].reshape(1, -1))
+
+        return y_pred1
+
+class Fit_Data:
+    """
+    Fit the data with least square  and with polynomial regrression
+    """
+
+    def __init__(self, datasets, v_n="Mej_tot-geo", chi_method="scipy", error_method="1std"):
+
+        self.fit_v_n = v_n
+        self.chi_method = chi_method
+        self.error_method = error_method
+
+        v_ns = ["M1", "M2", "C1", "C2", "Mb1", "Mb2", "Lambda", "q", self.fit_v_n]
+        #v_ns = [self.fit_v_n]
+        v_ns_err = [self.fit_v_n]
+
+        dataframe = create_combine_dataframe2(datasets, v_ns, v_ns_err, {})
+        dataframe = dataframe[np.isfinite(dataframe[self.fit_v_n])]
+        dataframe = dataframe[dataframe["Lambda"] <= 2000]
+        self.dataframe = dataframe
+        # dataframe = dataframe[dataframe["q"] < 1.29]
+        # dataframe = dataframe[(dataframe["C2"] > 0.136) & (dataframe["C2"] < 0.218)]
+        print(np.array(np.isfinite(dataframe[self.fit_v_n])))
+        # if self.fit_v_n == "Mej_tot-geo":
+        #     dataframe[self.fit_v_n] = dataframe[self.fit_v_n] * 1.e3
+
+        print(" --- {} ---- ".format(self.fit_v_n))
+
+        print(dataframe[self.fit_v_n].describe(percentiles=[0.8, 0.9, 0.95]))
+
+        self.std = dataframe[self.fit_v_n].std()
+        # self.mean = dataframe[self.fit_v_n].mean()
+        n = len(np.array(dataframe[self.fit_v_n]))
+        #
+        # if chi_method == "scipy":
+        #     print("[fittig mean] Using scipy norm with ddof=0")
+        #     chi2, p = stats.chisquare(np.array(dataframe[self.fit_v_n]),
+        #                              np.full(self.num, self.mean),
+        #                              ddof=1)
+        # else:
+        #     chi2 = np.sum(((np.array(dataframe[self.fit_v_n]) - self.mean) ** 2) / self.std ** 2)
+
+        y_vals = np.array(dataframe[self.fit_v_n], dtype=float)
+        # if self.error_method == "1std": y_errs = float(self.std)
+        # else: raise NameError("Unknown error_method: {}".format(error_method))
+        y_errs = self.get_err(y_vals)
+        mean = np.mean(y_vals)
+
+        z = (y_vals - mean) / y_errs
+        chi2 = np.sum(z ** 2.)
+
+        chi2dof = chi2 / float(n - 1) # 1 -- ddof for a mean
+        sigma = np.sqrt(2. / float(n - 1))
+        nsig = (chi2dof - 1) / sigma
+
+        '''  -------------------------  '''
+
+        self.chi2 = chi2
+        self.chi2dof = chi2dof
+        self.num = n
+        self.mean = mean
+
+        print("-----------------------------------------------")
+        print("\t num:     {:d} in the sample".format(self.num))
+        print("\t std:     {}".format(self.std))
+        print("\t mean:    {}".format(self.mean))
+        print("\t chi2:    {} [{}]".format(self.chi2, self.chi_method))
+        print("\t cho2dof: {}".format(self.chi2dof))
+        print("\t nsig:    {} sigma's".format(nsig))
+        print("-----------------------------------------------")
+
+        #self.dataframe = dataframe
+        #dataframe.to_csv("/data01/numrel/vsevolod.nedora/tmp/dataset.csv")
+
+
+    def get_err(self, vals):
+        res = np.zeros(0,)
+        if self.error_method == "std":
+            res =  np.std(vals)
+        elif self.error_method == "2std":
+            res = 2. * np.std(vals)
+        elif self.error_method == "arr":
+            res = self.dataframe["err_" + self.fit_v_n]
+        else:
+            raise NameError("no err method: {}".format(self.error_method))
+
+        # if self.fit_v_n == "Mej_tot-geo": res = res * 1e3
+        return res
+
+    def get_chi2(self, y_vals, y_expets, y_errs):
+        assert len(y_vals) == len(y_expets)
+        z = (y_vals - y_expets) / y_errs
+        chi2 = np.sum(z ** 2.)
+        return chi2
+
+    def get_score(self, y_true, y_pred):
+        """
+        uses https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html#sklearn.linear_model.LinearRegression.score
+        :param y_true:
+        :param y_pred:
+        :return: 0-1 value float
+
+        The best possible score is 1.0 and it can be negative (because the model can be arbitrarily worse).
+        A constant model that always predicts the expected value of y,
+        disregarding the input features, would get a R^2 score of 0.0.
+
+        """
+        y_true = np.array(y_true, dtype=np.float)
+        y_pred = np.array(y_pred, dtype=np.float)
+
+        #y_true = y_true[~np.isnan(y_true)]
+        #y_pred = y_pred[~np.isnan(y_pred)]
+
+        y_true = y_true[np.isfinite(y_true)]
+        y_pred = y_pred[np.isfinite(y_pred)]
+        # print("--------")
+        # print(y_true)
+        # print(y_pred)
+        # print("--------")
+
+        assert len(y_true) == len(y_pred)
+        u = np.sum((y_true - y_pred)**2.)
+        v = np.sum((y_true - np.mean(y_true))**2.)
+        res = (1.-u/v)
+        #print(res)
+        # assert res >= 0
+        # assert res <= 1
+
+        #if res < 0.: return np.nan # neg
+        if res > 1.: return np.nan
+
+        return res
+
+    def get_ch2dof(self, chi2, n, k):
+        """
+        :param chi2: chi squared
+        :param n: number of elements in a sample
+        :param k: n of independedn parameters (1 -- mean, 2 -- poly1 fit, etc)
+        :return:
+        """
+        return chi2 / (n - k)
+
+    def get_ch2dof_mean(self):
+        y_vals = np.array(self.dataframe[self.fit_v_n], dtype=float)
+        # if self.fit_v_n == "Mej_tot-geo": y_vals = y_vals * 1e3
+        mean = float(np.mean(y_vals))
+        y_errs = self.get_err(y_vals)
+        chi2 = self.get_chi2(y_vals, np.full(len(y_vals), mean), y_errs)
+        n = len(np.array(self.dataframe[self.fit_v_n]))
+        chi2dof = self.get_ch2dof(chi2, n, 1) # k=1 -- ddof for a mean
+        return chi2dof
+
+    def get_stats(self, v_ns=["n", "mean", "std", "80", "90", "95", "chi2", "chi2dof"]):
+
+        res = []
+        for v_n in v_ns:
+            if v_n == "n":
+                res.append(self.num)
+            if v_n == "mean":
+                res.append(self.mean)
+            if v_n == "std":
+                res.append(self.std)
+            if v_n == "90" or v_n == "80" or v_n == "95":
+                dic = self.dataframe[self.fit_v_n].describe(percentiles=[0.8, 0.9, 0.95])
+                val = float(dic[v_n+"%"])
+                res.append(val)
+            if v_n == "chi2":
+                res.append(self.chi2)
+            if v_n == "chi2dof":
+                res.append(self.chi2dof)
+
+        return res
+
+    def fitting_functions(self, x, v, name="Radice+2018"):
+
+        if self.fit_v_n == "Mej_tot-geo":
+            if name == "Radice+2018":
+                return Fitting_Functions.mej_dietrich16(x, v)
+            elif name == "Kruger+2020":
+                return Fitting_Functions.mej_kruger20(x, v)
+            else:
+                raise NameError("no fitting function for: {} ".format(name))
+
+        elif self.fit_v_n == "vel_inf_ave-geo":
+            if name == "Radice+2018":
+                return Fitting_Functions.vej_dietrich16(x, v)
+            else:
+                raise NameError("no fitting function for: {} ".format(name))
+
+        elif self.fit_v_n == "Ye_ave-geo":
+            return Fitting_Functions.yeej_like_vej(x, v)
+
+        elif self.fit_v_n == "Mdisk3D":
+            if name == "Radice+2018":
+                return Fitting_Functions.mdisk_radice18(x, v)
+
+            if name == "Kruger+2020":
+                return Fitting_Functions.mdisk_kruger20(x, v)
+
+            if name == "flat":
+                return np.full(len(v["Lambda"]), 0.126323)
+
+            else:
+                raise NameError("no fitting function for: {} ".format(name))
+
+        else:
+            raise NameError("No fit. funct. for v_n:{}".format(self.fit_v_n))
+
+    def coefficients(self, name="Radice+2018"):
+
+        if self.fit_v_n == "Mej_tot-geo":
+            if name == "Radice+2018":
+                # Radice:2018pdn
+                return Fitting_Coefficients.mej_radice18()
+            elif name == "Kruger+2020":
+                # Radice:2018pdn
+                return Fitting_Coefficients.mej_kruger20()
+            elif name == "all":
+                # {Radice:2018pdn,Dietrich:2015iva,Dietrich:2016lyp,Kiuchi:2019lls,Vincent:2019kor}
+                  return Fitting_Coefficients.mej_all()
+            else:
+                raise NameError(" coeff name: {} is not recognized v_n:{}".format(name, self.fit_v_n))
+        elif self.fit_v_n == "vel_inf_ave-geo":
+            if name == "Radice+2018":
+                # Radice:2018pdn
+                return Fitting_Coefficients.vej_radice()
+            elif name == "all":
+                # Dietrich:2016lyp,Dietrich:2015iva,Radice:2018pdn,Vincent:2019kor
+                return Fitting_Coefficients.vej_all()
+            else:
+                raise NameError("no fitting function for: {} v_n:{}".format(name, self.fit_v_n))
+        elif self.fit_v_n == "Ye_ave-geo":
+            if name == "us":
+                a = 0.139637775679
+                b = 0.33996686385
+                c = -3.70301958353
+                return np.array((a, b, c))
+            elif name == "all":
+                # Radice:2018pdn,Vincent:2019kor
+                return Fitting_Coefficients.yeej_all()
+            else:
+                raise NameError("no fitting coeffs for: {} v_n:{}".format(name, self.fit_v_n))
+        elif self.fit_v_n == "Mdisk3D":
+            if name == "Radice+2018":
+                # Radice:2018pdn + us
+                return Fitting_Coefficients.mdisk_radice18()
+            elif name == "Kruger+2020":
+                return Fitting_Coefficients.mdisk_kruger20()
+            elif name == "all":
+                # Radice:2018pdn,Dietrich:2015iva,Dietrich:2016lyp,Kiuchi:2019lls,Vincent:2019kor,Dietrich:2015iva,Dietrich:2016lyp,Kiuchi:2019lls,Vincent:2019kor
+                return Fitting_Coefficients.mdisk_all()
+            elif name == "flat":
+                return np.array((0, 0, 0, 0))
+            else:
+                raise NameError(" coeff name: {} is not recognized".format(name))
+        else:
+            raise NameError("No coeffs found for v_n: {}".format(self.fit_v_n))
+
+    def residuals(self, x, data, ffname ="Radice+2018", rs_name="Radice+2018"):
+
+        if self.fit_v_n == "Mej_tot-geo":
+            xi = self.fitting_functions(x, data, ffname)
+            return 1.e-3 * (xi - 1.e3 * data[self.fit_v_n])
+
+        xi = self.fitting_functions(x, data, ffname)
+        return (xi - data[self.fit_v_n])
+
+        # if self.fit_v_n == "Mej_tot-geo":
+        #     if name == "Radice+2018":
+        #         xi = self.fitting_functions(x, data, name)
+        #         return 1.e-3*(xi - 1.e3*data[self.fit_v_n])
+        #         #return ((data[self.fit_v_n] - xi) ** 2)
+        #         # return ((1.e-3*(1.e3*data[] - xi)) ** 2)
+        #     else:
+        #         raise NameError("no residuals for name: {}".format(name))
+        # else:
+        #     if name == "Radice+2018":
+        #         xi = self.fitting_functions(x, data, name)
+        #         return (xi - data[self.fit_v_n])
+        #         # return ((data[self.fit_v_n] - xi) ** 2)
+        #     else:
+        #         raise NameError("no residuals for name: {}".format(name))
+
+    def fit2(self, ff_name, cf_name, rs_name):
+
+        print("ff_name:{} cf_name:{} rs_name:{}".format(ff_name, cf_name, rs_name))
+
+        y_vals = np.array(self.dataframe[self.fit_v_n])
+        print("y_vals: {}".format(y_vals))
+        x0 = self.coefficients(cf_name)
+        print("coeffs: {}".format(x0))
+        xi = self.fitting_functions(x0, self.dataframe, ff_name)
+        print("y inferred: {}".format(xi))
+        ### if self.fit_v_n == "Mej_tot-geo": xi = xi / 1.e3
+
+        # if self.chi_method == "scipy":
+        #     chi2, p = stats.chisquare(np.array(self.dataframe[self.fit_v_n]), xi, ddof=len(x0))
+        # else:
+        #     chi2 = np.sum((self.dataframe[self.fit_v_n] - xi) ** 2 / stats.tstd(xi)**2)
+        # else: chi2 = np.sum((xi - self.dataframe[self.fit_v_n]) ** 2)
+        chi2 = self.get_chi2(y_vals, xi, self.get_err(y_vals))
+        print("chi2 original: {}".format(chi2))
+
+        res = opt.least_squares(self.residuals, x0, args=(self.dataframe, ff_name, rs_name)) # res.x -- new coeffs
+        xi = self.fitting_functions(res.x, self.dataframe, ff_name)
+        ### if self.fit_v_n == "Mej_tot-geo": xi = xi / 1.e3
+        # if self.chi_method == "scipy":
+        #     chi2, p = stats.chisquare(np.array(self.dataframe[self.fit_v_n]), xi, ddof=len(x0))
+        # else:
+        #     chi2 = np.sum(((self.dataframe[self.fit_v_n] - xi) ** 2) / stats.tstd(xi)**2)
+        chi2 = self.get_chi2(y_vals, xi, self.get_err(y_vals))
+        chi2dof = self.get_ch2dof(chi2, len(y_vals), len(x0))
+
+        print("chi2    fit: {}".format(chi2))
+        print("chi2dof fit: {}".format(chi2dof))
+
+        print("Fit coefficients:")
+        for i in range(len(x0)):
+            print("  coeff[{}] = {}".format(i, res.x[i]))
+
+        #print(y_vals, xi);exit(1)
+        # if self.fit_v_n == "Mej_tot-geo": y_vals = y_vals * 1e3
+        score = self.get_score(y_vals, xi) # R^2 coefficient
+
+        return res.x, chi2, chi2dof, score
+
+    def linear_regression(self, degree=1, v_n_x = "Lambda", v_n_y="Mej_tot-geo"):
+        '''
+        given x - Mdisk and y - Lambda,
+        find y = b0 + b1 * x
+
+        Here x - dependent variables, outputs, or responses (predicted responses)
+             y - independent variables, inputs, or predictors.
+             b0 - intercept (shows the point where the estimated regression line crosses the 'y' axis)
+             b1 - determines the slope of the estimated regression line.
+
+        y1 - f(x1) = y1 - b0 - b1*x1 for i = 1... n
+        Here y1 -- residuals
+
+        Data fromat
+        y = [ 5 20 14 32 22 38]
+        x = [[ 5]
+             [15]
+             [25]
+             [35]
+             [45]
+             [55]]
+
+
+        :return:
+        '''
+        # x = np.array(self.dataframe["Mdisk3D"], dtype=float).reshape((-1, 1)) # dependent variables, outputs, or responses.
+        # y = np.array(self.dataframe["Lambda"], dtype=float) # independent variables, inputs, or predictors.
+        #
+        # model = LinearRegression() # fits the model
+        #
+        # model.fit(x, y)
+        #
+        # r_sq = model.score(x, y)
+        #
+        # print('coefficient of determination:', r_sq)
+        #
+        # print('intercept:', model.intercept_) # which represents the coefficient, b[0]
+        # print('slope:', model.coef_) # which represents b[1]
+        #
+        # y_pred = model.predict(x)
+        # print('predicted response:', y_pred)
+
+        x = np.array(self.dataframe[v_n_x], dtype=float).reshape((-1, 1))
+        # y = np.array(self.dataframe[v_n_y], dtype=float)
+        # if v_n_y == "Mej_tot-geo":
+        #     y = np.array(self.dataframe[v_n_y], dtype=float) * 1.e3
+        # else:
+        # print(v_n_x, v_n_y); exit(1)
+        y = np.array(self.dataframe[v_n_y], dtype=float)
+        errs = self.get_err(y)
+        if v_n_y == "Mej_tot-geo":
+            y = 1e3 * y
+            errs = 1e3 * errs
+
+        # # new_model = LinearRegression().fit(x, y.reshape((-1, 1)))
+        # # print('intercept:', new_model.intercept_)
+        print("------ Polynomial regression x:{} y:{} deg:{} ------ ".format(v_n_x, v_n_y, degree))
+        transformer = PolynomialFeatures(degree=degree, include_bias=False)
+        transformer.fit(x)
+        x_ = transformer.transform(x)
+        model = LinearRegression().fit(x_, y)
+        r_sq = model.score(x_, y)
+
+        print('coefficient of determination R2: {}'.format(r_sq))
+        print('intercept b0: {}'.format(model.intercept_))
+        print('coefficients bi: {}'.format(model.coef_))
+
+        y_pred = model.predict(x_)
+        chi2 = self.get_chi2(y, y_pred, errs)
+        chi2dof = self.get_ch2dof(chi2, self.num, degree+1)
+        #print('predicted response:', y_pred)
+        # if self.chi_method == "scipy":
+        #     print("[poly regres] deg:{} using scipy for chi ddof:{}".format(degree, degree+1))
+        #     chi2, p = stats.chisquare(y, y_pred, ddof=degree+1)
+        # else:
+        #     chi2 = np.sum(((y - y_pred)**2) / std**2)
+        #else: chi2 = np.sum((y - y_pred)**2)
+        print('chi2: {}'.format(chi2))
+
+        print("------------------------------------------------------")
+
+        coeffs = np.zeros(len(model.coef_)+1)
+        coeffs[0] = model.intercept_
+        coeffs[1:] = model.coef_
+
+        # return(model.intercept_, model.coef_, chi2, chi2dof, r_sq)
+        return(coeffs, chi2, chi2dof, r_sq)
+
+    def linear_regression2(self, degree=1, v_ns_x = ["Mej_tot-geo"], v_ns_y=["Lambda"]):
+        '''
+        given x - Mdisk and y - Lambda,
+        find y = b0 + b1 * x
+
+        Here x - dependent variables, outputs, or responses (predicted responses)
+             y - independent variables, inputs, or predictors.
+             b0 - intercept (shows the point where the estimated regression line crosses the 'y' axis)
+             b1 - determines the slope of the estimated regression line.
+
+        y1 - f(x1) = y1 - b0 - b1*x1 for i = 1... n
+        Here y1 -- residuals
+
+        Data fromat
+        y = [ 5 20 14 32 22 38]
+        x = [[ 5]
+             [15]
+             [25]
+             [35]
+             [45]
+             [55]]
+
+
+        :return:
+        '''
+        # x = np.array(self.dataframe["Mdisk3D"], dtype=float).reshape((-1, 1)) # dependent variables, outputs, or responses.
+        # y = np.array(self.dataframe["Lambda"], dtype=float) # independent variables, inputs, or predictors.
+        #
+        # model = LinearRegression() # fits the model
+        #
+        # model.fit(x, y)
+        #
+        # r_sq = model.score(x, y)
+        #
+        # print('coefficient of determination:', r_sq)
+        #
+        # print('intercept:', model.intercept_) # which represents the coefficient, b[0]
+        # print('slope:', model.coef_) # which represents b[1]
+        #
+        # y_pred = model.predict(x)
+        # print('predicted response:', y_pred)
+
+        #x = np.array(self.dataframe[v_n_x], dtype=float).reshape((-1, 1))
+        if len(v_ns_x) == 1:
+            x = np.array(self.dataframe[v_ns_x[0]], dtype=float)
+        else:
+            x = []
+            for v_n_x in v_ns_x:
+                x_ = np.array(self.dataframe[v_n_x], dtype=float)
+                x.append(x_)
+                #print(len(x_))
+            x = np.reshape(np.array(x), (len(v_ns_x), len(x_))).T
+            #print(x)
+            #exit(1)
+        # if v_ns_y[0] == "Mej_tot-geo":
+        #    y = np.array(self.dataframe[v_ns_y[0]], dtype=float) * 1e3
+        # else:
+        y = np.array(self.dataframe[v_ns_y[0]], dtype=float)
+        errs = self.get_err(y)
+        if v_ns_y[0] == "Mej_tot-geo":
+            y = 1e3 * y
+            errs = 1e3 * errs
+
+        print("------ Polynomial regression2 xs:{} ys:{} deg:{} ------ ".format(v_ns_x, v_ns_y, degree))
+        transformer = PolynomialFeatures(degree=degree, include_bias=False)
+        transformer.fit(x)
+        x_ = transformer.transform(x)
+        model = LinearRegression().fit(x_, y)
+        r_sq = model.score(x_, y)
+        y_pred = model.predict(x_)
+
+
+        print('coefficient of determination R2: {}'.format(r_sq))
+        print('intercept b0: {}'.format(model.intercept_))
+        print('coefficients bi: {}'.format(model.coef_))
+
+        chi2 = self.get_chi2(y, y_pred, errs)
         chi2dof = self.get_ch2dof(chi2, self.num, degree+1)
         #print('predicted response:', y_pred)
         # if self.chi_method == "scipy":
@@ -1167,16 +1856,19 @@ def task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["Lambda"], degree=1,
 
     row_labels, all_vals = [], []
     mdisk_datasets = OrderedDict()
-    for i in range(9):
+    for i in range(0,8):
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations, "data": vi, "fit": True}
+        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
-        if i >= 5: mdisk_datasets["Kiuchi:2019lls"] =     {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
-        if i >= 6: mdisk_datasets["Dietrich:2016lyp"]   = {"models": di16.simulations[di16.mask_for_with_sr],"data": di16, "fit": True}
-        if i >= 7: mdisk_datasets["Dietrich:2015iva"]   = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
+        # if i >= 5: mdisk_datasets["Kiuchi:2019lls"] =     {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
+        # if i >= 6: mdisk_datasets["Dietrich:2015iva"]   = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
+        # if i >= 7: mdisk_datasets["Dietrich:2016lyp"]   = {"models": di16.simulations[di16.mask_for_with_sr],"data": di16, "fit": True}
         if i == 8: break
+
+        # print(md.groups[["q", "Mej_tot-geo"]]); exit(1)
+        # print(di15.simulations[di15.mask_for_with_sr][["q","Mej"]]); exit(1)
 
         # cleaning
         if v_n_y == "vel_inf_ave-geo":
@@ -2003,13 +2695,43 @@ def task_mdisk_chi2dofs():
     print(r"\end{tabular}")
     print(r"\end{table}")
 
+''' ------------------------------ '''
+def task_save_csv_of_all_datasets():
+
+    # print(md.groups.keys())
+    # md.groups.set_index("groups")
+    # md.groups["models"] = md.groups.index
+    # print(md.groups["models"]); exit(1)
+
+    datasets = OrderedDict()
+    datasets['Reference set'] = {"models": md.groups, "data": md, "fit": True}
+    datasets["Vincent:2019kor"] = {"models": vi.simulations, "data": vi, "fit": True}
+    datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
+    datasets["Radice:2018pdn"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
+    datasets["Lehner:2016lxy"] = {"models": lh.simulations, "data": lh, "fit": True}
+    datasets["Kiuchi:2019lls"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
+    datasets["Dietrich:2016lyp"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True}
+    datasets["Dietrich:2015iva"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
+    #
+    datasets["Bauswein:2013yna"] =  {"models": bs.simulations, "data": bs, "label": r"Bauswein+2013", "fit": True}
+    datasets["Hotokezaka:2012ze"] = {"models": hz.simulations, "data": hz, "label": r"Hotokezaka+2013", "fit": True}
+    datasets["Sekiguchi:2015dma"] = {"models": se15.simulations[se15.mask_for_with_sr], "data": se15, "label": r"Sekiguchi+2015",  "fit": True}
+    datasets["Sekiguchi:2016bjd"] = {"models": se16.simulations[se16.mask_for_with_sr], "data": se16, "label": r"Sekiguchi+2016", "fit": True}
+    #
+    v_ns = ["EOS", "M1", "M2", "q", "C1", "C2", "Lambda", "Mej_tot-geo", "vel_inf_ave-geo", "Ye_ave-geo", "Mdisk3D"]
+    #
+    dataframe = create_combine_dataframe2(datasets, v_ns, [], {}, "fit", ifabsent=np.nan)
+    dataframe = dataframe[["dset_name"]+v_ns]
+    dataframe.to_csv("../datasets/combined.csv")
+
 if __name__ == '__main__':
 
     ''' --- ejecta mass --- '''
     ### Mej
     # task_print_stats(v_n = "Mej_tot-geo")
     # task_mej_chi2dofs()
-    task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="arr", fancy=False)
+    task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q"], degree=2, error_method="arr", fancy=False)
+    # task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="arr", fancy=False)
     # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q", "Lambda"], degree=2, error_method="arr", fancy=False)
     # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="arr",
     #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=False)
@@ -2041,3 +2763,6 @@ if __name__ == '__main__':
     #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=False)
     # task_fitfunc_print_table(v_n="Mdisk3D", error_method="arr",
     #                          ff_name="Kruger+2020", cf_name="Kruger+2020", rs_name="Radice+2018", fancy=False)
+
+    ''' --- '''
+    # task_save_csv_of_all_datasets()

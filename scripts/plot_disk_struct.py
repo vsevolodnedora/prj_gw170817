@@ -2561,7 +2561,7 @@ if __name__ == "__main__":
 
     """ --- disk final hist --- """
     # task_plot_final_disk_hist()
-    # task_plot_mass_ave_val_evo()
+    task_plot_mass_ave_val_evo()
 
     """ --- disk final corr --- """
     #task_plot_final_disk_corr()

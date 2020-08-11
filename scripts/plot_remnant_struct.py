@@ -2343,21 +2343,21 @@ def task_plot_rho_modes_2D_3():
         {"sim": "BLh_M11461635_M0_LK_SR",    "m":2, "plot": {"color": "gray", "ls": "-", "lw": 0.8, "alpha": 1., "label": "BLh q=1.42 (SR)"}, "type": "long"}, # 3
 
         # DD2 q = 1 noLK
-        {"sim": "DD2_M13641364_M0_SR_R04",  "m": 1, "plot": {"color": "green", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long", "t1": 40, "mmean":10},  # 4
-        {"sim": "DD2_M13641364_M0_SR_R04",  "m": 2, "plot":  {"color": "green", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2* q=1.00 (SR)"}, "type": "long", "mmean":10},  # 5
+        {"sim": "DD2_M13641364_M0_SR_R04",  "m": 1, "plot": {"color": "blue", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long", "t1": 40, "mmean":10},  # 4
+        {"sim": "DD2_M13641364_M0_SR_R04",  "m": 2, "plot":  {"color": "blue", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2* q=1.00 (SR)"}, "type": "long", "mmean":10},  # 5
         # DD2 q = 1.0 LK
-        {"sim": "DD2_M13641364_M0_LK_SR_R04","m":1, "plot": {"color": "blue", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long", "t1": 40, "mmean":10}, # 6
-        {"sim": "DD2_M13641364_M0_LK_SR_R04","m":2, "plot": {"color": "blue", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2 q=1.00 (SR)"}, "type": "long", "t1": 40, "mmean":10},# 7
+        {"sim": "DD2_M13641364_M0_LK_SR_R04","m":1, "plot": {"color": "orange", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long", "t1": 40, "mmean":10}, # 6
+        {"sim": "DD2_M13641364_M0_LK_SR_R04","m":2, "plot": {"color": "orange", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2 q=1.00 (SR)"}, "type": "long", "t1": 40, "mmean":10},# 7
         # DD2 q = 1.22
         {"sim": "DD2_M15091235_M0_LK_SR",    "m":1, "plot": {"color": "green", "ls": ":", "lw": 0.6, "alpha": 1.}, "type": "long"}, # 8
         {"sim": "DD2_M15091235_M0_LK_SR",    "m":2, "plot": {"color": "green", "ls": "-", "lw": 0.9, "alpha": 1., "label": "DD2 q=1.22 (SR)"}, "type": "long"}, # 9
 
         # LS220 q=1 noLK
-        {"sim": "LS220_M13641364_M0_SR", "m":1, "plot": {"color": "orange", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short", "t2pm":16, "mmean":3}, # 10 "mmean":3,
-        {"sim": "LS220_M13641364_M0_SR", "m":2, "plot": {"color": "orange", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220* q=1.00 (SR)"}, "type": "short", "t2pm":16, "mmean":3}, # 11
+        {"sim": "LS220_M13641364_M0_SR", "m":1, "plot": {"color": "red", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short", "t2pm":16, "mmean":3}, # 10 "mmean":3,
+        {"sim": "LS220_M13641364_M0_SR", "m":2, "plot": {"color": "red", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220* q=1.00 (SR)"}, "type": "short", "t2pm":16, "mmean":3}, # 11
         # LS220 q=1 LK
-        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 1, "plot": {"color": "red", "ls": ":", "lw": 1.0, "alpha": 1.}, "type": "short", "t2pm":14, "mmean":3},  # 12
-        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 2, "plot": {"color": "red", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220 q=1.00 (SR)"}, "type": "short", "t2pm":14, "mmean":3},  # 13
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 1, "plot": {"color": "green", "ls": ":", "lw": 1.0, "alpha": 1.}, "type": "short", "t2pm":14, "mmean":3},  # 12
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "m": 2, "plot": {"color": "green", "ls": "-", "lw": 1.0, "alpha": 1., "label": "LS220 q=1.00 (SR)"}, "type": "short", "t2pm":14, "mmean":3},  # 13
 
         # LS220 q=1.43
         {"sim": "LS220_M11461635_M0_LK_SR",  "m":1, "plot": {"color": "orange", "ls": ":", "lw": 0.8, "alpha": 1.}, "type": "short"}, # 14
@@ -2376,7 +2376,7 @@ def task_plot_rho_modes_2D_3():
         t["fpath"] = fpath
         t["norm_to_m"] = norm_to_m
     for t in task:
-        t["plot"]["color"] = md.sim_dic_color[t["sim"]]
+        # t["plot"]["color"] = md.sim_dic_color[t["sim"]]
         #t["ls"] = md.sim_dic_ls[t["sim"]]
         t["plot"]["lw"] = md.sim_dic_lw[t["sim"]]
     ##
@@ -2413,19 +2413,19 @@ def task_plot_rho_modes_2D_3():
 
     # # Long with q = 1
     def_plot_dic["title"] = r"Long-lived remnants with q=1.00"
-    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_q1_long.png"
+    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_q1.png"
     tasks=[task[i] for i in [0,1,4,5]]
     # plot_dens_modes_2D_2(tasks, def_plot_dic)
 
     # # Long with EOS = BLh
     def_plot_dic["title"] = r"Long-lived BLh"
-    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_blh_long.png"
+    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_blh.png"
     tasks=[task[i] for i in [0,1,2,3]]
     # plot_dens_modes_2D_2(tasks, def_plot_dic)
 
     # # Long with EOS = DD2 q = 1.00
     def_plot_dic["title"] = r"Long-lived DD2 q=1.00"
-    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_dd2_long.png"
+    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_dd2.png"
     tasks=[task[i] for i in [4,5,6,7]]
     plot_dens_modes_2D_2(tasks, def_plot_dic)
 
@@ -2433,7 +2433,7 @@ def task_plot_rho_modes_2D_3():
 
     # # Short with q = 1
     def_plot_dic["title"] = r"Short-lived remnants with q=1.00"
-    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_q1_short.png"
+    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_q1.png"
     def_plot_dic["xmax"] = 30
     def_plot_dic["ymax"] = 1e-0
     tasks=[task[i] for i in [8, 9, 12, 13]]
@@ -2441,14 +2441,14 @@ def task_plot_rho_modes_2D_3():
 
     # # Short with ls220
     def_plot_dic["title"] = r"Short-lived LS220 q=1.00"
-    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_ls220_short.png"
+    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_ls220.png"
     def_plot_dic["xmax"] = 20
     tasks=[task[i] for i in [10,11,12,13]]
     plot_dens_modes_2D_2(tasks, def_plot_dic)
 
     # # Short with sly4
     def_plot_dic["title"] = r"Short-lived SLy4 q=1.00"
-    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_sly4_short.png"
+    def_plot_dic["figname"] = __outplotdir__ + "dens_modes/" + "modes_rho_sly4.png"
     def_plot_dic["xmax"] = 30
     tasks=[task[i] for i in [12, 13, 14, 15]]
     # plot_dens_modes_2D_2(tasks, def_plot_dic)
@@ -3265,12 +3265,12 @@ if __name__ == '__main__':
 
     ''' --- density modes --- '''
 
-    # task_plot_rho_modes_2D_3()
+    task_plot_rho_modes_2D_3()
     # task_plot_dens_modes_2D_3()
 
     ''' --- total angular momentum evolution --- '''
 
-    task_plot_total_angular_momentum_2()
+    # task_plot_total_angular_momentum_2()
 
     ''' --- angular momentum flux colormesh --- '''
     # task_plot_total_angular_momentum_flux_colormesh_2()

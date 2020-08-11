@@ -2,7 +2,7 @@
 #
 #
 import numpy as np
-
+from scidata import units
 
 constant_length = 1.47671618189 # geo -> rm
 constant_rho = 6.176269145886162e+17#1.61910042516e-18 # geo->cgs

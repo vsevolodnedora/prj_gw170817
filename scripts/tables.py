@@ -9,12 +9,29 @@ sys.path.append('/data01/numrel/vsevolod.nedora/bns_ppr_tools/')
 from argparse import ArgumentParser
 from preanalysis import LOAD_INIT_DATA
 from preanalysis import LOAD_ITTIME
-from utils import Paths, Labels, Constants, Printcolor, UTILS
+from utils import Labels, Constants, Printcolor, UTILS
 
 from data import ADD_METHODS_ALL_PAR, AVERAGE_PAR
 from comparison import TWO_SIMS, THREE_SIMS
 from settings import resolutions
 from uutils import *
+
+class Paths:
+    output = "../datasets/"
+
+    scripts  =  '/data01/numrel/vsevolod.nedora/scripts_server/'
+    ppr_sims =  '/data01/numrel/vsevolod.nedora/postprocessed4/'
+    lorene =    '/data/numrel/Lorene/Lorene_TABEOS/GW170817/'
+    # lorene =    '/data01/numrel/vsevolod.nedora/Data/Lorene/'
+    rns =       '/data01/numrel/vsevolod.nedora/Data/RNS/'
+    TOVs =      '/data01/numrel/vsevolod.nedora/Data/TOVs/'
+    gw170817 =   '/data1/numrel/WhiskyTHC/Backup/2018/GW170817/' # "/data01/numrel/vsevolod.nedora/tmp/" # '/data1/numrel/WhiskyTHC/Backup/2018/SLy4_M130130_SR_physics/'
+    skynet =    '/data01/numrel/vsevolod.nedora/Data/skynet/'
+    # output =    '/data01/numrel/vsevolod.nedora/output/'
+    plots =     '/data01/numrel/vsevolod.nedora/figs/'
+    mkn =       '/data01/numrel/vsevolod.nedora/macrokilonova_bayes_new/source/'
+    home =      '/data01/numrel/vsevolod.nedora/bns_ppr_tools/'
+    SLy4_hydo=  '/data01/numrel/vsevolod.nedora/Data/EOS/SLy4/SLy4_hydro_14-Dec-2017.h5'
 
 # there is a better in csv2tex_old.py
 class TEX_TABLES:
@@ -2287,8 +2304,8 @@ def __fill_radice_table_with_shocked_tidal():
     path = "/data01/numrel/vsevolod.nedora/postprocessed_radice/"
     fname = "/hist_entropy.dat"
     o_tbl = ALL_SIMULATIONS_TABLE()
-    o_tbl.set_intable = "../output/radice2018_summary.csv"
-    o_tbl.set_outtable = "../output/radice2018_summary2.csv"
+    o_tbl.set_intable = "../datasets/radice2018_summary.csv"
+    o_tbl.set_outtable = "../datasets/radice2018_summary2.csv"
     new_v_ns = ["Mej_shocked", "Mej_tidal"]
     o_tbl.load_table()
     # check if data for all sims is avialable
@@ -2633,6 +2650,10 @@ def convert_models_to_groups_table(simulations):
 
     # taken at maximum common time [DATA]
     maxtime_v_ns = [("tdisk3D", "Mdisk3D"),
+                    ("tdisk3D", "Ye_ave-disk"),
+                    ("tdisk3D", "s_ave-disk"),
+                    ("tdisk3D", "T_ave-disk"),
+                    ("tdisk3D", "theta_rms-disk"),
                     ("tend_wind", "Mej_tot-bern_geoend"),
                     ("tend_wind", "vel_inf_ave-bern_geoend"),
                     ("tend_wind", "Ye_ave-bern_geoend"),
@@ -2641,7 +2662,7 @@ def convert_models_to_groups_table(simulations):
     # for every res SR ^{HR} _{LR} [TABLE]
     for_res_v_ns = ["tcoll_gw", "tend", "Mbi_Mb", "outcome"]
 
-    outfname = "../output/groups.csv"
+    outfname = "../datasets/groups.csv"
 
     ''' --------------------------------- '''
 
@@ -2789,11 +2810,11 @@ if __name__ == '__main__':
     # simdir = Paths.gw170817 + glob_sim + '/'
     # resdir = Paths.ppr_sims + glob_sim + '/'
 
-    if "update_table" in glob_task:
+    if "update_table" in glob_task or "update_models" in glob_task:
         __update_table()
     elif "update_groups" in glob_task:
-        from model_sets.models import simulations_nonblacklisted, mask_for_with_dynej, mask_for_non_ahfix
-        sims = simulations_nonblacklisted[mask_for_with_dynej & mask_for_non_ahfix]
+        from model_sets.models import simulations_nonblacklisted, mask_for_with_dynej, mask_for_non_ahfix, mask_for_tmp
+        sims = simulations_nonblacklisted[mask_for_with_dynej & mask_for_non_ahfix & mask_for_tmp]
         convert_models_to_groups_table(sims)
         exit(1)
     else:

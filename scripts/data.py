@@ -17,6 +17,8 @@ from profile import LOAD_PROFILE_XYXZ, LOAD_RES_CORR, LOAD_DENSITY_MODES
 from utils import Paths, Lists, Labels, Constants, Printcolor, UTILS, Files, PHYSICS
 from uutils import *
 
+from scidata import units
+
 class LOAD_FILES(LOAD_ITTIME):
 
     list_outflowed_files = [
@@ -484,13 +486,13 @@ class LOAD_FILES(LOAD_ITTIME):
         elif it != 0 and t ==0:
             iters, times, data = self.matrix_3d_data[self.i_3d_mask(mask)][self.i_fn_3d(v_n)]
             if not it in iters:
-                raise ValueError("Requested it:{} not in the list of iteration from 3D data loaded:\n{}"
+                raise IOError("Requested it:{} not in the list of iteration from 3D data loaded:\n{}"
                                  .format(it, iters))
             data = data[list(iters).index(it)]
             # print(data.T.shape)
             return data
         else:
-            raise ValueError("use either it or t. Given both.")
+            raise IOError("use either it or t. Given both.")
     # -------------------------------------------------------------------------------
 
 
@@ -689,25 +691,76 @@ class COMPUTE_ARR(LOAD_FILES):
     def get_disk_mass_ave_par_evo(self, v_n, mask=''):
         _, iterations, times = self.get_ittime("profiles", "prof")
         final_times, final_its, final_vals = [], [], []
+
         for it, t in zip(iterations, times):
-            data = self.get_disk_hist(v_n, it, mask=mask)
-            # print(data.shape)
-            if len(data) >= 2:
-                final_its.append(it)
-                final_times.append(t)
-                if v_n == "theta":
-                    data[0, :] -= np.pi / 2.
-                    ave = (180. / np.pi) * np.sqrt(np.sum(data[1, :] * data[0, :] ** 2) / np.sum(data[1,:]))
+            try:
+                if mask == "disk" or mask == "":
+                    data_disk = self.get_disk_hist(v_n, it, mask="disk")
+                    # print(data_disk); exit(1)
+                    data_ = self.get_disk_hist(v_n, it, mask="")
+                    if len(data_disk.flatten()) > len(data_.flatten()): data = data_disk
+                    else: data = data_
                 else:
-                    ave = np.sum(data[0, :] * data[1, :]) / np.sum(data[1,:])
-                final_vals.append(ave)
+                    data = self.get_disk_hist(v_n, it, mask=mask)
+                #
+                # print(len(data))
+                if len(data) >= 2 and not isinstance(data[0], float):
+                    final_its.append(it)
+                    final_times.append(t)
+                    if v_n == "theta":
+                        data[0, :] -= np.pi / 2.
+                        ave = (180. / np.pi) * np.sqrt(np.sum(data[1, :] * data[0, :] ** 2) / np.sum(data[1,:]))
+                    else:
+                        ave = np.sum(data[0, :] * data[1, :]) / np.sum(data[1,:])
+                    final_vals.append(ave)
+                else:
+                    pass
+            except IOError:
+                print("IOError for it: {} sim: {}".format(it, self.sim))
+       #  print(final_vals)
         if len(final_vals) > 2:
             return np.vstack((np.array(final_its),
                               np.array(final_times),
                               np.array(final_vals))).T
         else:
             print("\tNo hist data found: v_n:{} sim:{}".format(v_n, self.sim))
-            return np.zeros((0, 0, 0))
+            return np.zeros(0,)
+
+    def get_disk_mass_ave_par_evo2(self, v_n, mask=''):
+        _, iterations, times = self.get_ittime("profiles", "prof")
+        final_times, final_its, final_vals = [], [], []
+
+        for it, t in zip(iterations, times):
+            try:
+                if mask == "disk" or mask == "":
+                    data_disk = self.get_disk_hist(v_n, it, mask="disk")
+                    # print(data_disk); exit(1)
+                    data_ = self.get_disk_hist(v_n, it, mask="")
+                    if len(data_disk.flatten()) > len(data_.flatten()): data = data_disk
+                    else: data = data_
+                else:
+                    data = self.get_disk_hist(v_n, it, mask=mask)
+                #
+                # print(len(data))
+                if len(data) >= 2 and not isinstance(data[0], float):
+                    final_its.append(it)
+                    final_times.append(t)
+                    if v_n == "theta":
+                        data[0, :] -= np.pi / 2.
+                        ave = (180. / np.pi) * np.sqrt(np.sum(data[1, :] * data[0, :] ** 2) / np.sum(data[1,:]))
+                    else:
+                        ave = np.sum(data[0, :] * data[1, :]) / np.sum(data[1,:])
+                    final_vals.append(ave)
+                else:
+                    pass
+            except IOError:
+                print("IOError for it: {} sim: {}".format(it, self.sim))
+       #  print(final_vals)
+        if len(final_vals) > 1:
+            return np.array(final_its), np.array(final_times), np.array(final_vals)
+        else:
+            print("\tNo hist data found: v_n:{} sim:{}".format(v_n, self.sim))
+            return np.zeros(0,), np.zeros(0,), np.zeros(0,)
 
     def get_disk_timecorr(self, v_n, mask=''):
         _, iterations, times = self.get_ittime("profiles", "prof")
@@ -902,9 +955,27 @@ class ALL_PAR(COMPUTE_ARR):
         COMPUTE_ARR.__init__(self, sim, add_mask)
 
     def get_time_data_arrs(self, v_n, det=None, mask=None):
+        """
+                    ("tdisk3D", "Ye_ave-disk"),
+                    ("tdisk3D", "s_ave-disk"),
+                    ("tdisk3D", "T_ave-disk"),
+                    ("tdisk3D", "theta_rms-disk"),
+        """
         if v_n == "Mdisk3D":
             its, times, masses = self.get_disk_mass()
             return times, masses
+        elif v_n == "Ye_ave-disk":
+            its, times, vals = self.get_disk_mass_ave_par_evo2(v_n="Ye", mask="")
+            return times, vals
+        elif v_n == "s_ave-disk":
+            its, times, vals = self.get_disk_mass_ave_par_evo2(v_n="entr", mask="")
+            return times, vals
+        elif v_n == "T_ave-disk":
+            its, times, vals = self.get_disk_mass_ave_par_evo2(v_n="temp", mask="")
+            return times, vals
+        elif v_n == "theta_rms-disk":
+            its, times, vals = self.get_disk_mass_ave_par_evo2(v_n="theta", mask="")
+            return times, vals
         elif v_n == "Mej":
             table = self.get_outflow_data(det=det, mask=mask, v_n="total_flux.dat")
             #print('time', len(table[:,0]))
@@ -1249,6 +1320,12 @@ class AVERAGE_PAR():
         self.Mej_fast_err   = lambda Mej_fast: 0.5 * Mej_fast + self.Mej_fast_min
         self.tend_min       = 10.  # ms
         #
+        self.Sdisk_err      = lambda sdisk: 0.1*sdisk
+        self.Tdisk_err      = lambda tdisk: 0.1*tdisk
+        self.Yedisk_err     = lambda yedisk: 0.1*yedisk
+        self.theta_disk     = lambda theta: 0.1*theta
+
+        #
         self.error_multplier_for_1res = 1
         self.error_multplier_for_2res = 2
         #
@@ -1272,6 +1349,16 @@ class AVERAGE_PAR():
             return self.Yeej_err(val)
         if v_n == "theta_ave":
             return self.theta_ej_err(val)
+
+        if v_n == "Ye_ave-disk":
+            return self.Yeej_err(val)
+        if v_n == "s_ave-disk":
+            return self.Sdisk_err(val)
+        if v_n == "T_ave-disk":
+            return self.Tdisk_err(val)
+        if v_n == "theta_rms-disk":
+            return self.theta_disk(val)
+
         raise NameError("v_n: {} has no error setup"
                         .format(v_n))
 
@@ -1593,8 +1680,14 @@ def test_plot_disk_masses_evol_and_average():
 
 if __name__ == '__main__':
 
-    o_data = ADD_METHODS_ALL_PAR("BLh_M13641364_M0_LK_SR")
-    print(o_data.get_par("JGW"))
+    # o_data = ADD_METHODS_ALL_PAR("BLh_M13641364_M0_LR")
+    # o_data.get_time_data_arrs("Ye_ave-disk")
+
+    # o_data = ADD_METHODS_ALL_PAR("DD2_M13641364_M0_HR_R04") # BLh_M13641364_M0_LK_HR # BLh_M13641364_M0_LK_SR
+    # print(o_data.get_time_data_arrs("Ye_ave-disk")) # 590146
+
+    # print(o_data.get_par("JGW"))
+
 
     # o_data = ADD_METHODS_ALL_PAR("BLh_M13641364_M0_LK_SR")
     # print(o_data.get_par("nprofs"))
@@ -1615,17 +1708,17 @@ if __name__ == '__main__':
     #
     # it, t, masses = data.get_3d_data("disk_mass.txt")
     # print(["{:d}, {:.1f}, {:.2f} | ".format(it, time*1e3, mass) for it, time, mass in zip(it, t, masses)])
-    print("\n")
+    # print("\n")
     # group = AVERAGE_PAR(["DD2_M14971246_M0_LR", "DD2_M14971245_M0_SR", "DD2_M14971245_M0_HR"])
     # print(group.get_vals_last_common_time("Mdisk3D"))
     # print(group.get_ave_val_last_common_time("Mdisk3D"))
 
-    # group = AVERAGE_PAR(["BLh_M10201856_M0_HR", "BLh_M10201856_M0_LR", "BLh_M10201856_M0_SR"])
-    # print(group.get_vals_last_common_time("Mdisk3D"))
+    group = AVERAGE_PAR(["BLh_M13641364_M0_LK_SR", "BLh_M13641364_M0_LK_HR", "BLh_M13641364_M0_LK_LR"])
+    print(group.get_vals_last_common_time("T_ave-disk"))
     # print(group.get_ave_val_last_common_time("Mdisk3D"))
 
-    # group = AVERAGE_PAR(["BLh_M11841581_M0_LK_SR", "BLh_M11841581_M0_LK_LR"])
-    # print(group.get_vals_last_common_time("Mdisk3D"))
+    group = AVERAGE_PAR(["BLh_M11841581_M0_LK_SR", "BLh_M11841581_M0_LK_LR"])
+    print(group.get_vals_last_common_time("Ye_ave-disk"))
     # print(group.get_ave_val_last_common_time("Mdisk3D"))
 
     # group = AVERAGE_PAR(["SFHo_M14521283_M0_HR","SFHo_M14521283_M0_LR", "SFHo_M14521283_M0_SR"])

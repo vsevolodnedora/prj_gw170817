@@ -2426,11 +2426,11 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                 o_mkn.set_use_dyn_NR = True
                 o_mkn.set_glob_par_var_source(True, False)
 
-                o_mkn.set_dyn_iso_aniso = "aniso"
-                o_mkn.set_secular_iso_aniso = "aniso"
-                o_mkn.set_dyn_par_var("aniso")
-                o_mkn.set_secular_par_war("aniso")
-                # o_mkn.glob_vars['m_disk'] = mdisk
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+                ### o_mkn.glob_vars['m_disk'] = mdisk
 
                 o_mkn.compute_save_lightcurve(write_output=True)
 
@@ -2439,7 +2439,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                 #
                 ax.plot(times, mags, **task_dic["plot"])
 
-            if "best" in task.keys():
+            if "best" in task.keys() :
                 # extract paramters from the dic, compute lightcurve
                 task_dic = task["best"]
 
@@ -2447,12 +2447,40 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                 vej = ofit.value("vel_inf_ave-geo", task_dic["vel_inf_ave-geo"])
                 mdisk = ofit.value("Mdisk3D",       task_dic["Mdisk3D"])
 
+                print("\t[{}] Mej:{} vej:{} mdisk:{}".format(sim, mej, vej, mdisk))
+
                 o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
                 o_mkn.set_glob_par_var_source(False, False)
-                o_mkn.set_dyn_iso_aniso = "aniso"
-                o_mkn.set_secular_iso_aniso = "aniso"
-                o_mkn.set_dyn_par_var("aniso")
-                o_mkn.set_secular_par_war("aniso")
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+                o_mkn.glob_vars['m_disk']                   = mdisk
+                o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
+                o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
+                o_mkn.compute_save_lightcurve(write_output=True)
+                #
+                load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                times, mags = load_mkn.get_model_median(band)
+
+                ax.plot(times, mags, **task_dic["plot"])
+
+            if "worst" in task.keys():
+                # extract paramters from the dic, compute lightcurve
+
+                task_dic = task["worst"]
+
+
+                mej = ofit.value("Mej_tot-geo",     task_dic["Mej_tot-geo"])
+                vej = ofit.value("vel_inf_ave-geo", task_dic["vel_inf_ave-geo"])
+                mdisk = ofit.value("Mdisk3D",       task_dic["Mdisk3D"])
+
+                o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                o_mkn.set_glob_par_var_source(False, False)
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
                 o_mkn.glob_vars['m_disk']                   = mdisk
                 o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
                 o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
@@ -2477,10 +2505,10 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                     #compute line
                     o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
                     o_mkn.set_glob_par_var_source(False, False)
-                    o_mkn.set_dyn_iso_aniso = "aniso"
-                    o_mkn.set_secular_iso_aniso = "aniso"
-                    o_mkn.set_dyn_par_var("aniso")
-                    o_mkn.set_secular_par_war("aniso")
+                    if "dyn" in fit_par_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                    if "sec" in fit_par_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                    if "dyn" in fit_par_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                    if "sec" in fit_par_dic["components"]: o_mkn.set_secular_par_war("aniso")
                     o_mkn.glob_vars['m_disk']                   = mdisk
                     o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
                     o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
@@ -2591,29 +2619,48 @@ def task_plot_fromfit_model_mkn_multiband_band():
 
     tasks = [
         {"sim": "BLh_M13641364_M0_LK_SR",
-         "model": {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",
+         "model": {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model", "components":["dyn"],#"sec"],
                    "plot": {"lw": 1., "ls": "--", "color": "green"}},# "label": r"Model"}},
-         "best": {"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",
+         "best": {"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",  "components":["dyn"],#"sec"],
                   "plot": {"lw": 1., "ls": "-", "color": "green"}},#, "label": r"Best Fit"}},
-         "fits": [
-             {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
-             {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
-             {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
-             {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}],
-         "plotfits":{"color":"green", "alpha": 0.3}#, "label": "Other Fits"}
+         "worst": {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": None, "Mdisk3D": None,  "components":["dyn"],#"sec"],
+                   "plot": {"alpha":0.7, "lw": 0.9, "ls": ":", "color": "green"}},  # , "label": r"Best Fit"}},
+         # "fits": [
+         #     {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
+         #     {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+         #     {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
+         #     {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}],
+         # "plotfits":{"color":"green", "alpha": 0.3}#, "label": "Other Fits"}
          },
         # --=-=-==-=--=--=-=-=-=-=-=-=-=-=-==-=-=-=-==-=-=-==-==-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-        {"sim": "BLh_M11461635_M0_LK_SR",
-         "model": {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",
+        {"sim": "DD2_M13641364_M0_LK_SR_R04",# "BLh_M11461635_M0_LK_SR",
+         "model": {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",  "components":["dyn"],#"sec"],
                    "plot": {"lw": 1., "ls": "--", "color": "blue"}},  # "label": r"Model"}},
-         "best": {"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",
+         "best": {"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",  "components":["dyn"],#"sec"],
                   "plot": {"lw": 1., "ls": "-", "color": "blue"}},  # , "label": r"Best Fit"}},
-         "fits": [
-             {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
-             {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
-             {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
-             {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}],
-         "plotfits": {"color": "blue", "alpha": 0.3}  # , "label": "Other Fits"}
+         "worst": {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": None, "Mdisk3D": None,  "components":["dyn"],#"sec"],
+                  "plot": {"alpha":0.7, "lw": 0.9, "ls": ":", "color": "blue"}},  # , "label": r"Best Fit"}},
+         # "fits": [
+         #     {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
+         #     {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+         #     {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
+         #     {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}],
+         # "plotfits": {"color": "blue", "alpha": 0.3}  # , "label": "Other Fits"}
+         },
+        # --=-=-==-=--=--=-=-=-=-=-=-=-=-=-==-=-=-=-==-=-=-==-==-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+        {"sim": "LS220_M13641364_M0_LK_SR_restart",
+         "model": {"Mej_tot-geo": "model", "vel_inf_ave-geo": "model", "Mdisk3D": "model",  "components":["dyn"],#"sec"],
+                   "plot": {"lw": 1., "ls": "--", "color": "red"}},  # "label": r"Model"}},
+         "best": {"Mej_tot-geo": "poly2", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22",  "components":["dyn"],#"sec"],
+                  "plot": {"lw": 1., "ls": "-", "color": "red"}},  # , "label": r"Best Fit"}},
+         "worst": {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": None, "Mdisk3D": None,  "components":["dyn"],#"sec"],
+                   "plot": {"alpha":0.7, "lw": 0.9, "ls": ":", "color": "red"}},  # , "label": r"Best Fit"}},
+         # "fits": [
+         #     {"Mej_tot-geo": None, "vel_inf_ave-geo": None, "Mdisk3D": None},
+         #     {"Mej_tot-geo": "poly22", "vel_inf_ave-geo": "poly22", "Mdisk3D": "poly22"},
+         #     {"Mej_tot-geo": "diet16", "vel_inf_ave-geo": "diet16", "Mdisk3D": "radi18"},
+         #     {"Mej_tot-geo": "krug19", "vel_inf_ave-geo": "diet16", "Mdisk3D": "krug19"}],
+         # "plotfits": {"color": "red", "alpha": 0.3}  # , "label": "Other Fits"}
          }
     ]
 
@@ -2694,8 +2741,9 @@ def task_plot_fromfit_model_mkn_multiband_band():
             "band": bands[0],
             # "add_lines": [dic["plot"] for dic in pardics],
             "add_lines": [
+                {"lw": 1., "ls": "-", "color": "red", "label": r"LS220 q=1.00 (SR)"},
                 {"lw": 1., "ls": "-", "color": "green", "label": r"BLh q=1.00 (SR)"},
-                {"lw": 1., "ls": "-", "color": "blue", "label": r"BLh q=1.43 (SR)"},
+                {"lw": 1., "ls": "-", "color": "blue", "label": r"DD2 q=1.00 (SR)"},#r"BLh q=1.43 (SR)"},
             ],
             "title": "#band",
             'xmin': 1e-1, 'xmax': 2e0, 'xlabel': r"time [days]",
@@ -2711,11 +2759,12 @@ def task_plot_fromfit_model_mkn_multiband_band():
             # "lines": lineset[bands[2]],
             "add_lines": [
                 {"lw": 1., "ls": "--", "color": "gray", "label": r"Model"},
-                {"lw": 1., "ls": "-", "color": "gray", "label": r"Best Fit"}
+                {"lw": 1., "ls": "-", "color": "gray", "label": r"Best Fit"},
+                {"lw": 0.9, "ls": ":", "color": "gray", "label": r"Worst Fit"}
             ],
-            "add_bands": [
-                {"color": "gray", "alpha": 0.4, "label": "Other Fits"}
-            ],
+            # "add_bands": [
+            #     {"color": "gray", "alpha": 0.4, "label": "Other Fits"}
+            # ],
             "title": "#band",
             'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
         }
@@ -2726,7 +2775,7 @@ def task_plot_fromfit_model_mkn_multiband_band():
         "type": "long",
         "figsize": (16., 5.5),
         'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"time [days]",
-        'ymin': 22, 'ymax': 17, 'ylabel': r"AB magnitude at 40 Mpc", # 23, 18 # sec: 22 17
+        'ymin': 23, 'ymax': 18, 'ylabel': r"AB magnitude at 40 Mpc", # 23, 18 # sec: 22 17
         # "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
         #          'horizontalalignment': 'center'},
         "xscale": "log", "yscale": "linear",
@@ -2738,7 +2787,7 @@ def task_plot_fromfit_model_mkn_multiband_band():
                         "labelright": False, "tick1On": True, "tick2On": True,
                         "labelsize": 14,"direction": 'in',
                         "bottom": True, "top": True, "left": True, "right": True},
-        "figname": __outplotdir__ + "dyn_sec_fit_bands.png",
+        "figname": __outplotdir__ + "dyn_fit_lines_3eos.png",
         'fontsize': 14,
         'labelsize': 14,
         "savepdf": True,
