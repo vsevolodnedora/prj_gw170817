@@ -94,6 +94,7 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
                     shape = len(models.index)
                     value_arr = np.append(value_arr, np.full(shape, ifabsent))
                 else:
+
                     print("appending dataset: {}".format(name))
                     x = d_cl.get_mod_data(v_n, special_instructions, models)
                     value_arr = np.append(value_arr, x)
@@ -114,6 +115,7 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
                 err = d_cl.get_mod_err(v_n, special_instructions, models)
                 error_arr = np.append(error_arr, err)
         print(len(error_arr))
+        assert len(new_data_frame[v_n]) == len(error_arr)
         new_data_frame["err_" + v_n] = error_arr
 
     df = pandas.DataFrame(new_data_frame, index=new_data_frame["models"])
@@ -134,6 +136,15 @@ class Fitting_Coefficients:
         c = -32.61
         d = 5.205
         n = -0.773
+        return np.array((a, b, c, d, n))
+
+    @staticmethod
+    def mej_default():
+        a = 0.556302112094
+        b = 1.02974526658
+        c = -5.82015211685
+        d = -5.56024326613
+        n = -4.46460218525
         return np.array((a, b, c, d, n))
 
     @staticmethod
@@ -297,6 +308,9 @@ class Fitting_Functions:
                (a * (v.M1 / v.M2) ** (1.0 / 3.0) * (1. - 2 * v.C2) / (v.C2) + b * (v.M1 / v.M2) ** n +
                 c * (1 - v.M2 / v.Mb2)) * v.Mb2 + \
                d
+        # if not len(result[np.isfinite(result)]) == len(result):
+        #     print(v[["M1", "M2", "Mb1", "Mb2", "C1", "C2"]])
+        #return result
 
     @staticmethod
     def mej_kruger20(x, v, v_n = "Mej_tot-geo"):
@@ -309,6 +323,8 @@ class Fitting_Functions:
         a, b, c = x
         return a * (v.M1 / v.M2) * (1. + c * v.C1) + \
                a * (v.M2 / v.M1) * (1. + c * v.C2) + b
+        # return a * (v.M2 / v.M1) * (1. + c * v.C2) + \
+        #        a * (v.M1 / v.M2) * (1. + c * v.C1) + b
 
     @staticmethod
     def vej_poly_22(x, v, v_n="vel_inf_ave-geo"):
@@ -332,6 +348,7 @@ class Fitting_Functions:
     def mdisk_kruger20(x, v, v_n = "Mdisk3D"):
         a, c, d = x
         val = 5. * 10 ** (-4)
+        # print("lighter? {} then {}".format(v["M2"], v["M1"])); exit(1)
         arr = v["M2"] * np.maximum(val, ((a * v["C2"]) + c) ** d)
         arr[np.isnan(arr)] = val
 
@@ -1066,12 +1083,22 @@ class Fit_Data:
         #v_ns = [self.fit_v_n]
         v_ns_err = [self.fit_v_n]
 
+
         dataframe = create_combine_dataframe2(datasets, v_ns, v_ns_err, {})
+        for v_n in v_ns:
+            assert v_n in dataframe.keys()
         dataframe = dataframe[np.isfinite(dataframe[self.fit_v_n])]
-        dataframe = dataframe[dataframe["Lambda"] <= 2000]
+        dataframe = dataframe[np.isfinite(dataframe["Lambda"])]
+        # dataframe = dataframe[dataframe["Lambda"] <= 2000]
+        #dataframe = dataframe[(dataframe["C2"] > 0.14) & (dataframe["C2"] < 0.218)]
+
+        # if len(dataframe[dataframe["Lambda"] > 2500]):
+        #     print(dataframe[dataframe["Lambda"]> 2500])
+        #     print("Error: dataframe[Lambda > 2500]:")
+        # dataframe = dataframe[dataframe["Lambda"] <= 2500]
         self.dataframe = dataframe
         # dataframe = dataframe[dataframe["q"] < 1.29]
-        # dataframe = dataframe[(dataframe["C2"] > 0.136) & (dataframe["C2"] < 0.218)]
+        dataframe = dataframe[(dataframe["C2"] > 0.136) & (dataframe["C2"] < 0.218)]
         print(np.array(np.isfinite(dataframe[self.fit_v_n])))
         # if self.fit_v_n == "Mej_tot-geo":
         #     dataframe[self.fit_v_n] = dataframe[self.fit_v_n] * 1.e3
@@ -1124,20 +1151,57 @@ class Fit_Data:
         #self.dataframe = dataframe
         #dataframe.to_csv("/data01/numrel/vsevolod.nedora/tmp/dataset.csv")
 
+    def get_err(self, vals, error_method="default"):
 
-    def get_err(self, vals):
-        res = np.zeros(0,)
+        Mej_min = 5e-5
+        vej_def_err = 0.02
+        ye_def_err = 0.01
+        MdiskPP_min = 5e-4
+        theta_ej_min = 2.0
+
+        # vals = np.array(self.dataframe[self.fit_v_n])
+        # if v_n == "Mej_tot-geo": vals = vals / 1e3
+
+        # res = np.zeros(0, )
         if self.error_method == "std":
-            res =  np.std(vals)
+            res = np.std(vals)
         elif self.error_method == "2std":
             res = 2. * np.std(vals)
+        elif self.error_method == "default":
+            if self.fit_v_n == "Mej_tot-geo":
+                lambda_err = lambda Mej: 0.5 * Mej + Mej_min
+            elif self.fit_v_n == "vel_inf_ave-geo":
+                lambda_err = lambda v: 1. * np.full(len(v), vej_def_err)
+            elif self.fit_v_n == "Ye_ave-geo":
+                lambda_err = lambda v: 1. * np.full(len(v), ye_def_err)
+            elif self.fit_v_n == "Mdisk3D":
+                lambda_err = lambda MdiskPP: 0.5 * MdiskPP + MdiskPP_min
+            elif self.fit_v_n == "theta_rms-geo":
+                lambda_err = lambda v: 1. * np.full(len(v), theta_ej_min)
+            else:
+                raise NameError("No error method for v_n: {}".format(self.fit_v_n))
+            res = lambda_err(vals)
         elif self.error_method == "arr":
             res = self.dataframe["err_" + self.fit_v_n]
         else:
-            raise NameError("no err method: {}".format(self.error_method))
+            raise NameError("no err method: {}".format(error_method))
 
-        # if self.fit_v_n == "Mej_tot-geo": res = res * 1e3
+        # if v_n == "Mej_tot-geo": res = res * 1e3
         return res
+
+    # def get_err(self, vals):
+    #     res = np.zeros(0,)
+    #     if self.error_method == "std":
+    #         res =  np.std(vals)
+    #     elif self.error_method == "2std":
+    #         res = 2. * np.std(vals)
+    #     elif self.error_method == "arr":
+    #         res = self.dataframe["err_" + self.fit_v_n]
+    #     else:
+    #         raise NameError("no err method: {}".format(self.error_method))
+    #
+    #     # if self.fit_v_n == "Mej_tot-geo": res = res * 1e3
+    #     return res
 
     def get_chi2(self, y_vals, y_expets, y_errs):
         assert len(y_vals) == len(y_expets)
@@ -1264,6 +1328,8 @@ class Fit_Data:
             if name == "Radice+2018":
                 # Radice:2018pdn
                 return Fitting_Coefficients.mej_radice18()
+            if name == "default":
+                return Fitting_Coefficients.mej_default()
             elif name == "Kruger+2020":
                 # Radice:2018pdn
                 return Fitting_Coefficients.mej_kruger20()
@@ -1336,45 +1402,79 @@ class Fit_Data:
     def fit2(self, ff_name, cf_name, rs_name):
 
         print("ff_name:{} cf_name:{} rs_name:{}".format(ff_name, cf_name, rs_name))
-
         y_vals = np.array(self.dataframe[self.fit_v_n])
-        print("y_vals: {}".format(y_vals))
+        y_errs = self.get_err(y_vals)
+
         x0 = self.coefficients(cf_name)
-        print("coeffs: {}".format(x0))
-        xi = self.fitting_functions(x0, self.dataframe, ff_name)
-        print("y inferred: {}".format(xi))
-        ### if self.fit_v_n == "Mej_tot-geo": xi = xi / 1.e3
-
-        # if self.chi_method == "scipy":
-        #     chi2, p = stats.chisquare(np.array(self.dataframe[self.fit_v_n]), xi, ddof=len(x0))
-        # else:
-        #     chi2 = np.sum((self.dataframe[self.fit_v_n] - xi) ** 2 / stats.tstd(xi)**2)
-        # else: chi2 = np.sum((xi - self.dataframe[self.fit_v_n]) ** 2)
-        chi2 = self.get_chi2(y_vals, xi, self.get_err(y_vals))
-        print("chi2 original: {}".format(chi2))
-
-        res = opt.least_squares(self.residuals, x0, args=(self.dataframe, ff_name, rs_name)) # res.x -- new coeffs
+        res = opt.least_squares(self.residuals, x0, args=(self.dataframe, ff_name, rs_name))
         xi = self.fitting_functions(res.x, self.dataframe, ff_name)
-        ### if self.fit_v_n == "Mej_tot-geo": xi = xi / 1.e3
-        # if self.chi_method == "scipy":
-        #     chi2, p = stats.chisquare(np.array(self.dataframe[self.fit_v_n]), xi, ddof=len(x0))
-        # else:
-        #     chi2 = np.sum(((self.dataframe[self.fit_v_n] - xi) ** 2) / stats.tstd(xi)**2)
-        chi2 = self.get_chi2(y_vals, xi, self.get_err(y_vals))
+
+        if self.fit_v_n == "Mej_tot-geo": xi = xi * 1e-3
+
+        for v_n in ["C1", "C2", "M1", "M2"]:
+            assert len(self.dataframe[v_n][~np.isnan(y_vals)]) == len(self.dataframe[v_n])
+
+        chi2 = self.get_chi2(y_vals, xi, y_errs)
         chi2dof = self.get_ch2dof(chi2, len(y_vals), len(x0))
+
+        score = self.get_score(y_vals, xi)
 
         print("chi2    fit: {}".format(chi2))
         print("chi2dof fit: {}".format(chi2dof))
-
         print("Fit coefficients:")
+
         for i in range(len(x0)):
             print("  coeff[{}] = {}".format(i, res.x[i]))
 
-        #print(y_vals, xi);exit(1)
-        # if self.fit_v_n == "Mej_tot-geo": y_vals = y_vals * 1e3
-        score = self.get_score(y_vals, xi) # R^2 coefficient
-
         return res.x, chi2, chi2dof, score
+        # print("ff_name:{} cf_name:{} rs_name:{}".format(ff_name, cf_name, rs_name))
+        #
+        # y_vals = np.array(self.dataframe[self.fit_v_n])
+        # y_errs = self.get_err(y_vals)
+        # # if self.fit_v_n == "Mej_tot-geo":
+        # #     y_errs = 1e3 * y_vals
+        # #     y_errs = 1e3 *  y_errs
+        # # print("y_vals: {}".format(y_vals))
+        # # x0 = self.coefficients(cf_name)
+        # # print("coeffs: {}".format(x0))
+        # # xi = self.fitting_functions(x0, self.dataframe, ff_name)
+        # # print("y inferred: {}".format(xi))
+        # ### if self.fit_v_n == "Mej_tot-geo": xi = xi / 1.e3
+        #
+        # # if self.chi_method == "scipy":
+        # #     chi2, p = stats.chisquare(np.array(self.dataframe[self.fit_v_n]), xi, ddof=len(x0))
+        # # else:
+        # #     chi2 = np.sum((self.dataframe[self.fit_v_n] - xi) ** 2 / stats.tstd(xi)**2)
+        # # else: chi2 = np.sum((xi - self.dataframe[self.fit_v_n]) ** 2)
+        # # chi2 = self.get_chi2(y_vals, xi, self.get_err(y_vals))
+        # # print("chi2 original: {}".format(chi2))
+        #
+        # res = opt.least_squares(self.residuals, x0, args=(self.dataframe, ff_name, rs_name)) # res.x -- new coeffs
+        # xi = self.fitting_functions(res.x, self.dataframe, ff_name)
+        # ### if self.fit_v_n == "Mej_tot-geo": xi = xi / 1.e3
+        # # if self.chi_method == "scipy":
+        # #     chi2, p = stats.chisquare(np.array(self.dataframe[self.fit_v_n]), xi, ddof=len(x0))
+        # # else:
+        # #     chi2 = np.sum(((self.dataframe[self.fit_v_n] - xi) ** 2) / stats.tstd(xi)**2)
+        # # if self.fit_v_n == "Mej_tot-geo":
+        # #     y_errs = 1e-3 * y_vals
+        # #     y_errs = 1e-3 *  y_errs
+        # #     xi = 1e-3 * xi
+        # chi2 = self.get_chi2(y_vals, xi, y_errs)
+        # chi2dof = self.get_ch2dof(chi2, len(y_vals), len(x0))
+        #
+        # print("chi2    fit: {}".format(chi2))
+        # print("chi2dof fit: {}".format(chi2dof))
+        #
+        # print("Fit coefficients:")
+        # for i in range(len(x0)):
+        #     print("  coeff[{}] = {}".format(i, res.x[i]))
+        #
+        # #print(y_vals, xi);exit(1)
+        # # if self.fit_v_n == "Mej_tot-geo": y_vals = y_vals * 1e3
+        # score = self.get_score(y_vals, xi) # R^2 coefficient
+        #
+        # return res.x, chi2, chi2dof, score
 
     def linear_regression(self, degree=1, v_n_x = "Lambda", v_n_y="Mej_tot-geo"):
         '''
@@ -1432,20 +1532,22 @@ class Fit_Data:
 
         # # new_model = LinearRegression().fit(x, y.reshape((-1, 1)))
         # # print('intercept:', new_model.intercept_)
-        print("------ Polynomial regression x:{} y:{} deg:{} ------ ".format(v_n_x, v_n_y, degree))
+        print("------ Polynomial regression x:{} y:{} deg:{} ({} models)------ ".format(v_n_x, v_n_y, degree, len(y)))
         transformer = PolynomialFeatures(degree=degree, include_bias=False)
         transformer.fit(x)
         x_ = transformer.transform(x)
         model = LinearRegression().fit(x_, y)
         r_sq = model.score(x_, y)
+        y_pred = model.predict(x_)
 
         print('coefficient of determination R2: {}'.format(r_sq))
         print('intercept b0: {}'.format(model.intercept_))
         print('coefficients bi: {}'.format(model.coef_))
 
-        y_pred = model.predict(x_)
+        # print(len(y),y_pred, errs);exit(1)
+
         chi2 = self.get_chi2(y, y_pred, errs)
-        chi2dof = self.get_ch2dof(chi2, self.num, degree+1)
+        chi2dof = self.get_ch2dof(chi2, len(y), degree+1)
         #print('predicted response:', y_pred)
         # if self.chi_method == "scipy":
         #     print("[poly regres] deg:{} using scipy for chi ddof:{}".format(degree, degree+1))
@@ -1535,6 +1637,10 @@ class Fit_Data:
         r_sq = model.score(x_, y)
         y_pred = model.predict(x_)
 
+        if v_ns_y[0] == "Mej_tot-geo":
+            y = 1e-3 * y
+            errs = 1e-3 * errs
+            y_pred = 1e-3 *y_pred
 
         print('coefficient of determination R2: {}'.format(r_sq))
         print('intercept b0: {}'.format(model.intercept_))
@@ -1744,10 +1850,10 @@ def task_print_stats(v_n = "Mej_tot-geo", v_ns = ["n", "mean", "std", "80", "90"
 
     row_labels, vals = [], []
     mdisk_datasets = OrderedDict()
-    for i in range(10):
+    for i in range(9):
 
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations, "data": vi, "fit": True}
+        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
@@ -1768,6 +1874,12 @@ def task_print_stats(v_n = "Mej_tot-geo", v_ns = ["n", "mean", "std", "80", "90"
         elif v_n == "Mdisk3D":
             if "Lehner:2016lxy" in mdisk_datasets.keys():
                 del mdisk_datasets["Lehner:2016lxy"]
+        elif v_n == "theta_rms-geo":
+            whitelist = ["Reference set", "Radice:2018pdn[M0]", "Radice:2018pdn"]
+            for key in mdisk_datasets.keys():
+                if not key in whitelist:
+                    del mdisk_datasets[key]
+                    # print("~{}".format(key))
 
         row_labels.append(mdisk_datasets.keys())
         print(row_labels[-1])
@@ -1856,16 +1968,19 @@ def task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["Lambda"], degree=1,
 
     row_labels, all_vals = [], []
     mdisk_datasets = OrderedDict()
-    for i in range(0,8):
+    for i in range(0,12):
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
         if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
-        # if i >= 5: mdisk_datasets["Kiuchi:2019lls"] =     {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
-        # if i >= 6: mdisk_datasets["Dietrich:2015iva"]   = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
-        # if i >= 7: mdisk_datasets["Dietrich:2016lyp"]   = {"models": di16.simulations[di16.mask_for_with_sr],"data": di16, "fit": True}
-        if i == 8: break
+        if i >= 5: mdisk_datasets["Kiuchi:2019lls"] =     {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
+        if i >= 6: mdisk_datasets["Dietrich:2016lyp"]   = {"models": di16.simulations[di16.mask_for_with_sr],"data": di16, "fit": True}
+        if i >= 7: mdisk_datasets["Dietrich:2015iva"]   = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
+        if i >= 8: mdisk_datasets["Sekiguchi:2015dma"]   ={"models": se15.simulations[se15.mask_for_with_sr], "data": se15, "fit": True}
+        if i >= 9: mdisk_datasets["Sekiguchi:2016bjd"]  = {"models": se16.simulations[se16.mask_for_with_sr], "data": se16, "fit": True}
+        if i >= 10: mdisk_datasets["Bauswein:2013yna"]   = {"models": bs.simulations, "data": bs, "fit": True}
+        if i == 11: break
 
         # print(md.groups[["q", "Mej_tot-geo"]]); exit(1)
         # print(di15.simulations[di15.mask_for_with_sr][["q","Mej"]]); exit(1)
@@ -1883,6 +1998,11 @@ def task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["Lambda"], degree=1,
         elif v_n_y == "Mdisk3D":
             if "Lehner:2016lxy" in mdisk_datasets.keys():
                 del mdisk_datasets["Lehner:2016lxy"]
+        elif v_n_y == "theta_rms-geo":
+            whitelist = ['Reference set', "Radice:2018pdn[M0]", "Radice:2018pdn"]
+            for key in mdisk_datasets.keys():
+                if key not in whitelist:
+                    del mdisk_datasets[key]
 
         print(mdisk_datasets.keys())
         row_labels.append(mdisk_datasets.keys())
@@ -1997,7 +2117,7 @@ def task_fitfunc_print_table(v_n = "Mej_tot-geo", error_method = "arr",
     dataset_label = "Datasets"
     coefs_labels = [r"$\alpha$", r"$\beta$", r"$\delta$", r"$\gamma$", r"$\eta$", r"$\phi$"]
     # coefs_fmt = [".2e", ".2e", ".2e", ".2e", ".2e", ".2e"]
-    coefs_fmt = [".3f", ".3f", ".3f", ".3f", ".3f", ".3f"]
+    coefs_fmt = [".5f", ".3f", ".3f", ".3f", ".3f", ".3f"]
     other_labels = [r"$\chi^2_{\nu}$", r"$R^2$"]
     other_fmt = [".1f", ".3f"]
 
@@ -2008,21 +2128,27 @@ def task_fitfunc_print_table(v_n = "Mej_tot-geo", error_method = "arr",
 
     row_labels, all_vals = [], []
     mdisk_datasets = OrderedDict()
-    for i in range(10):
+    for i in range(0, 14):
         if i == 0 :
             df = Fit_Data(mdisk_datasets, v_n=v_n, error_method=error_method)
             all_coeffs.append(df.coefficients(cf_name))
             all_pars.append([np.nan, np.nan]) # np.nan
             row_labels.append(["Prior"])
         if i >= 1: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 2: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations, "data": vi, "fit": True}
+        if i >= 2: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 4: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         if i >= 5: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
         if i >= 6: mdisk_datasets["Kiuchi:2019lls"] =     {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
         if i >= 7: mdisk_datasets["Dietrich:2016lyp"]   = {"models": di16.simulations[di16.mask_for_with_sr],"data": di16, "fit": True}
         if i >= 8: mdisk_datasets["Dietrich:2015iva"]   = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
-        if i == 9: break
+        if i >= 9: mdisk_datasets["Sekiguchi:2015dma"]   ={"models": se15.simulations[se15.mask_for_with_sr], "data": se15, "fit": True}
+        if i >= 10: mdisk_datasets["Sekiguchi:2016bjd"]  = {"models": se16.simulations[se16.mask_for_with_sr], "data": se16, "fit": True}
+        if i >= 11: mdisk_datasets["Bauswein:2013yna"]   = {"models": bs.simulations, "data": bs, "fit": True}
+        if i >= 12: mdisk_datasets["Hotokezaka:2012ze"] = {"models": hz.simulations, "data": hz, "fit": True}
+
+
+        if i == 13: break
 
         if i >= 1:
             # cleaning
@@ -2128,22 +2254,26 @@ def task_mej_chi2dofs():
     #v_ns = ["Radice-chi2dof"]
     #v_ns_labels = ["datasets", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$"]
     v_ns_labels = ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"]
-    error_method = "arr"
+    error_method = "default"#"arr"
 
     # ---
     row_labels, all_vals = [], []
     mdisk_datasets = OrderedDict()
 
-    for i in range(9):
+    for i in range(12):
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations, "data": vi, "fit": True}
+        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
         if i >= 5: mdisk_datasets["Kiuchi:2019lls"] =     {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
         if i >= 6: mdisk_datasets["Dietrich:2016lyp"]   = {"models": di16.simulations[di16.mask_for_with_sr],"data": di16, "fit": True}
         if i >= 7: mdisk_datasets["Dietrich:2015iva"]   = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
-        if i == 8: break
+        if i >= 8: mdisk_datasets["Sekiguchi:2015dma"]   ={"models": se15.simulations[se15.mask_for_with_sr], "data": se15, "fit": True}
+        if i >= 9: mdisk_datasets["Sekiguchi:2016bjd"]  = {"models": se16.simulations[se16.mask_for_with_sr], "data": se16, "fit": True}
+        if i >= 10: mdisk_datasets["Bauswein:2013yna"]   = {"models": bs.simulations, "data": bs, "fit": True}
+
+        if i == 11: break
         print(mdisk_datasets.keys())
         row_labels.append(mdisk_datasets.keys())
 
@@ -2164,11 +2294,11 @@ def task_mej_chi2dofs():
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly2-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
+                coeffs, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly22-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
+                coeffs, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
         all_vals.append(vals)
 
@@ -2198,18 +2328,26 @@ def task_mej_chi2dofs():
     for i in range(len(row_labels)):
         # DATA SET NAME
         row_names = row_labels[i]
+        # if row_names == row_labels[0]:
+        #     row_name = ""
+        #     for dsname in row_names:
+        #         if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #         else: row_name = row_name + dsname + ''
+        # else:
+        #     row_name = '\& \cite{'
+        #     for dsname in row_names:
+        #         if dsname == "This work" or dsname == "Refernece set": pass
+        #         else:
+        #             if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #             else: row_name = row_name + dsname + '}'
+
+        row_name = row_names[-1]
+
         if row_names == row_labels[0]:
-            row_name = ""
-            for dsname in row_names:
-                if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                else: row_name = row_name + dsname + ''
+            row_name = row_names[-1]
         else:
-            row_name = '\& \cite{'
-            for dsname in row_names:
-                if dsname == "This work": pass
-                else:
-                    if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                    else: row_name = row_name + dsname + '}'
+            row_name = "\& " + "\cite{" + row_name + "} "
+
         # DATA ITSELF
         vals = all_vals[i]
         row = row_name + " & "
@@ -2353,7 +2491,7 @@ def task_vej_chi2dofs():
     #v_ns = ["Radice-chi2dof"]
     #v_ns_labels = ["datasets", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$"]
     v_ns_labels = ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_vej}", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"]
-    error_method = "arr"
+    error_method = "default" #"arr"
 
     # ---
     row_labels, all_vals = [], []
@@ -2361,7 +2499,7 @@ def task_vej_chi2dofs():
 
     for i in range(9):
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations, "data": vi, "fit": True}
+        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
@@ -2389,11 +2527,11 @@ def task_vej_chi2dofs():
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly2-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
+                coefs, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly22-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
+                coefs, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
         all_vals.append(vals)
 
@@ -2423,18 +2561,24 @@ def task_vej_chi2dofs():
     for i in range(len(row_labels)):
         # DATA SET NAME
         row_names = row_labels[i]
+        # if row_names == row_labels[0]:
+        #     row_name = ""
+        #     for dsname in row_names:
+        #         if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #         else: row_name = row_name + dsname + ''
+        # else:
+        #     row_name = '\& \cite{'
+        #     for dsname in row_names:
+        #         if dsname == "This work": pass
+        #         else:
+        #             if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #             else: row_name = row_name + dsname + '}'
+        row_name = row_names[-1]
+
         if row_names == row_labels[0]:
-            row_name = ""
-            for dsname in row_names:
-                if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                else: row_name = row_name + dsname + ''
+            row_name = row_names[-1]
         else:
-            row_name = '\& \cite{'
-            for dsname in row_names:
-                if dsname == "This work": pass
-                else:
-                    if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                    else: row_name = row_name + dsname + '}'
+            row_name = "\& " + "\cite{" + row_name + "} "
         # DATA ITSELF
         vals = all_vals[i]
         row = row_name + " & "
@@ -2469,7 +2613,7 @@ def task_yeej_chi2dofs():
     #v_ns = ["Radice-chi2dof"]
     #v_ns_labels = ["datasets", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$"]
     v_ns_labels = ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Yeej}", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"]
-    error_method = "arr"
+    error_method = "default"
 
     # ---
     row_labels, all_vals = [], []
@@ -2477,7 +2621,7 @@ def task_yeej_chi2dofs():
 
     for i in range(9):
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations, "data": vi, "fit": True}
+        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         #if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
@@ -2510,11 +2654,11 @@ def task_yeej_chi2dofs():
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly2-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
+                coefs, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly22-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
+                coefs, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
         all_vals.append(vals)
 
@@ -2544,18 +2688,150 @@ def task_yeej_chi2dofs():
     for i in range(len(row_labels)):
         # DATA SET NAME
         row_names = row_labels[i]
+        # if row_names == row_labels[0]:
+        #     row_name = ""
+        #     for dsname in row_names:
+        #         if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #         else: row_name = row_name + dsname + ''
+        # else:
+        #     row_name = '\& \cite{'
+        #     for dsname in row_names:
+        #         if dsname == "This work": pass
+        #         else:
+        #             if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #             else: row_name = row_name + dsname + '}'
+        row_name = row_names[-1]
+
         if row_names == row_labels[0]:
-            row_name = ""
-            for dsname in row_names:
-                if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                else: row_name = row_name + dsname + ''
+            row_name = row_names[-1]
         else:
-            row_name = '\& \cite{'
-            for dsname in row_names:
-                if dsname == "This work": pass
-                else:
-                    if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                    else: row_name = row_name + dsname + '}'
+            row_name = "\& " + "\cite{" + row_name + "} "
+        # DATA ITSELF
+        vals = all_vals[i]
+        row = row_name + " & "
+        assert len(vals) == len(fmts)
+        for val, fmt in zip(vals, fmts):
+            if val != vals[-1]:
+                val = __get_str_val(val, fmt)
+                # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
+                # else: val = __get_str_val()#str(("%{}".format(coeff_fmt) % float(val)))
+                row = row + val + " & "
+            else:
+                val = __get_str_val(val, fmt)
+                # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
+                # else: val = str(("%{}".format(coeff_fmt) % float(val)))
+                row = row + val + r" \\ "
+
+        print(row)
+        #row[-2] = r" \\ "
+
+
+    print(r"\end{tabular}")
+    print(r"\end{table}")
+
+### theta
+def task_thetaej_chi2dofs():
+
+    v_n_y = "theta_rms-geo"
+    v_ns_x = ["q", "Lambda"]
+    degree = 2
+    v_ns = ["datasets", "mean-chi2dof", "poly2-chi2dof", "poly22-chi2dof"]
+    fmts = [            ".1f", ".1f", ".1f"]
+    #v_ns = ["Radice-chi2dof"]
+    #v_ns_labels = ["datasets", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$"]
+    v_ns_labels = ["datasets", r"Mean", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"]
+    error_method = "default"
+
+    # ---
+    row_labels, all_vals = [], []
+    mdisk_datasets = OrderedDict()
+
+    for i in range(9):
+        if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
+        if i >= 1: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
+        if i >= 2: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
+        #if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
+        # if i >= 5: mdisk_datasets["Kiuchi:2019lls"] =     {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
+        #if i >= 5: mdisk_datasets["Dietrich:2016lyp"]   = {"models": di16.simulations[di16.mask_for_with_sr],"data": di16, "fit": True}
+        #if i >= 6: mdisk_datasets["Dietrich:2015iva"]   = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
+        if i == 3: break
+        print(mdisk_datasets.keys())
+        row_labels.append(mdisk_datasets.keys())
+
+        df = Fit_Data(mdisk_datasets, v_n_y, error_method=error_method)
+
+        vals = []
+        for v_n in v_ns:
+            if v_n.__contains__("mean-"):
+                if v_n.__contains__("chi2dof"):  vals.append(df.get_ch2dof_mean())
+            if v_n.__contains__("our-"):
+                print("\tTask: {}".format(v_n))
+                i_coeffs, chi2, chi2dof, R2 = df.fit2("our", "us", "Radice+2018")
+                # print(chi2dof); exit(1)
+                if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
+            if v_n.__contains__("Radice-"):
+                print("\tTask: {}".format(v_n))
+                i_coeffs, chi2, chi2dof, R2 = df.fit2("Radice+2018", "Radice+2018", "Radice+2018")
+                # print(chi2dof); exit(1)
+                if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
+            if v_n.__contains__("Kruger-"):
+                print("\tTask: {}".format(v_n))
+                i_coeffs, chi2, chi2dof, R2 = df.fit2("Kruger+2020", "Kruger+2020", "Kruger+2020")
+                if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
+            if v_n.__contains__("poly2-"):
+                print("\tTask: {}".format(v_n))
+                coefs, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
+                if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
+            if v_n.__contains__("poly22-"):
+                print("\tTask: {}".format(v_n))
+                coefs, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
+                if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
+        all_vals.append(vals)
+
+    print("\t---<DataCollected>---")
+
+    #
+    # for label in row_labels:
+    #     print(label)
+    # exit(1)
+
+    cells = "c" * len(v_ns_labels)
+    print("\n")
+    print(r"\begin{table*}")
+    print(r"\caption{I am your little table}")
+    print(r"\begin{tabular}{l|" + cells + "}")
+    line = ''
+    # HEADER
+    for name, label in zip(v_ns, v_ns_labels):
+        if name != v_ns[-1]:
+            line = line + label + ' & '
+        else:
+            line = line + label + r' \\'
+    print(line)
+    # TABLE
+
+    #
+    for i in range(len(row_labels)):
+        # DATA SET NAME
+        row_names = row_labels[i]
+        # if row_names == row_labels[0]:
+        #     row_name = ""
+        #     for dsname in row_names:
+        #         if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #         else: row_name = row_name + dsname + ''
+        # else:
+        #     row_name = '\& \cite{'
+        #     for dsname in row_names:
+        #         if dsname == "This work": pass
+        #         else:
+        #             if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #             else: row_name = row_name + dsname + '}'
+        row_name = row_names[-1]
+
+        if row_names == row_labels[0]:
+            row_name = row_names[-1]
+        else:
+            row_name = "\& " + "\cite{" + row_name + "} "
         # DATA ITSELF
         vals = all_vals[i]
         row = row_name + " & "
@@ -2590,7 +2866,7 @@ def task_mdisk_chi2dofs():
     #v_ns = ["Radice-chi2dof"]
     #v_ns_labels = ["datasets", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$", r"$\chi^2 _{\text{dof}}$"]
     v_ns_labels = ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"]
-    error_method = "arr"
+    error_method = "default"
 
     # ---
     row_labels, all_vals = [], []
@@ -2598,7 +2874,7 @@ def task_mdisk_chi2dofs():
 
     for i in range(9):
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations, "data": vi, "fit": True}
+        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         # if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
@@ -2626,11 +2902,11 @@ def task_mdisk_chi2dofs():
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly2-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
+                coefs, chi2, chi2dof, r2 = df.linear_regression(degree=degree, v_n_x=v_ns_x[-1], v_n_y=v_n_y)
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
             if v_n.__contains__("poly22-"):
                 print("\tTask: {}".format(v_n))
-                b0, bi, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
+                coefs, chi2, chi2dof, r2 = df.linear_regression2(degree=degree, v_ns_x=v_ns_x, v_ns_y=[v_n_y])
                 if v_n.__contains__("chi2dof"):  vals.append(chi2dof)
         all_vals.append(vals)
 
@@ -2660,18 +2936,24 @@ def task_mdisk_chi2dofs():
     for i in range(len(row_labels)):
         # DATA SET NAME
         row_names = row_labels[i]
+        # if row_names == row_labels[0]:
+        #     row_name = ""
+        #     for dsname in row_names:
+        #         if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #         else: row_name = row_name + dsname + ''
+        # else:
+        #     row_name = '\& \cite{'
+        #     for dsname in row_names:
+        #         if dsname == "This work": pass
+        #         else:
+        #             if not dsname == row_names[-1]: row_name = row_name + dsname + ','
+        #             else: row_name = row_name + dsname + '}'
+        row_name = row_names[-1]
+
         if row_names == row_labels[0]:
-            row_name = ""
-            for dsname in row_names:
-                if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                else: row_name = row_name + dsname + ''
+            row_name = row_names[-1]
         else:
-            row_name = '\& \cite{'
-            for dsname in row_names:
-                if dsname == "This work": pass
-                else:
-                    if not dsname == row_names[-1]: row_name = row_name + dsname + ','
-                    else: row_name = row_name + dsname + '}'
+            row_name = "\& " + "\cite{" + row_name + "} "
         # DATA ITSELF
         vals = all_vals[i]
         row = row_name + " & "
@@ -2696,16 +2978,18 @@ def task_mdisk_chi2dofs():
     print(r"\end{table}")
 
 ''' ------------------------------ '''
-def task_save_csv_of_all_datasets():
+def task_save_csv_of_all_datasets(save=True):
 
     # print(md.groups.keys())
     # md.groups.set_index("groups")
     # md.groups["models"] = md.groups.index
     # print(md.groups["models"]); exit(1)
 
+
+
     datasets = OrderedDict()
     datasets['Reference set'] = {"models": md.groups, "data": md, "fit": True}
-    datasets["Vincent:2019kor"] = {"models": vi.simulations, "data": vi, "fit": True}
+    datasets["Vincent:2019kor"] = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
     datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
     datasets["Radice:2018pdn"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
     datasets["Lehner:2016lxy"] = {"models": lh.simulations, "data": lh, "fit": True}
@@ -2722,47 +3006,58 @@ def task_save_csv_of_all_datasets():
     #
     dataframe = create_combine_dataframe2(datasets, v_ns, [], {}, "fit", ifabsent=np.nan)
     dataframe = dataframe[["dset_name"]+v_ns]
-    dataframe.to_csv("../datasets/combined.csv")
+    if save: dataframe.to_csv("../datasets/summary_table.csv")
+    print("Total models: {}".format(len(dataframe)))
+    return dataframe
 
 if __name__ == '__main__':
 
     ''' --- ejecta mass --- '''
+    fancy = False
+
     ### Mej
-    # task_print_stats(v_n = "Mej_tot-geo")
+    # task_print_stats(v_n = "Mej_tot-geo", error_method="default")
     # task_mej_chi2dofs()
-    task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q"], degree=2, error_method="arr", fancy=False)
-    # task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="arr", fancy=False)
-    # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q", "Lambda"], degree=2, error_method="arr", fancy=False)
-    # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="arr",
-    #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=False)
-    # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="arr",
-    #                          ff_name="Kruger+2020", cf_name="Kruger+2020", rs_name="Radice+2018", fancy=False)
+    # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q"], degree=2, error_method="default", fancy=False)
+    # task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="default", fancy=fancy)
+    # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q", "Lambda"], degree=2, error_method="default", fancy=fancy)
+    task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="default",
+                             ff_name="Radice+2018", cf_name="default", rs_name="Radice+2018", fancy=fancy)
+    # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="default",
+    #                          ff_name="Kruger+2020", cf_name="Kruger+2020", rs_name="Radice+2018", fancy=fancy)
 
     ### vej
-    # prtask_print_stats(v_n="vel_inf_ave-geo")
+    # task_print_stats(v_n="vel_inf_ave-geo", error_method="default")
     # task_vej_chi2dofs()
-    # task_table_linear_regresion(v_n_y="vel_inf_ave-geo", degree=2, error_method="arr", fancy=False)
-    # task_table_linear_regresion(v_n_y="vel_inf_ave-geo", v_n_x=["q","Lambda"], degree=2, error_method="arr", fancy=False)
-    # task_fitfunc_print_table(v_n="vel_inf_ave-geo", error_method="arr",
-    #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=False)
+    # task_table_linear_regresion(v_n_y="vel_inf_ave-geo", degree=2, error_method="default", fancy=fancy)
+    # task_table_linear_regresion(v_n_y="vel_inf_ave-geo", v_n_x=["q","Lambda"], degree=2, error_method="default", fancy=fancy)
+    # task_fitfunc_print_table(v_n="vel_inf_ave-geo", error_method="default",
+    #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=fancy)
 
     ### yeej
-    # task_print_stats(v_n="Ye_ave-geo")
+    # task_print_stats(v_n="Ye_ave-geo", error_method="default")
     # task_yeej_chi2dofs()
-    # task_table_linear_regresion(v_n_y="Ye_ave-geo", degree=2, error_method="arr", fancy=False)
-    # task_table_linear_regresion(v_n_y="Ye_ave-geo", v_n_x=["q", "Lambda"], degree=2, error_method="arr", fancy=False)
-    # task_fitfunc_print_table(v_n="Ye_ave-geo", error_method="arr",
+    # task_table_linear_regresion(v_n_y="Ye_ave-geo", degree=2, error_method="default", fancy=fancy)
+    # task_table_linear_regresion(v_n_y="Ye_ave-geo", v_n_x=["q", "Lambda"], degree=2, error_method="default", fancy=fancy)
+    # task_fitfunc_print_table(v_n="Ye_ave-geo", error_method="default",
     #                          ff_name="us", cf_name="us", rs_name="Radice+2018", fancy=False)
 
+    ### theta
+    # task_print_stats(v_n="theta_rms-geo", error_method="default")
+    # task_thetaej_chi2dofs()
+    # task_table_linear_regresion(v_n_y="theta_rms-geo", degree=2, error_method="default", fancy=fancy)
+    # task_table_linear_regresion(v_n_y="theta_rms-geo", v_n_x=["q", "Lambda"], degree=2, error_method="default", fancy=fancy)
+
+
     ### Mdsik
-    # task_print_stats(v_n="Mdisk3D")
+    # task_print_stats(v_n="Mdisk3D", error_method="default")
     # task_mdisk_chi2dofs()
-    # task_table_linear_regresion(v_n_y="Mdisk3D", degree=2, error_method="arr", fancy=False)
-    # task_table_linear_regresion(v_n_y="Mdisk3D", v_n_x=["q", "Lambda"], degree=2, error_method="arr", fancy=False)
-    # task_fitfunc_print_table(v_n="Mdisk3D", error_method="arr",
-    #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=False)
-    # task_fitfunc_print_table(v_n="Mdisk3D", error_method="arr",
-    #                          ff_name="Kruger+2020", cf_name="Kruger+2020", rs_name="Radice+2018", fancy=False)
+    # task_table_linear_regresion(v_n_y="Mdisk3D", degree=2, error_method="default", fancy=fancy)
+    # task_table_linear_regresion(v_n_y="Mdisk3D", v_n_x=["q", "Lambda"], degree=2, error_method="default", fancy=fancy)
+    # task_fitfunc_print_table(v_n="Mdisk3D", error_method="default",
+    #                          ff_name="Radice+2018", cf_name="Radice+2018", rs_name="Radice+2018", fancy=fancy)
+    # task_fitfunc_print_table(v_n="Mdisk3D", error_method="default",
+    #                          ff_name="Kruger+2020", cf_name="Kruger+2020", rs_name="Radice+2018", fancy=fancy)
 
     ''' --- '''
     # task_save_csv_of_all_datasets()

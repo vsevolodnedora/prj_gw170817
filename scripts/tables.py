@@ -1417,8 +1417,8 @@ class ALL_SIMULATIONS_TABLE:
                 m1m2 = run["name"].split('_')[2]
             else:
                 m1m2 = ''.join(m1m2[1:])
-            m1 = float(''.join(m1m2[:4])) / 1000
-            m2 = float(''.join(m1m2[4:])) / 1000
+            m2 = float(''.join(m1m2[:4])) / 1000
+            m1 = float(''.join(m1m2[4:])) / 1000
             # print(run["name"])
             _eos = None
             for eos in self.set_list_eos:
@@ -1863,7 +1863,7 @@ class GET_PAR_FROM_TABLE(ALL_SIMULATIONS_TABLE):
         sim = data_dic[self.name]
         v_n = str(v_n)
         if v_n == "q":
-            return float(data_dic["M1"]) / float(data_dic["M2"])
+            return float(data_dic["M2"]) / float(data_dic["M1"])
         if v_n == "q1mtot":
             mtot = float(data_dic["M1"]) + float(data_dic["M2"])
             q = float(data_dic["M1"]) / float(data_dic["M2"])

@@ -74,7 +74,7 @@ def run_preanalysis():
     scriptfpath = "/data01/numrel/vsevolod.nedora/bns_ppr_tools/"
     os.chdir(scriptfpath)
     for sim, md in simmulations.iterrows():
-        if click.confirm('Update initiad data for sim: {}'.format(sim)):
+        if True:# "#click.confirm('Update initiad data for sim: {}'.format(sim)):
             os.system("python preanalysis.py -s {} -t init_data --overwrite yes".format(sim))
             # click.echo('Well done!')
     # PROBLEMS:
@@ -90,7 +90,7 @@ def copy_run_from_old_to_new():
     simpath = "/data01/numrel/vsevolod.nedora/postprocessed4/"
 
     for sim, md in simmulations.iterrows():
-        if click.confirm('Update run data for sim: {}'.format(sim)):
+        if True:#click.confirm('Update run data for sim: {}'.format(sim)):
             try:
                 old_file_object = open(simpath+sim+"/"+oldfname, 'r')
                 run = ""
@@ -110,9 +110,16 @@ def copy_run_from_old_to_new():
 
 if __name__ == '__main__':
     ##### rename_old_initcsv()
-    ## run_preanalysis()
-    # copy_run_from_old_to_new()
+    run_preanalysis()
+    copy_run_from_old_to_new()
     pass
     # test_myavi()
     # print(15*constant_length)
     #task_copy_collated_gw_data()
+
+    '''
+    BLh_M12591482_M0_LR
+    BLh_M11841581_M0_LR
+    BLh_M11041699_M0_LR
+    BLh_M10201856_M0_LR
+    '''
