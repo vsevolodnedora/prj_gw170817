@@ -217,6 +217,8 @@ def get_lambda_tilde(sims):
 
 if __name__ == "__main__":
 
+    print(simulations[["q", "EOS", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej"]])
+
     print(" all models:            {}".format(len(simulations)))
     print(" resolved simualtions:  {}".format(len(simulations[mask_for_with_sr])))
     print(" models with disk mass: {}".format(len(simulations[mask_for_with_disk])))

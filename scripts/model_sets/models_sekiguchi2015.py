@@ -24,7 +24,7 @@ import copy
 
 
 class Paths:
-    to_csv_table = "../datasets/sekiguchi2015_summary.csv"
+    to_csv_table = "../datasets/sekiguchi2015_summary2.csv"
 
 class Struct(object):
     Mej_min = 5e-5
@@ -42,7 +42,7 @@ params = Struct()
 
 """ ------- READING .CSV Table ------ """
 
-simulations = pandas.read_csv(Paths.to_csv_table, " ")
+simulations = pandas.read_csv(Paths.to_csv_table)
 simulations = simulations.set_index("model")
 
 translation = {
@@ -55,10 +55,10 @@ translation = {
     "Ye_ave-geo":"Yeej",
     "M1": "M1",
     "M2": "M2",
-    # "C1": "C1",
-    # "C2": "C2",
-    # "Mb1": "Mb1",
-    # "Mb2": "Mb2"
+    "C1": "C1",
+    "C2": "C2",
+    "Mb1": "Mb1",
+    "Mb2": "Mb2"
 }
 
 """ ------- MODIFYING DATAFRAME ----- """
@@ -66,12 +66,12 @@ translation = {
 # simulations["q"] = 1. / simulations["q"]
 # simulations["Mej"] = simulations["Mej"] / 1.e2
 # simulations["Tej"] = simulations["Tej"] / 1.e4
-simulations["q"] = simulations["M1"] / simulations["M2"]
-simulations["Mtot"] = simulations["M1"] + simulations["M2"]
-simulations["Mej"] = simulations["Mej"] / 1.e2
-simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
+# simulations["q"] = simulations["M1"] / simulations["M2"]
+# simulations["Mtot"] = simulations["M1"] + simulations["M2"]
+# simulations["Mej"] = simulations["Mej"] / 1.e2
+# simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
 # simulations["vej"] = np.sqrt((simulations["v_ave_rho"]**2) + (simulations["v_ave_z"]**2))
-simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
+# simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
 
 def get_mod_err(v_n, mod_dic, simulations, arr=np.zeros(0,)):
     if len(arr) == 0:
@@ -138,10 +138,9 @@ mask_for_with_sr = (simulations.resolution == "high")
 
 
 if __name__ == "__main__":
+    print(simulations[["EOS", "q", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej"]])
 
     print(" all models:            {}".format(len(simulations)))
-
-    print(simulations[["Mej", "Yeej"]])
 
     print(simulations.keys())
 

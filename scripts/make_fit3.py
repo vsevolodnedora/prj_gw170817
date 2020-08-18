@@ -1098,7 +1098,7 @@ class Fit_Data:
         # dataframe = dataframe[dataframe["Lambda"] <= 2500]
         self.dataframe = dataframe
         # dataframe = dataframe[dataframe["q"] < 1.29]
-        dataframe = dataframe[(dataframe["C2"] > 0.136) & (dataframe["C2"] < 0.218)]
+        #dataframe = dataframe[(dataframe["C2"] > 0.136) & (dataframe["C2"] < 0.218)]
         print(np.array(np.isfinite(dataframe[self.fit_v_n])))
         # if self.fit_v_n == "Mej_tot-geo":
         #     dataframe[self.fit_v_n] = dataframe[self.fit_v_n] * 1.e3
@@ -1970,7 +1970,7 @@ def task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["Lambda"], degree=1,
     mdisk_datasets = OrderedDict()
     for i in range(0,12):
         if i >= 0: mdisk_datasets['Reference set']      = {"models": md.groups, "data": md, "fit": True}
-        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
+        if i >= 1: mdisk_datasets["Vincent:2019kor"]    = {"models": vi.simulations[vi.with_mj], "data": vi, "fit": True}
         if i >= 2: mdisk_datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
         if i >= 3: mdisk_datasets["Radice:2018pdn"]     = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
         if i >= 4: mdisk_datasets["Lehner:2016lxy"]     = {"models": lh.simulations, "data": lh, "fit": True}
@@ -2989,7 +2989,7 @@ def task_save_csv_of_all_datasets(save=True):
 
     datasets = OrderedDict()
     datasets['Reference set'] = {"models": md.groups, "data": md, "fit": True}
-    datasets["Vincent:2019kor"] = {"models": vi.simulations[vi.with_mej], "data": vi, "fit": True}
+    datasets["Vincent:2019kor"] = {"models": vi.simulations[vi.with_mj], "data": vi, "fit": True}
     datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
     datasets["Radice:2018pdn"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
     datasets["Lehner:2016lxy"] = {"models": lh.simulations, "data": lh, "fit": True}
@@ -2997,10 +2997,11 @@ def task_save_csv_of_all_datasets(save=True):
     datasets["Dietrich:2016lyp"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True}
     datasets["Dietrich:2015iva"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True}
     #
-    datasets["Bauswein:2013yna"] =  {"models": bs.simulations, "data": bs, "label": r"Bauswein+2013", "fit": True}
-    datasets["Hotokezaka:2012ze"] = {"models": hz.simulations, "data": hz, "label": r"Hotokezaka+2013", "fit": True}
     datasets["Sekiguchi:2015dma"] = {"models": se15.simulations[se15.mask_for_with_sr], "data": se15, "label": r"Sekiguchi+2015",  "fit": True}
     datasets["Sekiguchi:2016bjd"] = {"models": se16.simulations[se16.mask_for_with_sr], "data": se16, "label": r"Sekiguchi+2016", "fit": True}
+    datasets["Hotokezaka:2012ze"] = {"models": hz.simulations, "data": hz, "label": r"Hotokezaka+2013", "fit": True}
+    datasets["Bauswein:2013yna"] =  {"models": bs.simulations, "data": bs, "label": r"Bauswein+2013", "fit": True}
+
     #
     v_ns = ["EOS", "M1", "M2", "q", "C1", "C2", "Lambda", "Mej_tot-geo", "vel_inf_ave-geo", "Ye_ave-geo", "Mdisk3D"]
     #
@@ -3018,11 +3019,11 @@ if __name__ == '__main__':
     ### Mej
     # task_print_stats(v_n = "Mej_tot-geo", error_method="default")
     # task_mej_chi2dofs()
-    # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q"], degree=2, error_method="default", fancy=False)
+    task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q"], degree=2, error_method="default", fancy=False)
     # task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="default", fancy=fancy)
     # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q", "Lambda"], degree=2, error_method="default", fancy=fancy)
-    task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="default",
-                             ff_name="Radice+2018", cf_name="default", rs_name="Radice+2018", fancy=fancy)
+    # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="default",
+    #                          ff_name="Radice+2018", cf_name="default", rs_name="Radice+2018", fancy=fancy)
     # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="default",
     #                          ff_name="Kruger+2020", cf_name="Kruger+2020", rs_name="Radice+2018", fancy=fancy)
 

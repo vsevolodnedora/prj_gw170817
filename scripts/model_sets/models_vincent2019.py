@@ -130,6 +130,7 @@ def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
 
 """ --------------------------------- """
 
+with_mj = simulations["Mej_tot"] > 1e-5
 
 def get_lambda_tilde(sims):
 
@@ -241,7 +242,7 @@ def get_lambda_tilde(sims):
 
 if __name__ == '__main__':
 
-    print(simulations)
+    print(simulations[["EOS", "q", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej_tot"]])
 
     # sims = simulations
     # sims = get_lambda_tilde(sims)

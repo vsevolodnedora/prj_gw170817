@@ -24,7 +24,7 @@ import os
 import copy
 
 class Paths:
-    to_csv_table = "../datasets/hotokezaka2013_summary.csv"
+    to_csv_table = "../datasets/hotokezaka2013_summary2.csv"
 
 class Struct(object):
     Mej_min = 5e-5
@@ -39,17 +39,17 @@ params = Struct()
 
 """ ------- READING .CSV Table ------ """
 
-simulations = pandas.read_csv(Paths.to_csv_table, " ")
+simulations = pandas.read_csv(Paths.to_csv_table)
 simulations = simulations.set_index("model")
 
 """ ------- MODIFYING DATAFRAME ----- """
 
-simulations["q"] = 1. / (simulations["q"])# / simulations["M2"])
-simulations["Mtot"] = simulations["M1"] + simulations["M2"]
-simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
-simulations["Mej"] = simulations["Mesc"] / 1.e3
-simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
-simulations["v"] = np.sqrt(simulations["vr_esc"]**2 + simulations["vz_esc"]**2)
+# simulations["q"] = 1. / (simulations["q"])# / simulations["M2"])
+# simulations["Mtot"] = simulations["M1"] + simulations["M2"]
+# simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
+# simulations["Mej"] = simulations["Mesc"] / 1.e3
+# simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
+# simulations["v"] = np.sqrt(simulations["vr_esc"]**2 + simulations["vz_esc"]**2)
 
 """ --------------------------------- """
 
@@ -139,7 +139,8 @@ if __name__ == '__main__':
     #         # new_lines.append(name + ' ' + line)
     # with open(Paths.to_csv_table.replace("sammary", "summary"), "w") as f:
     #     f.writelines(new_lines)
+    print(simulations[["q", "EOS", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej"]])
 
-    print(simulations[["q", "Mej"]])
+    # print(simulations[["q", "Mej"]])
     print(simulations.keys())
     print(list(set(simulations.EOS)))

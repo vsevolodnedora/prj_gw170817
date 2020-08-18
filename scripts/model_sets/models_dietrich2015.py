@@ -243,6 +243,8 @@ def get_ejecta_vel_from_diet_and_ujecvic():
 
 if __name__ == "__main__":
 
+    print(simulations[["q", "EOS", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej"]])
+
     # print("models resolution")
     # print(simulations["resolution"])
     print(" all models:            {}".format(len(simulations)))

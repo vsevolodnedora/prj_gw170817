@@ -260,6 +260,7 @@ with_m0 = (fiducial) & (simulations.comment == "M0")
     # unique_simulations = unique_simulations[unique_simulations.index!=blacklisted]
 
 if __name__ == '__main__':
+    print(simulations[["EOS", "q", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej"]])
 
     # check_initial_table_models()
 

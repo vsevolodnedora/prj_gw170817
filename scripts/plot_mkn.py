@@ -12,6 +12,8 @@ from scipy import interpolate
 from glob import glob
 import matplotlib
 
+import uutils
+
 import click
 
 #from legacy.prj_visc_ej import ax
@@ -24,13 +26,16 @@ import matplotlib.pyplot as plt
 
 from matplotlib.colors import LogNorm, Normalize
 
-sys.path.append('/data01/numrel/vsevolod.nedora/bns_ppr_tools/')
+#sys.path.append('/data01/numrel/vsevolod.nedora/bns_ppr_tools/')
+#sys.path.append('/data01/numrel/vsevolod.nedora/bns_ppr_tools/')
+
+
 # from preanalysis import LOAD_INIT_DATA
 # from outflowed import EJECTA_PARS
 # from preanalysis import LOAD_ITTIME
 # from plotting_methods import PLOT_MANY_TASKS
 # from profile import LOAD_PROFILE_XYXZ, LOAD_RES_CORR, LOAD_DENSITY_MODES, MAINMETHODS_STORE, MAINMETHODS_STORE_XYXZ
-from utils import Paths, Lists, Labels, Constants, Printcolor, UTILS, Files, PHYSICS
+#from utils import Paths, Lists, Labels, Constants, Printcolor, UTILS, Files, PHYSICS
 
 from make_fit2 import Fitting_Coefficients, Fitting_Functions, Fit_Data
 
@@ -43,17 +48,21 @@ from uutils import *
 from model_sets import models as ourmd
 
 #from sys import path
-sys.path.append(Paths.mkn)
+mkn_code_path = "/home/vsevolod/GIT/bitbucket/mkn_framework/source/"
+sys.path.append(mkn_code_path)
 try:
     from mkn_bayes import MKN
 except ImportError:
     try:
         from mkn import MKN
     except ImportError:
-        raise ImportError("Failed to import mkn from MKN (set path is: {} ".format(Paths.mkn))
+        raise ImportError("Failed to import mkn from MKN (set path is: {} ".format(mkn_code_path))
 
-__curdir__ = "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/"
+# __curdir__ = "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/"
+
+__curdir__ = '/home/vsevolod/GIT/GitHub/prj_gw170817/scripts/'
 __outplotdir__ = "../figs/all3/mkn_fit/"
+
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 
@@ -764,7 +773,7 @@ class LOAD_LIGHTCURVE():
         #
         if len(fpaths) == 0: raise IOError("No mkn files found {}".format(self.indir + "mkn_model*.h5"))
         #
-        self.filter_fpath = Paths.mkn + Files.filt_at2017gfo
+        self.filter_fpath = mkn_code_path + "filter_data_AT2017gfo/"
         #
         #
         flist = []
@@ -1054,7 +1063,7 @@ class EXTRACT_LIGHTCURVE(LOAD_LIGHTCURVE):
             all_obs_mins = np.append(all_obs_mins, obs_mins)
 
         all_obs_times, all_obs_maxs, all_obs_mins = \
-            UTILS.x_y_z_sort(all_obs_times, all_obs_maxs, all_obs_mins)
+            uutils.x_y_z_sort(all_obs_times, all_obs_maxs, all_obs_mins)
 
         # interpolate for observationa times
 
@@ -1102,7 +1111,7 @@ class EXTRACT_LIGHTCURVE(LOAD_LIGHTCURVE):
 
     def get_model_peak(self, band, fname="mkn_model.h5"):
         t, mag = self.get_model_median(band, fname)
-        idx = UTILS.find_nearest_index(mag, mag.min())
+        idx = uutils.find_nearest_index(mag, mag.min())
         return t[idx], mag[idx]
 
     def get_obs_peak(self, band, fname = "AT2017gfo.h5"):
@@ -1126,8 +1135,8 @@ class EXTRACT_LIGHTCURVE(LOAD_LIGHTCURVE):
         assert len(obs_times_) == len(obs_mags)
         assert len(obs_times_) == len(obs_errs)
 
-        obs_times, obs_mags = UTILS.x_y_z_sort(obs_times_, obs_mags)
-        obs_times, obs_errs = UTILS.x_y_z_sort(obs_times_, obs_errs)
+        obs_times, obs_mags = uutils.x_y_z_sort(obs_times_, obs_mags)
+        obs_times, obs_errs = uutils.x_y_z_sort(obs_times_, obs_errs)
 
         int_obs_times = np.mgrid[obs_times[0]:obs_times[-2]:100j]
 
@@ -1139,7 +1148,7 @@ class EXTRACT_LIGHTCURVE(LOAD_LIGHTCURVE):
         int_obs_mags = interpolate.interp1d(obs_times, obs_mags, kind='linear')(int_obs_times)
         int_obs_errs = interpolate.interp1d(obs_times, obs_errs, kind='linear')(int_obs_times)
         print(int_obs_mags, int_obs_errs)
-        idx = UTILS.find_nearest_index(int_obs_mags, int_obs_mags.min())
+        idx = uutils.find_nearest_index(int_obs_mags, int_obs_mags.min())
         return int_obs_times[idx], int_obs_mags[idx], int_obs_errs[idx]
 
 
@@ -1236,7 +1245,7 @@ class EXTRACT_LIGHTCURVE(LOAD_LIGHTCURVE):
             obs_times = np.append(obs_times, sumbband[:, 0])
             obs_mags = np.append(obs_mags, sumbband[:, 1])
 
-        obs_times, obs_mags = UTILS.x_y_z_sort(obs_times, obs_mags)
+        obs_times, obs_mags = uutils.x_y_z_sort(obs_times, obs_mags)
 
         int_obs_times = np.mgrid[obs_times[0]:obs_times[-2]:100j]
 
@@ -1247,7 +1256,7 @@ class EXTRACT_LIGHTCURVE(LOAD_LIGHTCURVE):
 
         int_obs_mags = interpolate.interp1d(obs_times, obs_mags, kind='linear')(int_obs_times)
         print(int_obs_mags)
-        idx = UTILS.find_nearest_index(int_obs_mags, int_obs_mags.min())
+        idx = uutils.find_nearest_index(int_obs_mags, int_obs_mags.min())
 
         peaktime = int_obs_times[idx]
         peakmag = int_obs_mags[idx]
@@ -1265,7 +1274,7 @@ class EXTRACT_LIGHTCURVE(LOAD_LIGHTCURVE):
     def get_model_peak_duration(self, band, fname="mkn_model.h5", limit = 1.):
 
         t, mag = self.get_model_median(band, fname)
-        idx = UTILS.find_nearest_index(mag, mag.min())
+        idx = uutils.find_nearest_index(mag, mag.min())
         tpeak = t[idx]
         magpeak = mag[idx]
 
@@ -1301,7 +1310,7 @@ class COMBINE_LIGHTCURVES(EXTRACT_LIGHTCURVE):
             mpeaks = np.append(mpeaks, mpeak)
             attrs = np.append(attrs, attr)
 
-        attrs, tpeaks, mpeaks = UTILS.x_y_z_sort(attrs, tpeaks, mpeaks)
+        attrs, tpeaks, mpeaks = uutils.x_y_z_sort(attrs, tpeaks, mpeaks)
 
         return attrs, tpeaks, mpeaks
 
@@ -1320,7 +1329,7 @@ class COMBINE_LIGHTCURVES(EXTRACT_LIGHTCURVE):
             tdurs = np.append(tdurs, tdur)
             attrs = np.append(attrs, attr)
 
-        attrs, tdurs = UTILS.x_y_z_sort(attrs, tdurs)
+        attrs, tdurs = uutils.x_y_z_sort(attrs, tdurs)
 
         return attrs, tdurs
 

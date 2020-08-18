@@ -30,7 +30,7 @@ import copy
 #
 
 class Paths:
-    to_csv_table = "../datasets/kiuchi_summary_2019.csv"
+    to_csv_table = "../datasets/kiuchi_summary_2019_2.csv"
 
 class Struct(object):
     Mej_min = 5e-5
@@ -45,7 +45,7 @@ params = Struct()
 
 """ ------- READING .CSV Table ------ """
 
-simulations = pandas.read_csv(Paths.to_csv_table, " ")
+simulations = pandas.read_csv(Paths.to_csv_table)
 simulations = simulations.set_index("model")
 
 translation = {
@@ -68,10 +68,10 @@ translation = {
 
 """ ------- MODIFYING DATAFRAME ----- """
 
-simulations["q"] = 1. / simulations["q"]
-simulations["Mtot"] = simulations["M1"]  + simulations["M2"]
-simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
-
+#simulations["q"] = 1. / simulations["q"]
+# simulations["Mtot"] = simulations["M1"]  + simulations["M2"]
+# simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
+#simulations["EOS"] = "Polytrop"
 #simulations["Mdisk"] = simulations["Mdisk"] / 1.e2
 
 mask_for_resolved_disk = simulations["Mdisk"] > 1.e-3
@@ -126,9 +126,13 @@ def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
     return arr
 
 
+
 if __name__ == "__main__":
 
-    print("{} {} {}".format(simulations["M1"], simulations["M2"], simulations["Mtot"]))
+    simulations = simulations.sort_values("Lambda")
+    # simulations.to_csv("../datasets/kiuchi_summary_2019_2.csv")
+
+    print(simulations[["q", "EOS", "resolution","Lambda", "M1", "M2", "Mb1", "Mb2", "Mdyn", "Mdisk"]])
 
     print(" ---------- ")
     print("simulations:        {}".format(len(simulations)))
@@ -137,5 +141,5 @@ if __name__ == "__main__":
     print("with in.data and disk: {}".format(len(simulations[mask_for_resolved_disk & mask_for_with_tov_data])))
     #
     # print(simulations.keys())
-    print(simulations[mask_for_with_tov_data][["q", "Mdyn"]])
+    #print(simulations[mask_for_with_tov_data][["q", "Mdyn"]])
     print(simulations.keys())

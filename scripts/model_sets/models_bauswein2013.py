@@ -26,7 +26,7 @@ import os
 import copy
 
 class Paths:
-    to_csv_table = "../datasets/bauswein2013_summary.csv"
+    to_csv_table = "../datasets/bauswein2013_summary2.csv"
 
 class Struct(object):
     Mej_min = 5e-5
@@ -41,16 +41,16 @@ params = Struct()
 
 """ ------- READING .CSV Table ------ """
 
-simulations = pandas.read_csv(Paths.to_csv_table, " ")
+simulations = pandas.read_csv(Paths.to_csv_table)
 simulations = simulations.set_index("model")
 
 """ ------- MODIFYING DATAFRAME ----- """
 
-simulations["q"] = simulations["M1"] / simulations["M2"]
-simulations["Mtot"] = simulations["M1"] + simulations["M2"]
-simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
-simulations["Mej"] = simulations["Mej"] / 1.e3
-simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
+# simulations["q"] = simulations["M1"] / simulations["M2"]
+# simulations["Mtot"] = simulations["M1"] + simulations["M2"]
+# simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
+# simulations["Mej"] = simulations["Mej"] / 1.e3
+# simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
 #
 """ --------------------------------- """
 
@@ -139,6 +139,6 @@ if __name__ == '__main__':
     # with open(Paths.to_csv_table.replace("sammary", "summary"), "w") as f:
     #     f.writelines(new_lines)
 
-    print(simulations[["q", "Mej"]])
+    print(simulations[["EOS", "q", "Lambda", "Mej"]])
     print(simulations.keys())
     print(list(set(simulations.EOS)))

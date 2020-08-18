@@ -46,16 +46,17 @@ params = Struct()
 
 """ ------- READING .CSV Table ------ """
 
-simulations = pandas.read_csv(Paths.to_csv_table, " ")
+simulations = pandas.read_csv(Paths.to_csv_table)
+# print(simulations)
 simulations = simulations.set_index("model")
 
 """ ------- MODIFYING DATAFRAME ----- """
 
-simulations["q"] = 1. / (simulations["Mg1"] / simulations["Mg2"])
-simulations["Mtot"] = simulations["Mg1"] + simulations["Mg2"]
-simulations["Mchirp"] = ((simulations["Mg1"] * simulations["Mg2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
-simulations["Mej"] = simulations["Mej"] / 1.e3
-simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
+# simulations["q"] = 1. / (simulations["Mg1"] / simulations["Mg2"])
+# simulations["Mtot"] = simulations["Mg1"] + simulations["Mg2"]
+# simulations["Mchirp"] = ((simulations["Mg1"] * simulations["Mg2"]) ** (3./5.)) / (simulations["Mtot"]**(1./5.))
+# simulations["Mej"] = simulations["Mej"] / 1.e3
+# simulations["Lambda"] = np.full(len(simulations["q"]), np.nan)
 #
 """ --------------------------------- """
 
@@ -121,14 +122,16 @@ translation = {
     "vel_inf_ave-geo":"v",
     "M1": "Mg1",
     "M2": "Mg2",
-    # "C1": "C1",
-    # "C2": "C2",
-    # "Mb1": "Mb1",
-    # "Mb2": "Mb2"
+    "C1": "C1",
+    "C2": "C2",
+    "Mb1": "Mb1",
+    "Mb2": "Mb2"
 }
 
 
 if __name__ == '__main__':
+
+    print(simulations[["EOS", "q", "Lambda", "Mg1", "Mg2", "Mb1", "Mb2", "Mej"]])
 
     # new_lines = []
     # with open(Paths.to_csv_table, "r") as f:
@@ -140,6 +143,6 @@ if __name__ == '__main__':
     # with open(Paths.to_csv_table.replace("sammary", "summary"), "w") as f:
     #     f.writelines(new_lines)
 
-    print(simulations[["q","Mej"]])
+    # print(simulations[["q", "Lambda", "Mej"]])
     print(simulations.keys())
     print(list(set(simulations.EOS)))
