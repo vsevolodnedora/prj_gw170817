@@ -335,6 +335,7 @@ class DataCSV(object):
             p0 = -.6, 4.2, -32., 5., 1.
             popt, pcov, perr, res, chi2, bfit = self.fitme(self.model_mass_KDR, (MA, MB, CA, CB, MbA, MbB), Mej, p0,
                                                            sigma_Mej)
+            # print(popt)
             result['model_mass_KDR'] = {}
             result['model_mass_KDR']['opt'] = popt
             result['model_mass_KDR']['perr'] = perr
@@ -426,7 +427,7 @@ if __name__ == "__main__":
     # ##############################################
 
     dynej_mass_fits = []#['model_mass_poly2_tLam', 'model_mass_poly2_tLamq', 'model_mass_KDR', 'model_mass_KF']
-    dynej_vel_fits = []#["model_vel_poly2_tLamq","model_vel_KDR"]
+    dynej_vel_fits = ["model_vel_poly2_tLamq","model_vel_KDR"]
     dynej_ye_fits = []#['model_Ye_poly2_tLamq', 'model_Ye_KDR']
     dynej_mean = []#['model_mass_mean', 'model_vel_mean', 'model_Ye_mean']
     dynej_all = dynej_mass_fits + dynej_vel_fits + dynej_ye_fits + dynej_mean
@@ -448,9 +449,11 @@ if __name__ == "__main__":
 
         ds = DataCSV(fname='LiteratureData.csv')
         # print(ds.data[0].keys()) # DEBUG
+        # ds = ds[ds["bibref"] == "Nedora:2020"]
 
         # Select reference set
         dsref = DataCSV(data=ds.group(*('nus', 'leakM0')))
+        # dsref = DataCSV(data=ds.group(*('bibkey', 'Nedora:2020')))
 
         # DEBUG to test indivdual fits
         # dsref.fit(fit_to_do = ['model_mass_poly2_tLamq'], make_plot = make_plot ) # DEBUG
@@ -463,7 +466,7 @@ if __name__ == "__main__":
         #dsref.fit(fit_to_do=dynej_all, make_plot=make_plot, save_file="dynejset_M0", verbose=verbose)
 
         # ... add M1
-        dsref.add(ds.group(*('nus', 'M1')))
+        #dsref.add(ds.group(*('nus', 'M1')))
         dsref.add(ds.group(*('nus', 'leakM1')))
         #dsref.fit(fit_to_do=dynej_all, make_plot=make_plot, save_file="dynejset_M0_M1", verbose=verbose)
 

@@ -58,11 +58,15 @@ translation = {
     "C1": "C1",
     "C2": "C2",
     "Mb1": "Mb1",
-    "Mb2": "Mb2"
+    "Mb2": "Mb2",
+    "EOS": "EOS",
+    "nus": "nus",
+    "arxiv": "arxiv"
 }
 
 """ ------- MODIFYING DATAFRAME ----- """
-
+simulations["nus"] = "leakM1"
+simulations["arxiv"] = "https://arxiv.org/abs/1502.06660"
 # simulations["q"] = 1. / simulations["q"]
 # simulations["Mej"] = simulations["Mej"] / 1.e2
 # simulations["Tej"] = simulations["Tej"] / 1.e4
@@ -102,7 +106,11 @@ def get_mod_err(v_n, mod_dic, simulations, arr=np.zeros(0,)):
     return arr
 
 def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
-    if len(arr) == 0: arr = np.array(simulations[translation[v_n]], dtype=float)
+    if len(arr) == 0:
+        if v_n in ["EOS", "nus", "arxiv"]:
+            arr = list(simulations[translation[v_n]])
+        else:
+            arr = np.array(simulations[translation[v_n]], dtype=float)
     # print ("--arr:{}".format(arr))
     if "mult" in mod_dic.keys():
         print("mult, {}".format(mod_dic["mult"]))

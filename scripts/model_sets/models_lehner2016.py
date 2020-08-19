@@ -50,6 +50,9 @@ simulations = pandas.read_csv(Paths.to_csv_table)
 # print(simulations)
 simulations = simulations.set_index("model")
 
+simulations["arxiv"] = "https://arxiv.org/abs/1603.00501"
+simulations["nus"] = "leak"
+
 """ ------- MODIFYING DATAFRAME ----- """
 
 # simulations["q"] = 1. / (simulations["Mg1"] / simulations["Mg2"])
@@ -89,7 +92,11 @@ def get_mod_err(v_n, mod_dic, simulations, arr=np.zeros(0,)):
     return arr
 
 def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
-    if len(arr) == 0: arr = np.array(simulations[translation[v_n]], dtype=float)
+    if len(arr) == 0:
+        if v_n in ["EOS", "nus", "arxiv"]:
+            arr = list(simulations[translation[v_n]])
+        else:
+            arr = np.array(simulations[translation[v_n]], dtype=float)
     # print ("--arr:{}".format(arr))
     if "mult" in mod_dic.keys():
         print("mult, {}".format(mod_dic["mult"]))
@@ -125,7 +132,10 @@ translation = {
     "C1": "C1",
     "C2": "C2",
     "Mb1": "Mb1",
-    "Mb2": "Mb2"
+    "Mb2": "Mb2",
+    "EOS": "EOS",
+    "nus": "nus",
+    "arxiv": "arxiv"
 }
 
 

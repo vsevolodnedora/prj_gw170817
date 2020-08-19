@@ -22,10 +22,19 @@ list_long = [
 
 """ ------- READING .CSV Table ------ """
 
-groups = pandas.read_csv(Paths.to_group_table)
+# groups = pandas.read_csv(Paths.to_group_table)
 #groups = groups.set_index("group")
 
+groups = pandas.read_csv(Paths.to_group_table)
+groups = groups.set_index("group")
+
+groups = groups
+
+
 """ ------- MODIFYING DATAFRAME ----- """
+
+groups["nus"] = "leakM0"
+groups["arxiv"] = "https://arxiv.org/abs/2008.04333"
 
 groups["Mtot"] = groups["M1"] + groups["M2"]
 groups["Mchirp"] = ((groups["M1"] * groups["M2"]) ** (3./5.)) / (groups["Mtot"]**(1./5.))
@@ -50,12 +59,16 @@ translation = {
     "Mej_tot-bern_geoend":"Mej_tot-bern_geoend",
     "vel_inf_ave-tot": "vel_inf_ave-tot",
     "Mej_tot-tot": "Mej_tot-tot",
+    "theta_rms-geo":"theta_rms-geo",
     "M1":"M1",
     "M2":"M2",
     "C1":"C1",
     "C2":"C2",
     "Mb1":"Mb1",
-    "Mb2":"Mb2"
+    "Mb2":"Mb2",
+    "EOS":"EOS",
+    "nus":"nus",
+    "arxiv":"arxiv"
 }
 
 def get_outcome_marker(group, v_n = "outcome"):
@@ -105,7 +118,11 @@ def get_mod_err(v_n, mod_dic, simulations, arr=np.zeros(0,)):
 
 
 def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
-    if len(arr) == 0: arr = np.array(simulations[translation[v_n]])
+    if len(arr) == 0:
+        if v_n in ["EOS", "nus", "arxiv"]:
+            arr = list(simulations[translation[v_n]])
+        else:
+            arr = np.array(simulations[translation[v_n]], dtype=float)
     if "mult" in mod_dic.keys():
         print("mult, {}".format(mod_dic["mult"]))
         for entry in mod_dic["mult"]:

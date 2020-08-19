@@ -9,7 +9,7 @@ import h5py
 import csv
 import scipy.stats as st
 import matplotlib
-matplotlib.use('agg')
+#matplotlib.use('agg')
 import matplotlib.pyplot as plt
 # plt.rc('text', usetex=True)
 # plt.rc('font', family='serif')
@@ -25,7 +25,10 @@ __outplotdir__ = "../figs/all3/plot_dynej_summary2/"
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 
-from make_fit2 import Fitting_Coefficients as fit_coefs, Fitting_Functions as fit_funcs
+#from make_fit2 import Fitting_Coefficients as fit_coefs, Fitting_Functions as fit_funcs
+
+from make_fit4 import FittingFunctions, FittingCoefficients
+
 
 """ ----------------------------| COMPONENTS |----------------------------- """
 
@@ -98,27 +101,28 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
             #
             if x_dic["v_n"] == "Mej_tot-geo_fit" and y_dic["v_n"] == "Mej_tot-geo":
                 func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-                mej = func(coeffs, models, v_n=d_cl.translation["Mej_tot-geo"]) / 1.e3  # 1e-3 Msun -> Msun
+                mej = func(models, *coeffs)# / 1.e3  # 1e-3 Msun -> Msun
+                if "dev" in fit_dic.keys(): mej = mej / fit_dic["dev"]
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mej)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
             elif x_dic["v_n"] == "vel_inf_ave-geo_fit" and y_dic["v_n"] == "vel_inf_ave-geo":
                 func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-                mej = func(coeffs, models)  # 1e-3 Msun -> Msun
+                mej = func(models, *coeffs)  # 1e-3 Msun -> Msun
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mej)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
             elif x_dic["v_n"] == "Mdisk3D_fit" and y_dic["v_n"] == "Mdisk3D":
                 func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-                mdisk = func(coeffs, models)  # 1e-3 Msun -> Msun
+                mdisk = func(models, *coeffs)  # 1e-3 Msun -> Msun
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mdisk)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
             elif x_dic["v_n"] == "Ye_ave-geo_fit" and y_dic["v_n"] == "Ye_ave-geo":
                 func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-                mej = func(coeffs, models)  # 1e-3 Msun -> Msun
+                mej = func(models, *coeffs)  # 1e-3 Msun -> Msun
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mej)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
             elif x_dic["v_n"] == "theta_rms-geo_fit" and y_dic["v_n"] == "theta_rms-geo":
                 func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-                mej = func(coeffs, models)  # 1e-3 Msun -> Msun
+                mej = func(models, *coeffs)  # 1e-3 Msun -> Msun
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mej)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
             else:
@@ -137,9 +141,11 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
             #               edgecolor=edgecolors, facecolor=facecolors)
             #
             func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-            fitted_values = func(coeffs, models, v_n=d_cl.translation[y_dic["v_n"]])
+            fitted_values = func(models, *coeffs)
             #ss
-            if y_dic["v_n"] == "Mej_tot-geo": fitted_values = fitted_values / 1.e3  # Tims fucking fit
+            if y_dic["v_n"] == "Mej_tot-geo":
+                if "dev" in fit_dic.keys(): fitted_values = fitted_values / fit_dic["dev"]
+                    #fitted_values = fitted_values / 1.e3  # Tims fucking fit
             #
             y_from_fit = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, fitted_values)
 
@@ -293,21 +299,22 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
     if "tight_layout" in plot_dic.keys():
         if plot_dic["tight_layout"]: plt.tight_layout()
 
+
+    plt.show()
     # saving
     plt.savefig(plot_dic["figname"], dpi=plot_dic["dpi"])
     if plot_dic["savepdf"]: plt.savefig(plot_dic["figname"].replace(".png", ".pdf"))
+
     plt.close()
     print(plot_dic["figname"])
 
 """ ------------------------------| TASKS |--------------------------------- """
 
 def task_plot_mdisk_fits_only():
-    from model_sets import models_vincent2019 as vi
-    from model_sets import models_radice2018 as rd
-    from model_sets import groups as md
-    from model_sets import models_kiuchi2019 as ki
-    from model_sets import models_dietrich2015 as di15  # [21] arxive:1504.01266
-    from model_sets import models_dietrich2016 as di16  # [24] arxive:1607.06636
+
+    from model_sets import combined as md
+    from make_fit4 import Fit_Data
+
     # -------------------------------------------
 
     datasets = OrderedDict()
@@ -320,13 +327,18 @@ def task_plot_mdisk_fits_only():
     # # datasets["lehner"] =    {'marker': 'P', 'ms': 20, "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016", "color": "blue", "fit": False}
     # # datasets["hotokezaka"] ={'marker': '>', 'ms': 20, "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "color": "gray", "fit": False}
     # datasets['our'] =       {'marker': 'o', 'ms': 40, "models": md.groups, "data": md, "err": "v_n", "label": r"This work", "color": "red", "fit": True}
-    datasets['reference'] = {"models": md.groups, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
-    datasets["radiceLK"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.MdiskPP_err}
-    datasets["radiceM0"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.MdiskPP_err}
-    datasets["kiuchi"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True, "color": None, "plot_errorbar": False, "err": ki.params.Mdisk_err}
-    datasets["vincent"] = {"models": vi.simulations, "data": vi, "fit": True, "color": None, "plot_errorbar": False, "err": vi.params.Mdisk_err}
-    datasets["dietrich16"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True, "color": None, "plot_errorbar": False, "err": di16.params.Mdisk_err}
-    datasets["dietrich15"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True, "color": None, "plot_errorbar": False, "err": di15.params.Mdisk_err}
+    datasets['reference'] = {"models": md.reference, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["radiceLK"] =  {"models": md.radice18lk, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["radiceM0"] =  {"models": md.radice18m0, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    # # # datasets["lehner"] =    {"models": md.lehner16, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["kiuchi"] =    {"models": md.kiuchi19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["vincent"] =   {"models": md.vincent19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["dietrich16"] ={"models": md.dietrich16, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["dietrich15"] ={"models": md.dietrich15, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    # # # datasets["sekiguchi15"]={"models": md.sekiguchi15, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2015",  "fit": True}
+    datasets["sekiguchi16"]={"models": md.sekiguchi16, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2016", "fit": True}
+    # # # datasets["hotokezaka"] ={"models": md.hotokezaka12, "data": md, "err": md.params.Mej_err, "label": r"Hotokezaka+2013", "fit": True}
+    # # # datasets["bauswein"] =  {"models": md.basuwein13, "data": md, "err": md.params.Mej_err, "label": r"Bauswein+2013", "fit": True}
 
     for key in datasets.keys():
         datasets[key]["x_dic"] = {"v_n": "Mdisk3D_fit", "err": None, "deferr": None, "mod": {}}
@@ -334,36 +346,43 @@ def task_plot_mdisk_fits_only():
         datasets[key]["mod_x"] = {}
         datasets[key]["plot_errorbar"] = False
         datasets[key]["facecolor"] = 'none'
-        datasets[key]["edgecolor"] = ourmd.datasets_colors[key]
-        datasets[key]["marker"] = ourmd.datasets_markers[key]
-        datasets[key]["label"] = ourmd.datasets_labels[key]
+        datasets[key]["edgecolor"] = md.datasets_colors[key]
+        datasets[key]["marker"] = md.datasets_markers[key]
+        datasets[key]["label"] = md.datasets_labels[key]
         datasets[key]["ms"] = 40
         datasets[key]["alpha"] = 0.8
 
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "Mdisk3D", err_method="default", clean_nans=True)
+
     fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
     fit_dics["poly2"] = { # 202 --  230
-        "func": fit_funcs.poly_2_qLambda, "coeffs": np.array([-8.50e-01 , 1.12e+00 , 4.21e-04 , -3.71e-01 , 3.54e-05 , -2.13e-07]),
+        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs),
         # "coeffs": np.array([-8.50e-01 , 1.12e+00 , 4.21e-04 , -3.71e-01 , 3.54e-05 , -2.13e-07]),
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
     fit_dics["Eq.15"] = { # 481.6
-        "func": fit_funcs.mdisk_kruger20, "coeffs": np.array([-4.285 , 0.844 , 1.354]),
+        "func": FittingFunctions.mdisk_kruger19, "coeffs": np.array(coeffs),
         # "coeffs": np.array([ -0.011 , 1.001 , 1932.277]),
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="rad18", cf_name="rad18")
     fit_dics["Eq.14"] = { # 630 -- 730
-        "func": fit_funcs.mdisk_radice18, "coeffs": np.array([-59.490 , 59.672 , -988.615 , 379.887]),
+        "func": FittingFunctions.mdisk_radice18, "coeffs": np.array(coeffs),
         # "coeffs": np.array([-66.479 , 66.661 , -1009.858 , 379.943]),
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 640 -- 750
-        "func": fit_funcs.poly_2_Lambda, "coeffs": np.array([-6.73e-02 , 4.78e-04 , -2.11e-07]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
         # "coeffs": np.array([-6.73e-02 , 4.78e-04 , -2.11e-07]),
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
@@ -551,13 +570,21 @@ def task_plot_mdisk_fits_only():
     plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
 
 def task_plot_mej_fits_only():
-    from model_sets import models_vincent2019 as vi
-    from model_sets import models_radice2018 as rd
-    from model_sets import groups as md
-    from model_sets import models_lehner2016 as lh  # [22] arxive:1603.00501
-    from model_sets import models_kiuchi2019 as ki
-    from model_sets import models_dietrich2015 as di15  # [21] arxive:1504.01266
-    from model_sets import models_dietrich2016 as di16  # [24] arxive:1607.06636
+    # from model_sets import models_vincent2019 as vi
+    # from model_sets import models_radice2018 as rd
+    # from model_sets import groups as md
+    # from model_sets import models_lehner2016 as lh  # [22] arxive:1603.00501
+    # from model_sets import models_kiuchi2019 as ki
+    # from model_sets import models_dietrich2015 as di15  # [21] arxive:1504.01266
+    # from model_sets import models_dietrich2016 as di16  # [24] arxive:1607.06636
+    # from model_sets import models_sekiguchi2016 as se16  # [23] arxive:1603.01918 # no Mb
+    # from model_sets import models_sekiguchi2015 as se15  # [-]  arxive:1502.06660 # no Mb
+    # from model_sets import models_hotokezaka2013 as hz          # [19] arxive:1212.0905
+    # from model_sets import models_bauswein2013 as bs            # [20] arxive:1302.6530
+
+    from model_sets import combined as md
+    from make_fit4 import Fit_Data
+
     # -------------------------------------------
 
     datasets = OrderedDict()
@@ -570,24 +597,30 @@ def task_plot_mej_fits_only():
     # # datasets["lehner"] =    {'marker': 'P', 'ms': 20, "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016", "color": "blue", "fit": False}
     # # datasets["hotokezaka"] ={'marker': '>', 'ms': 20, "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "color": "gray", "fit": False}
     # datasets['our'] =       {'marker': 'o', 'ms': 40, "models": md.groups, "data": md, "err": "v_n", "label": r"This work", "color": "red", "fit": True}
-    datasets['reference'] = {"models": md.groups, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
-    datasets["radiceLK"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.MdiskPP_err}
-    datasets["radiceM0"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.MdiskPP_err}
-    datasets["lehner"] = {"models": lh.simulations, "data": lh, "fit": True, "color": None, "plot_errorbar": True, "err": lh.params.Mdisk_err}
-    datasets["kiuchi"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True, "color": None, "plot_errorbar": False, "err": ki.params.Mdisk_err}
-    datasets["vincent"] = {"models": vi.simulations, "data": vi, "fit": True, "color": None, "plot_errorbar": False, "err": vi.params.Mdisk_err}
-    datasets["dietrich16"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True, "color": None, "plot_errorbar": False, "err": di16.params.Mdisk_err}
-    datasets["dietrich15"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True, "color": None, "plot_errorbar": False, "err": di15.params.Mdisk_err}
+    datasets['reference'] = {"models": md.reference, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["radiceLK"] =  {"models": md.radice18lk, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["radiceM0"] =  {"models": md.radice18m0, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["lehner"] =    {"models": md.lehner16, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["kiuchi"] =    {"models": md.kiuchi19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["vincent"] =   {"models": md.vincent19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["dietrich16"] ={"models": md.dietrich16, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["dietrich15"] ={"models": md.dietrich15, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["sekiguchi15"]={"models": md.sekiguchi15, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2015",  "fit": True}
+    datasets["sekiguchi16"]={"models": md.sekiguchi16, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2016", "fit": True}
+    datasets["hotokezaka"] ={"models": md.hotokezaka12, "data": md, "err": md.params.Mej_err, "label": r"Hotokezaka+2013", "fit": True}
+    datasets["bauswein"] =  {"models": md.basuwein13, "data": md, "err": md.params.Mej_err, "label": r"Bauswein+2013", "fit": True}
+
+
 
     for key in datasets.keys():
-        datasets[key]["x_dic"] = {"v_n": "Mej_tot-geo_fit", "err": None, "deferr": None, "mod": {"mult": [1e3]}}
-        datasets[key]["y_dic"] = {"v_n": "Mej_tot-geo",     "err": "ud", "deferr": 0.2,  "mod": {"mult": [1e3]}}
+        datasets[key]["x_dic"] = {"v_n": "Mej_tot-geo_fit", "err": None, "deferr": None, "mod":{"mult": [1e3]}}#, "mod": {"mult": [1e3]}}
+        datasets[key]["y_dic"] = {"v_n": "Mej_tot-geo",     "err": "ud", "deferr": 0.2, "mod":{"mult": [1e3]}}#,  "mod": {"mult": [1e3]}}
         datasets[key]["mod_x"] = {}
         datasets[key]["facecolor"] = 'none'
         datasets[key]["plot_errorbar"] = False
-        datasets[key]["edgecolor"] = ourmd.datasets_colors[key]
-        datasets[key]["marker"] = ourmd.datasets_markers[key]
-        datasets[key]["label"] = ourmd.datasets_labels[key]
+        datasets[key]["edgecolor"] = md.datasets_colors[key]
+        datasets[key]["marker"] = md.datasets_markers[key]
+        datasets[key]["label"] = md.datasets_labels[key]
         datasets[key]["ms"] = 40
         datasets[key]["alpha"] = 0.8
 
@@ -603,28 +636,34 @@ def task_plot_mej_fits_only():
     \& \cite{Dietrich:2015iva}  & 347.6 & 301.6 & 52.2 & 625.8 & 81.5 \\
     '''
 
+    o_fit = Fit_Data(md.simulations, "Mej_tot-geo", err_method="default", clean_nans=True)
+
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
     fit_dics = OrderedDict()
     fit_dics["Eq.7"] = {  # best 53.2
-        "func": fit_funcs.mej_kruger20, "coeffs": np.array([-11.074 , 140.501 , -436.828 , 1.439]),
+        "func": FittingFunctions.mej_kruger19, "coeffs": np.array(coeffs), #"dev":1e3,
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
     fit_dics["poly2"] = { # 2nd best  81.5
-        "func": fit_funcs.poly_2_qLambda, "coeffs": np.array([4.83e+01 , -6.89e+01 , -3.99e-02 , 2.47e+01 , 3.83e-02 , -1.03e-06]),
+        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs),
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
 
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
     fit_dics["Eq.6"] = { # 153
-        "func": fit_funcs.mej_dietrich16, "coeffs": np.array([0.556 , 1.030 , -5.820 , -5.560 , -4.465 ]),
+        "func": FittingFunctions.mej_dietrich16, "coeffs": np.array(coeffs), #"dev":1e3,
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 628
-        "func": fit_funcs.poly_2_Lambda, "coeffs": np.array([ 4.93e+00 , -3.64e-03 , 5.79e-06]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
@@ -658,8 +697,8 @@ def task_plot_mej_fits_only():
 
     subplot_dics = OrderedDict()
     subplot_dics["Eq.7"] = {
-        "xmin": -8, "xmax": 55., "xscale": "linear",
-        "ymin": -18.0, "ymax": 8.0, "yscale": "linear",
+        "xmin": -8, "xmax": 10., "xscale": "linear",
+        "ymin": -4.0, "ymax": 4.0, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -673,8 +712,8 @@ def task_plot_mej_fits_only():
         "labels": True,
     }
     subplot_dics["poly2"] = {
-        "xmin": -8, "xmax": 55., "xscale": "linear",
-        "ymin": -18.0, "ymax": 8.0, "yscale": "linear",
+        "xmin": -8, "xmax": 10., "xscale": "linear",
+        "ymin": -4.0, "ymax": 4.0, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -692,8 +731,8 @@ def task_plot_mej_fits_only():
         "labels": True
     }
     subplot_dics["Eq.6"] = {
-        "xmin": -8, "xmax": 55., "xscale": "linear",
-        "ymin": -18.0, "ymax": 8.0, "yscale": "linear",
+        "xmin": -8, "xmax": 10., "xscale": "linear",
+        "ymin": -4.0, "ymax": 4.0, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -707,8 +746,8 @@ def task_plot_mej_fits_only():
         "labels": True
     }
     subplot_dics["poly1"] = {
-        "xmin": -8, "xmax": 55., "xscale": "linear",
-        "ymin": -18, "ymax": 8.0, "yscale": "linear",
+        "xmin": -8, "xmax": 10., "xscale": "linear",
+        "ymin": -4, "ymax": 4.0, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -819,14 +858,8 @@ def task_plot_mej_fits_only():
     plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
 
 def task_plot_vej_fits_only():
-    from model_sets import models_vincent2019 as vi
-    from model_sets import models_radice2018 as rd
-    from model_sets import groups as md
-    from model_sets import models_lehner2016 as lh  # [22] arxive:1603.00501
-    from model_sets import models_kiuchi2019 as ki
-    from model_sets import models_dietrich2015 as di15  # [21] arxive:1504.01266
-    from model_sets import models_dietrich2016 as di16  # [24] arxive:1607.06636
-    # -------------------------------------------
+
+    from model_sets import combined as md
 
     datasets = OrderedDict()
     # datasets["kiuchi"] =    {'marker': "X", "ms": 20, "models": ki.simulations, "data": ki, "err": ki.params.Mej_err, "label": r"Kiuchi+2019", "color": "gray", "fit": False}
@@ -838,13 +871,18 @@ def task_plot_vej_fits_only():
     # # datasets["lehner"] =    {'marker': 'P', 'ms': 20, "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016", "color": "blue", "fit": False}
     # # datasets["hotokezaka"] ={'marker': '>', 'ms': 20, "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "color": "gray", "fit": False}
     # datasets['our'] =       {'marker': 'o', 'ms': 40, "models": md.groups, "data": md, "err": "v_n", "label": r"This work", "color": "red", "fit": True}
-    datasets['reference'] = {"models": md.groups, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
-    datasets["radiceLK"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.vej_err}
-    datasets["radiceM0"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.vej_err}
-    datasets["lehner"] = {"models": lh.simulations, "data": lh, "fit": True, "color": None, "plot_errorbar": True, "err": lh.params.vej_err}    #datasets["kiuchi"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True, "color": None, "plot_errorbar": False, "err": ki.params.Mdisk_err}
-    datasets["vincent"] = {"models": vi.simulations, "data": vi, "fit": True, "color": None, "plot_errorbar": False, "err": vi.params.vej_err}
-    datasets["dietrich16"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True, "color": None, "plot_errorbar": False, "err": di16.params.vej_err}
-    datasets["dietrich15"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True, "color": None, "plot_errorbar": False, "err": di15.params.vej_err}
+    datasets['reference'] = {"models": md.reference, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["radiceLK"] =  {"models": md.radice18lk, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    datasets["radiceM0"] =  {"models": md.radice18m0, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    datasets["lehner"] =    {"models": md.lehner16, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    # # # datasets["kiuchi"] =    {"models": md.kiuchi19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    datasets["vincent"] =   {"models": md.vincent19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    datasets["dietrich16"] ={"models": md.dietrich16, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    datasets["dietrich15"] ={"models": md.dietrich15, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    # # # datasets["sekiguchi15"]={"models": md.sekiguchi15, "data": md, "err": md.params.vej_err, "label": r"Sekiguchi+2015",  "fit": True}
+    datasets["sekiguchi16"]={"models": md.sekiguchi16, "data": md, "err": md.params.vej_err, "label": r"Sekiguchi+2016", "fit": True}
+    datasets["hotokezaka"] ={"models": md.hotokezaka12, "data": md, "err": md.params.vej_err, "label": r"Hotokezaka+2013", "fit": True}
+    datasets["bauswein"] =  {"models": md.basuwein13, "data": md, "err": md.params.vej_err, "label": r"Bauswein+2013", "fit": True}
 
     for key in datasets.keys():
         datasets[key]["x_dic"] = {"v_n": "vel_inf_ave-geo_fit", "err": None, "deferr": None, "mod": {}}
@@ -852,39 +890,35 @@ def task_plot_vej_fits_only():
         datasets[key]["mod_x"] = {}
         datasets[key]["facecolor"] = 'none'
         datasets[key]["plot_errorbar"] = False
-        datasets[key]["edgecolor"] = ourmd.datasets_colors[key]
-        datasets[key]["marker"] = ourmd.datasets_markers[key]
-        datasets[key]["label"] = ourmd.datasets_labels[key]
+        datasets[key]["edgecolor"] = md.datasets_colors[key]
+        datasets[key]["marker"] = md.datasets_markers[key]
+        datasets[key]["label"] = md.datasets_labels[key]
         datasets[key]["ms"] = 40
         datasets[key]["alpha"] = 0.8
 
-    ''' 
-    Reference set & 3.9 & 2.8 & 3.3 & 1.0 \\ 
-    \& \cite{Vincent:2019kor}  & 4.8 & 3.3 & 4.1 & 1.6 \\ 
-    \& \cite{Radice:2018pdn[M0]}  & 4.4 & 3.5 & 3.7 & 1.7 \\ 
-    \& \cite{Radice:2018pdn}  & 4.9 & 3.4 & 4.4 & 3.0 \\ 
-    \& \cite{Lehner:2016lxy}  & 7.6 & 6.4 & 6.8 & 5.3 \\ 
-    \& \cite{Dietrich:2016lyp}  & 6.4 & 5.9 & 6.3 & 5.3 \\ 
-    \& \cite{Dietrich:2015iva}  & 6.6 & 6.1 & 6.5 & 5.6 \\
-    '''
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "vel_inf_ave-geo", err_method="default", clean_nans=True)
 
     fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
     fit_dics["poly2"] = { # 5.6
-        "func": fit_funcs.poly_2_qLambda,
-        "coeffs": np.array([4.69e-01 , -3.08e-01 , -9.19e-05 , 8.30e-02 , 1.71e-05 , 3.13e-08]),
+        "func": FittingFunctions.poly_2_qLambda,
+        "coeffs": np.array(coeffs),
         # np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
     fit_dics["Eq.9"] = { # 6.1
-        "func": fit_funcs.vej_dietrich16, "coeffs": np.array([-0.222, 0.581, -0.934]),
+        "func": FittingFunctions.vej_dietrich16, "coeffs": np.array(coeffs),
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 6.1
-        "func": fit_funcs.poly_2_Lambda, "coeffs": np.array([2.28e-01 , -7.41e-05 , 3.04e-08]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
         # np.array([-1.221e-2, 0.014, 8.396e-7]),
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
@@ -1030,13 +1064,7 @@ def task_plot_vej_fits_only():
 
 def task_plot_yeej_fits_only():
 
-    from model_sets import models_vincent2019 as vi
-    from model_sets import models_radice2018 as rd
-    from model_sets import groups as md
-    from model_sets import models_kiuchi2019 as ki
-    from model_sets import models_dietrich2015 as di15  # [21] arxive:1504.01266
-    from model_sets import models_dietrich2016 as di16  # [24] arxive:1607.06636
-    # -------------------------------------------
+    from model_sets import combined as md
 
     datasets = OrderedDict()
     # datasets["kiuchi"] =    {'marker': "X", "ms": 20, "models": ki.simulations, "data": ki, "err": ki.params.Mej_err, "label": r"Kiuchi+2019", "color": "gray", "fit": False}
@@ -1048,46 +1076,59 @@ def task_plot_yeej_fits_only():
     # # datasets["lehner"] =    {'marker': 'P', 'ms': 20, "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016", "color": "blue", "fit": False}
     # # datasets["hotokezaka"] ={'marker': '>', 'ms': 20, "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "color": "gray", "fit": False}
     # datasets['our'] =       {'marker': 'o', 'ms': 40, "models": md.groups, "data": md, "err": "v_n", "label": r"This work", "color": "red", "fit": True}
-    datasets['reference'] = {"models": md.groups, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
-    datasets["radiceLK"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.vej_err}
-    datasets["radiceM0"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.vej_err}
-    #datasets["kiuchi"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True, "color": None, "plot_errorbar": False, "err": ki.params.Mdisk_err}
-    datasets["vincent"] = {"models": vi.simulations, "data": vi, "fit": True, "color": None, "plot_errorbar": False, "err": vi.params.Mdisk_err}
-    #datasets["dietrich16"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True, "color": None, "plot_errorbar": False, "err": di16.params.Mdisk_err}
-    #datasets["dietrich15"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True, "color": None, "plot_errorbar": False, "err": di15.params.Mdisk_err}
+    datasets['reference'] = {"models": md.reference, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["radiceLK"] =  {"models": md.radice18lk, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    datasets["radiceM0"] =  {"models": md.radice18m0, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    # # # datasets["lehner"] =    {"models": md.lehner16, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    # # # datasets["kiuchi"] =    {"models": md.kiuchi19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    datasets["vincent"] =   {"models": md.vincent19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    # # # datasets["dietrich16"] ={"models": md.dietrich16, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    # # # datasets["dietrich15"] ={"models": md.dietrich15, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    datasets["sekiguchi15"]={"models": md.sekiguchi15, "data": md, "err": md.params.vej_err, "label": r"Sekiguchi+2015",  "fit": True}
+    datasets["sekiguchi16"]={"models": md.sekiguchi16, "data": md, "err": md.params.vej_err, "label": r"Sekiguchi+2016", "fit": True}
+    # # # datasets["hotokezaka"] ={"models": md.hotokezaka12, "data": md, "err": md.params.vej_err, "label": r"Hotokezaka+2013", "fit": True}
+    # # # datasets["bauswein"] =  {"models": md.basuwein13, "data": md, "err": md.params.vej_err, "label": r"Bauswein+2013", "fit": True}
+
+    # -------------------------------------------
 
     for key in datasets.keys():
         datasets[key]["x_dic"] = {"v_n": "Ye_ave-geo_fit", "err": None, "deferr": None, "mod": {}}
         datasets[key]["y_dic"] = {"v_n": "Ye_ave-geo",     "err": "ud", "deferr": 0.2,  "mod": {}}
         datasets[key]["mod_x"] = {}
         datasets[key]["facecolor"] = 'none'
-        datasets[key]["edgecolor"] = ourmd.datasets_colors[key]
-        datasets[key]["marker"] = ourmd.datasets_markers[key]
-        datasets[key]["label"] = ourmd.datasets_labels[key]
+        datasets[key]["edgecolor"] = md.datasets_colors[key]
+        datasets[key]["marker"] = md.datasets_markers[key]
+        datasets[key]["label"] = md.datasets_labels[key]
         datasets[key]["ms"] = 40
         datasets[key]["alpha"] = 0.8
         datasets[key]["plot_errorbar"] = False
 
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "Ye_ave-geo", err_method="default", clean_nans=True)
+
     fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
     fit_dics["poly2"] = { # 17
-        "func": fit_funcs.poly_2_qLambda,
+        "func": FittingFunctions.poly_2_qLambda,
         "method": "delta",
-        "coeffs": np.array([-3.49e-01 , 7.65e-01 , 4.46e-04 , -2.94e-01 , -2.49e-04 , -1.28e-07]),
+        "coeffs": np.array(coeffs),
         # np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="our", cf_name="our")
     fit_dics["Eq.11"] = { # 23
         "method": "delta",
-        "func": fit_funcs.yeej_like_vej, "coeffs": np.array([0.128 , 0.349 , -4.161]),
+        "func": FittingFunctions.yeej_ours, "coeffs": np.array(coeffs),
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 30+
         "method": "delta",
-        "func": fit_funcs.poly_2_Lambda, "coeffs": np.array([1.27e-01 , 1.34e-04 , -8.64e-08]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
         # np.array([-1.221e-2, 0.014, 8.396e-7]),
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
@@ -1229,13 +1270,7 @@ def task_plot_yeej_fits_only():
 
 def task_plot_thetaej_fits_only():
 
-    from model_sets import models_vincent2019 as vi
-    from model_sets import models_radice2018 as rd
-    from model_sets import groups as md
-    from model_sets import models_kiuchi2019 as ki
-    from model_sets import models_dietrich2015 as di15  # [21] arxive:1504.01266
-    from model_sets import models_dietrich2016 as di16  # [24] arxive:1607.06636
-    # -------------------------------------------
+    from model_sets import combined as md
 
     datasets = OrderedDict()
     # datasets["kiuchi"] =    {'marker': "X", "ms": 20, "models": ki.simulations, "data": ki, "err": ki.params.Mej_err, "label": r"Kiuchi+2019", "color": "gray", "fit": False}
@@ -1247,39 +1282,51 @@ def task_plot_thetaej_fits_only():
     # # datasets["lehner"] =    {'marker': 'P', 'ms': 20, "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016", "color": "blue", "fit": False}
     # # datasets["hotokezaka"] ={'marker': '>', 'ms': 20, "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "color": "gray", "fit": False}
     # datasets['our'] =       {'marker': 'o', 'ms': 40, "models": md.groups, "data": md, "err": "v_n", "label": r"This work", "color": "red", "fit": True}
-    datasets['reference'] = {"models": md.groups, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
-    datasets["radiceLK"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.vej_err}
-    datasets["radiceM0"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True, "color": None, "plot_errorbar": True, "err": rd.params.vej_err}
-    #datasets["kiuchi"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True, "color": None, "plot_errorbar": False, "err": ki.params.Mdisk_err}
-    # datasets["vincent"] = {"models": vi.simulations, "data": vi, "fit": True, "color": None, "plot_errorbar": False, "err": vi.params.Mdisk_err}
-    #datasets["dietrich16"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True, "color": None, "plot_errorbar": False, "err": di16.params.Mdisk_err}
-    #datasets["dietrich15"] = {"models": di15.simulations[di15.mask_for_with_sr], "data": di15, "fit": True, "color": None, "plot_errorbar": False, "err": di15.params.Mdisk_err}
+    datasets['reference'] = {"models": md.reference, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["radiceLK"] =  {"models": md.radice18lk, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    datasets["radiceM0"] =  {"models": md.radice18m0, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    # # # datasets["lehner"] =    {"models": md.lehner16, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.vej_err}
+    # # # datasets["kiuchi"] =    {"models": md.kiuchi19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    # # # datasets["vincent"] =   {"models": md.vincent19, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    # # # datasets["dietrich16"] ={"models": md.dietrich16, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    # # # datasets["dietrich15"] ={"models": md.dietrich15, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.vej_err}
+    # # # datasets["sekiguchi15"]={"models": md.sekiguchi15, "data": md, "err": md.params.vej_err, "label": r"Sekiguchi+2015",  "fit": True}
+    # # # datasets["sekiguchi16"]={"models": md.sekiguchi16, "data": md, "err": md.params.vej_err, "label": r"Sekiguchi+2016", "fit": True}
+    # # # datasets["hotokezaka"] ={"models": md.hotokezaka12, "data": md, "err": md.params.vej_err, "label": r"Hotokezaka+2013", "fit": True}
+    # # # datasets["bauswein"] =  {"models": md.basuwein13, "data": md, "err": md.params.vej_err, "label": r"Bauswein+2013", "fit": True}
+
+    # -------------------------------------------
 
     for key in datasets.keys():
         datasets[key]["x_dic"] = {"v_n": "theta_rms-geo_fit", "err": None, "deferr": None, "mod": {}}
         datasets[key]["y_dic"] = {"v_n": "theta_rms-geo",     "err": "ud", "deferr": 0.2,  "mod": {}}
         datasets[key]["mod_x"] = {}
         datasets[key]["facecolor"] = 'none'
-        datasets[key]["edgecolor"] = ourmd.datasets_colors[key]
-        datasets[key]["marker"] = ourmd.datasets_markers[key]
-        datasets[key]["label"] = ourmd.datasets_labels[key]
+        datasets[key]["edgecolor"] = md.datasets_colors[key]
+        datasets[key]["marker"] = md.datasets_markers[key]
+        datasets[key]["label"] = md.datasets_labels[key]
         datasets[key]["ms"] = 40
         datasets[key]["alpha"] = 0.8
         datasets[key]["plot_errorbar"] = False
 
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "theta_rms-geo", err_method="default", clean_nans=True)
+
     fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
     fit_dics["poly2"] = { # 17
-        "func": fit_funcs.poly_2_qLambda,
+        "func": FittingFunctions.poly_2_qLambda,
         "method": "delta",
-        "coeffs": np.array([-1.04e+02 , 1.77e+02 , 1.10e-01 , -6.04e+01 , -6.51e-02 , -2.47e-05]), # 8.4 & 0.483
+        "coeffs": np.array(coeffs), # 8.4 & 0.483
         # np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True
     }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 30+
         "method": "delta",
-        "func": fit_funcs.poly_2_Lambda, "coeffs": np.array([1.47e+01 , 3.37e-02 , -1.79e-05]), # 14.3 & 0.115
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), # 14.3 & 0.115
         # np.array([-1.221e-2, 0.014, 8.396e-7]),
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",

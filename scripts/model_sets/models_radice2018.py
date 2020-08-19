@@ -139,12 +139,18 @@ translation = {
     "C1":"C1",
     "C2":"C2",
     "Mb1":"Mb1",
-    "Mb2":"Mb2"
+    "Mb2":"Mb2",
+    "EOS": "EOS",
+    "nus": "nus",
+    "arxiv": "arxiv"
 }
 
 # Read the simulation list
 simulations = pandas.read_csv(Paths.to_radicetable)
 simulations = simulations.set_index("name")
+
+simulations["arxiv"] = "https://arxiv.org/abs/1809.11161"
+
 # simulations = simulations[simulations["publish"] == "yes"]
 simulations["label"] = [get_label(m.name) for _, m in simulations.iterrows()]
 simulations["C1"] = simulations["M1"]/simulations["R1"]
@@ -153,6 +159,13 @@ simulations["C2"] = simulations["M2"]/simulations["R2"]
 simulations["M"] = simulations["M1"] + simulations["M2"]
 simulations["C"] = simulations["M"]/(simulations["R1"] + simulations["R2"])
 simulations["Mchirp"] = ((simulations["M1"] * simulations["M2"]) ** (3./5.)) / (simulations["M"]**(1./5.))
+simulations["nus"] = "none"
+nus = []
+for name, model in simulations.iterrows():
+    if model.comment == "leakage": nus.append("leak")
+    else: nus.append("leakM0")
+simulations["nus"] = nus
+
 
 def get_mod_err(v_n, mod_dic, simulations, arr=np.zeros(0,)):
     if len(arr) == 0:
@@ -185,7 +198,11 @@ def get_mod_err(v_n, mod_dic, simulations, arr=np.zeros(0,)):
     return arr
 
 def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
-    if len(arr) == 0: arr = np.array(simulations[translation[v_n]])
+    if len(arr) == 0:
+        if v_n in ["EOS", "nus", "arxiv"]:
+            arr = list(simulations[translation[v_n]])
+        else:
+            arr = np.array(simulations[translation[v_n]], dtype=float)
     if "mult" in mod_dic.keys():
         print("mult, {}".format(mod_dic["mult"]))
         for entry in mod_dic["mult"]:
@@ -203,8 +220,6 @@ def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
                 another_array = np.array(simulations[translation[entry]])
                 arr = arr / another_array
     return arr
-
-
 
 def print_fancy_label(name):
     sim = simulations.loc[name]
@@ -259,8 +274,10 @@ with_m0 = (fiducial) & (simulations.comment == "M0")
 #     unique_simulations.drop(blacklisted)
     # unique_simulations = unique_simulations[unique_simulations.index!=blacklisted]
 
+
+
 if __name__ == '__main__':
-    print(simulations[["EOS", "q", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej"]])
+    print(simulations[["EOS", "q", "Lambda", "M1", "M2", "Mb1", "Mb2", "Mej", "nus"]])
 
     # check_initial_table_models()
 

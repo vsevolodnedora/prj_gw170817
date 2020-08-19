@@ -76,7 +76,7 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
                 index_arr.append(model)
             # index_arr.append(list(dic["models"].index))
     new_data_frame['models'] = index_arr
-    new_data_frame['dset_name'] = datasets_names
+    new_data_frame['bibkey'] = datasets_names
     print(len(index_arr))
     #
     for v_n in v_ns:
@@ -1835,7 +1835,7 @@ class Fit_Data:
 
         return y_pred1
 
-""" ========================| TASKS |====================== """
+""" ============<>============| TASKS |============<>========== """
 
 def task_print_stats(v_n = "Mej_tot-geo", v_ns = ["n", "mean", "std", "80", "90", "95", "chi2", "chi2dof"], error_method = "arr"):
 
@@ -3003,10 +3003,12 @@ def task_save_csv_of_all_datasets(save=True):
     datasets["Bauswein:2013yna"] =  {"models": bs.simulations, "data": bs, "label": r"Bauswein+2013", "fit": True}
 
     #
-    v_ns = ["EOS", "M1", "M2", "q", "C1", "C2", "Lambda", "Mej_tot-geo", "vel_inf_ave-geo", "Ye_ave-geo", "Mdisk3D"]
+    v_ns = ["EOS", "nus", "q", "M1", "M2", "Mb1", "Mb2", "C1", "C2", "Lambda",
+            "Mej_tot-geo", "vel_inf_ave-geo", "Ye_ave-geo", "theta_rms-geo", "Mdisk3D",
+            "arxiv"]
     #
     dataframe = create_combine_dataframe2(datasets, v_ns, [], {}, "fit", ifabsent=np.nan)
-    dataframe = dataframe[["dset_name"]+v_ns]
+    dataframe = dataframe[["bibkey"]+v_ns]
     if save: dataframe.to_csv("../datasets/summary_table.csv")
     print("Total models: {}".format(len(dataframe)))
     return dataframe
@@ -3019,7 +3021,7 @@ if __name__ == '__main__':
     ### Mej
     # task_print_stats(v_n = "Mej_tot-geo", error_method="default")
     # task_mej_chi2dofs()
-    task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q"], degree=2, error_method="default", fancy=False)
+    # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q"], degree=2, error_method="default", fancy=False)
     # task_table_linear_regresion(v_n_y="Mej_tot-geo", degree=2, error_method="default", fancy=fancy)
     # task_table_linear_regresion(v_n_y="Mej_tot-geo", v_n_x=["q", "Lambda"], degree=2, error_method="default", fancy=fancy)
     # task_fitfunc_print_table(v_n="Mej_tot-geo", error_method="default",
@@ -3061,4 +3063,4 @@ if __name__ == '__main__':
     #                          ff_name="Kruger+2020", cf_name="Kruger+2020", rs_name="Radice+2018", fancy=fancy)
 
     ''' --- '''
-    # task_save_csv_of_all_datasets()
+    task_save_csv_of_all_datasets()

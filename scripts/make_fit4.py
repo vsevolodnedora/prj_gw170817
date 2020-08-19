@@ -3,11 +3,15 @@ from __future__ import division
 
 import pandas as pd
 import numpy as np
+from collections import OrderedDict
 from scipy.optimize import curve_fit, least_squares
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 
 class FittingCoefficients:
+    """
+    Collection of fitting coefficients
+    """
 
     @staticmethod
     def default_poly22():
@@ -27,8 +31,12 @@ class FittingCoefficients:
 
     @staticmethod
     def mej_diet16_default():
-        # return(-.6, 4.2, -32., 5., 1.) # fails to converge
-        return(-0.657, 4.254, -32.61,  5.205, -0.773)
+        #return(-1.08554642e-02,  6.02898026e+00, -5.92689660e+00, -1.63266494e+01, 7.64071836e-01)
+        return(-.6, 4.2, -32., 5., 1.) # fails to converge
+        # return(-0.657, 4.254, -32.61,  5.205, -0.773)
+        # return (-0.7, 4.0, -132.0, 5.0, -2.)
+
+        # return (1., 1., 1., 1., 1.)
 
     @staticmethod
     def mej_krug19_default():
@@ -43,6 +51,9 @@ class FittingCoefficients:
         return (-8., 1., 1.)
 
 class FittingFunctions:
+    """
+    Collection of fitting functions
+    """
 
     @staticmethod
     def poly_2_qLambda(v, b0, b1, b2, b3, b4, b5):
@@ -71,16 +82,15 @@ class FittingFunctions:
 
     @staticmethod
     def mej_dietrich16(v, a, b, c, d, n):
-        return (a * (v.M2 / v.M1) ** (1.0 / 3.0) * (1. - 2 * v.C1) / (v.C1) + b * (v.M2 / v.M1) ** n +
+        return ((a * (v.M2 / v.M1) ** (1.0 / 3.0) * (1. - 2 * v.C1) / (v.C1) + b * (v.M2 / v.M1) ** n +
                 c * (1 - v.M1 / v.Mb1)) * v.Mb1 + \
                (a * (v.M1 / v.M2) ** (1.0 / 3.0) * (1. - 2 * v.C2) / (v.C2) + b * (v.M1 / v.M2) ** n +
-                c * (1 - v.M2 / v.Mb2)) * v.Mb2 + \
-               d
+                c * (1 - v.M2 / v.Mb2)) * v.Mb2 +  d)
 
     @staticmethod
     def mej_kruger19(v, a, b, c, n):
-        return ((a / v.C1) + b * ((v.M2 ** n) / (v.M1 ** n)) + c * v.C1) * v.M1 + \
-               ((a / v.C2) + b * ((v.M1 ** n) / (v.M2 ** n)) + c * v.C2) * v.M2
+        return 1.e3*(((a / v.C1) + b * ((v.M2 ** n) / (v.M1 ** n)) + c * v.C1) * v.M1 + \
+               ((a / v.C2) + b * ((v.M1 ** n) / (v.M2 ** n)) + c * v.C2) * v.M2)
 
     @staticmethod
     def mdisk_radice18(v, a, b, c, d):
@@ -95,7 +105,27 @@ class FittingFunctions:
 
         return arr
 
-class Fit:
+class Fit_Data:
+    """
+    Collection of methods to fit data from :
+
+    Parameters
+    -------
+        dataframe : pandas.dataframe
+            contains table of data to fit, to use for fitting, i.e., Mej, Vej, Mdisk, etc
+
+        fit_v_n : str
+            name of the variable that is to be fitted with a function i.e., "Mej"
+
+        err_method="default" : str
+            method for error estimation for a given data, e.g., 'defatult' assumes
+            errors from 'get_err()' for each varaible according to Radice+2018
+
+        clean_nans : bool
+            Remove nans from dataframe (rows of data, that is used for
+             fitting that contain at least one nan) If 'False' errors might occure
+             if data with nans inside is passed into fitting libraries
+    """
 
     def __init__(self, dataframe, fit_v_n, err_method="default", clean_nans=True):
 
@@ -138,6 +168,7 @@ class Fit:
         :param y_true:
         :param y_pred:
         :return: 0-1 value float
+        https://en.wikipedia.org/wiki/Coefficient_of_determination#:~:text=In%20statistics%2C%20the%20coefficient%20of,the%20independent%20variable(s).&text=In%20both%20such%20cases%2C%20the,ranges%20from%200%20to%201.
 
         The best possible score is 1.0 and it can be negative (because the model can be arbitrarily worse).
         A constant model that always predicts the expected value of y,
@@ -152,13 +183,52 @@ class Fit:
         y_pred = y_pred[np.isfinite(y_pred)]
 
         assert len(y_true) == len(y_pred)
-        u = np.sum((y_true - y_pred) ** 2.)
-        v = np.sum((y_true - np.mean(y_true)) ** 2.)
-        res = (1. - u / v)
+        ss_res = np.sum((y_true - y_pred) ** 2.)
+        ss_tot = np.sum((y_true - np.mean(y_true)) ** 2.)
+        res = (1. - ss_res / ss_tot)
 
         if res > 1.: return np.nan
 
         return res
+
+    def get_chi2dof_for_mean(self):
+
+        ydata = self.ds[self.fit_v_n]
+        yerrs = self.get_err(ydata)
+
+        mean = np.float(np.mean(ydata))
+        ypred = np.full(len(ydata), mean)
+
+        chi2 = self.get_chi2(ypred, ydata, yerrs)
+        chi2dof = self.get_ch2dof(chi2, len(ydata), 0)
+
+        # print(chi2dof)
+
+        return chi2, chi2dof
+
+    def get_stats(self, v_ns=("n", "mean", "std", "80", "90", "95", "chi2", "chi2dof")):
+        v_ns = list(v_ns)
+        res = []
+        for v_n in v_ns:
+            if v_n == "n":
+                res.append(len(self.ds[self.fit_v_n]))
+            if v_n == "mean":
+                res.append(np.mean(self.ds[self.fit_v_n]))
+            if v_n == "std":
+                res.append(np.std(self.ds[self.fit_v_n]))
+            if v_n == "90" or v_n == "80" or v_n == "95":
+                dic = self.ds[self.fit_v_n].describe(percentiles=[0.8, 0.9, 0.95])
+                val = float(dic[v_n+"%"])
+                res.append(val)
+            if v_n == "chi2":
+                chi2, chi2dof = self.get_chi2dof_for_mean()
+                res.append(chi2)
+            if v_n == "chi2dof":
+                chi2, chi2dof = self.get_chi2dof_for_mean()
+                res.append(chi2dof)
+
+        if len(res) == 1: return float(res[0])
+        else: return res
 
     def get_err(self, vals):
 
@@ -243,9 +313,9 @@ class Fit:
             raise NameError("Not implemented")
 
     def get_fitfunc(self, name):
-        if name == "poly22_qLam":
+        if name == "poly22_qLambda":
             return FittingFunctions.poly_2_qLambda
-        elif name == "poly2_Lam":
+        elif name == "poly2_Lambda":
             return FittingFunctions.poly_2_Lambda
 
         elif self.fit_v_n in ["Vej", "vel_inf_ave-geo"]:
@@ -266,7 +336,7 @@ class Fit:
             elif name == "krug19":
                 return FittingFunctions.mej_kruger19
             else:
-                raise NameError("Not implemented")
+                raise NameError("Not implemented: {}".format(name))
 
         elif self.fit_v_n in ["Mdisk", "Mdisk3D"]:
             if name == "rad18":
@@ -276,19 +346,6 @@ class Fit:
 
         else:
             raise NameError("Not implemneted")
-
-    def get_chi2dof_for_mean(self):
-
-        ydata = self.ds[self.fit_v_n]
-        yerrs = self.get_err(ydata)
-
-        mean = np.float(np.mean(ydata))
-        ypred = np.full(len(ydata), mean)
-
-        chi2 = self.get_chi2(ypred, ydata, yerrs)
-        chi2dof = self.get_ch2dof(chi2, len(ydata), 0)
-
-        print(chi2dof)
 
     def residuals(self, x, data, ffname):
 
@@ -376,32 +433,611 @@ class Fit:
         yerrs = self.get_err(ydata)
 
         # Note: Dietrich and Kruger fitformulas are for 1e3 Msun, so we adapt
-        if self.fit_v_n in ["Mej", "Mej_tot-geo"]:
-            ydata *= 1e3
-            yerrs *= 1e3
+        # if self.fit_v_n in ["Mej", "Mej_tot-geo"]:
+        #     ydata *= 1e3
+        #     yerrs *= 1e3
 
-        pred_coeffs, pcov = curve_fit(f=fitfunc, xdata=fitdata, ydata=ydata, p0=init_coeffs, sigma=yerrs, maxfev=5000)
+        pred_coeffs, pcov = curve_fit(f=fitfunc, xdata=fitdata, ydata=ydata, p0=init_coeffs, sigma=yerrs, maxfev=10000)
         perr = np.sqrt(np.diag(pcov))
         ypred = fitfunc(fitdata, *pred_coeffs)
 
-        if self.fit_v_n in ["Mej", "Mej_tot-geo"]:
-            ydata *= 1e-3
-            yerrs *= 1e-3
-            ypred *= 1e-3
+        # if self.fit_v_n in ["Mej", "Mej_tot-geo"]:
+        #     ydata *= 1e-3
+        #     yerrs *= 1e-3
+        #     ypred *= 1e-3
 
         res = ypred - ydata # residuals
         chi2 = self.get_chi2(ypred, ydata, yerrs)
         chi2dof = self.get_ch2dof(chi2, len(ydata), len(pred_coeffs))
 
-        print(chi2dof)
+        rs = self.get_score(ydata, ypred)
+        # print(chi2dof)
 
         # chi2 = self.chi2dof(data, bfit, len(popt), sigma)
-        return pred_coeffs, pcov, perr, res, chi2dof, ypred
+        # return pred_coeffs, pcov, perr, res, chi2dof, ypred
+        return pred_coeffs, chi2, chi2dof, rs
+
+class Fit_Tex_Tables:
+
+    def __init__(self, dataframe, fit_v_n, err_method="default", clean_nans=True, deliminator='&'):
+
+        # print(dataframe[np.isnan(dataframe[fit_v_n])])
+        # exit(1)
+
+        self.df = dataframe[~np.isnan(dataframe[fit_v_n])] # clean datasets for which there is no data
+        self.v_n = fit_v_n
+        self.err_m = err_method
+        self.clean = clean_nans
+        self.dlm = deliminator
+        # my dataset
+        self.dsets_order = [
+            # leakage + M0/M1
+            "Reference set",
+            "Vincent:2019kor",
+            "Radice:2018pdn[M0]",
+            "Sekiguchi:2016bjd",
+            "Sekiguchi:2015dma",
+            # leakage
+            "Radice:2018pdn",
+            "Lehner:2016lxy",
+            # None
+            "Kiuchi:2019lls",
+            "Dietrich:2016lyp",
+            "Dietrich:2015iva",
+            "Hotokezaka:2012ze",
+            "Bauswein:2013yna",
+        ]
+        # sebastiano Dataset
+        # self.dsets_order = [
+        #     # Leakage + M0 / M1
+        #     "Nedora:2020",
+        #     "Bernuzzi:2020txg",
+        #     "Vincent:2019kor",
+        #     "Sekiguchi:2016bjd",
+        #     "Sekiguchi:2015dma",
+        #     # Leakage
+        #     "Radice:2018pdn",
+        #     "Lehner:2016lxy",
+        #     # None
+        #     "Kiuchi:2019lls",
+        #     "Dietrich:2016hky",
+        #     "Dietrich:2015iva",
+        #     "Hotokezaka:2012ze",
+        #     "Bauswein:2013yna"
+        # ]
+        #
+
+    @staticmethod
+    def __get_str_val(val, fmt, fancy=False):
+        if fmt != None and fmt != "":
+            _val = str(("%{}".format(fmt) % float(val)))
+        else:
+            if str(val) == "nan":
+                _val = " "
+                # exit(1)
+            else:
+                _val = val
+
+        if fancy:
+            if _val.__contains__("e-") or _val.__contains__("e+"):
+                # power = str(_val).split("e")[-1]
+                # power = str(power[1:]) # remove +/-
+                # if power[0] == "0": power = str(power[1:])
+                _val = "$" + str(_val).replace("e", r'\times10^{') + "}$"
+
+        # if fancy:
+        #     if _val.__contains__("e-"):
+        #         _val = "$"+str(_val).replace("e-", r'\times10^{-')+"}$"
+        #     elif _val.__contains__("e+"):
+        #         _val = "$" + str(_val).replace("e+", r'\times10^{') + "}$"
+        #     else:
+        #         pass
+
+        return _val
+
+    def get_dataframe_subset(self, key, vals):
+        """
+            select a sub-dataframe with given values for a certain key
+        """
+        mask = np.zeros(len(self.df["q"]), dtype=bool)
+        for val in vals:
+            mask = mask | (self.df[key] == val)
+        sel_df = self.df[mask]
+        assert len(sel_df) > 0
+        return sel_df
+
+    def print_stats(self, v_ns=("n", "mean", "std", "80", "90", "95", "chi2", "chi2dof")):
+        v_ns = list(v_ns)
+        sel_dsets = []
+        row_labels, vals = [], []
+        for i in range(len(self.dsets_order)):
+            if self.dsets_order[i] in list(self.df["bibkey"]):
+                sel_dsets.append(self.dsets_order[i])
+                dataframe = self.get_dataframe_subset("bibkey", sel_dsets)
+                print("\t Adding {} : {}".format(sel_dsets[-1],len(dataframe["bibkey"])))
+                #
+                df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
+                i_vals = df.get_stats(v_ns)
+                #
+                row_labels.append(sel_dsets[-1])
+                vals.append(i_vals)
+                #
+            else:
+                print("\t Neglecting {} ".format(sel_dsets[-1]))
+
+        print("Data is collected")
+
+        ''' --- --- --- printing a table --- --- --- '''
+        pre_names = ["datasets"]
+        v_labels = ["Datasets", r"$N$", r"$\mu$", r"$\sigma$", r"$80\%$", r"$90\%$", r"$95\%$", "$\chi^2$",
+                    r"$\chi^2 _{\text{dof}}$"]
+        coeff_fmt = ".3f"
+        coeff_small_fmt = ".3e"
+
+        cells = "c" * (len(pre_names) + len(v_ns))
+        print("\n")
+        print(r"\begin{table*}")
+        print(r"\caption{I am your little table}")
+        print(r"\begin{tabular}{l|" + cells + "}")
+
+        line = ''
+        for name, label in zip(pre_names + v_ns, v_labels):
+            if name != v_ns[-1]: line = line + label + ' & '
+            else: line = line + label + r' \\'
+        # line[-2] = r"\\"
+        print(line)
+
+        for row_name, coeff in zip(row_labels, vals):
+
+            # row_names = row_labels[i]
+            #row_name = row_names[-1]
+
+            if row_name == row_labels[0]:
+                pass
+            else:
+                row_name = "\& " + "\cite{" + row_name + "} "
+
+            row = row_name + " & "
+            for i_coeff in coeff:
+                if i_coeff < 1.e-2:  ifmt = coeff_small_fmt
+                else: ifmt = coeff_fmt
+                val = str(("%{}".format(ifmt) % float(i_coeff)))
+                if i_coeff != coeff[-1]:
+                    row = row + val + " & "
+                else:
+                    row = row + val + r" \\ "
+            print(row)
+            # row[-2] = r" \\ "
+        print(r"\end{tabular}")
+        print(r"\end{table*}")
+
+    def print_polyfit_table(self, ff_name="poly22_qLambda", cf_name="default", v_n_x=("q","Lambda"), fancy=False):
+
+        sel_dsets = []
+        row_labels = []
+        all_coeffs = []
+        all_pars = []
+        for i in range(len(self.dsets_order)):
+            if self.dsets_order[i] in list(self.df["bibkey"]):
+                sel_dsets.append(self.dsets_order[i])
+                dataframe = self.get_dataframe_subset("bibkey", sel_dsets)
+                print("\t Adding {} : {}".format(sel_dsets[-1],len(dataframe["bibkey"])))
+                #
+                df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
+                i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name)
+                #
+                row_labels.append(sel_dsets[-1])
+                all_coeffs.append(i_coeffs)
+                all_pars.append([i_chi2dof, i_rs])  # i_chi
+                #
+            else:
+                print("\t Neglecting {} ".format(sel_dsets[-1]))
+        #
+        print("data is collected")
+
+        ''' --- --- --- table --- --- --- '''
+
+        dataset_label = "Datasets"
+        coefs_labels = [r"$b_0$", r"$b_1$", r"$b_2$", r"$b_3$", r"$b_4$", r"$b_5$"]
+        coefs_fmt = [".2e", ".2e", ".2e", ".2e", ".2e", ".2e"]
+        other_labels = [r"$\chi^2_{\nu}$", r"$R^2$"]
+        other_fmt = [".1f", ".3f"]
+
+        label_line = dataset_label + ' '
+        for name in coefs_labels[:len(all_coeffs[0])] + other_labels:
+            if name != other_labels[-1]:
+                label_line = label_line + name + ' & '
+            else:
+                label_line = label_line + name + r' \\'
+
+        lines = []
+
+        for i in range(len(row_labels)):
+            # fiest element -- name of the dataset
+            row_name = row_labels[i]
+            #row_name = row_names[-1]
+
+            if i == 0:
+                pass
+                #row_name = row_names[-1]
+            else:
+                row_name = "\& " + "\cite{" + row_name + "} "
+
+            row = row_name + " & "
+
+            # add coefficients
+            i_coeffs = all_coeffs[i]
+            for coeff, fmt in zip(i_coeffs, coefs_fmt[:len(i_coeffs)]):
+                val = self.__get_str_val(coeff, fmt, fancy)
+                if coeff != i_coeffs[-1]:
+                    row = row + val + " {} ".format(self.dlm)
+                else:
+                    if len(other_labels) == 0:
+                        row = row + val + r" \\ "
+                    else:
+                        row = row + val + " {} ".format(self.dlm)
+
+            # add other values
+            i_pars = all_pars[i]
+            assert len(i_pars) == len(other_fmt)
+            for par, fmt in zip(i_pars, other_fmt):
+                val = self.__get_str_val(par, fmt, fancy)
+                if par == i_pars[-1]:
+                    row = row + val + r" \\ "
+                else:
+                    row = row + val + r" {} ".format(self.dlm)
+
+            # done
+            lines.append(row)
+
+        ''' --- printing --- '''
+
+        cells = "c" * (1 + len(coefs_labels) + len(other_labels))
+        #
+        print("\n")
+        print(r"\begin{table}")
+        print(r"\caption{I am your little table}")
+        print(r"\begin{tabular}{l|" + cells + "}")
+
+        print(label_line)
+
+        for line in lines:
+            print(line)
+
+        print(r"\end{tabular}")
+        print(r"\end{table}")
+
+    def print_fitfunc_table(self,  ff_name="diet16", cf_name="default", fancy=False):
+
+        sel_dsets = []
+        row_labels = []
+        all_coeffs = []
+        all_pars = []
+        for i in range(len(self.dsets_order)):
+            if self.dsets_order[i] in list(self.df["bibkey"]):
+                sel_dsets.append(self.dsets_order[i])
+                dataframe = self.get_dataframe_subset("bibkey", sel_dsets)
+                print("\t Adding {} : {}".format(sel_dsets[-1],len(dataframe["bibkey"])))
+                #
+                df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
+                i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name)
+                #
+                row_labels.append(sel_dsets[-1])
+                all_coeffs.append(i_coeffs)
+                all_pars.append([i_chi2dof, i_rs])  # i_chi
+                #
+            else:
+                print("\t Neglecting {} ".format(sel_dsets[-1]))
+        #
+        print("data is collected")
+
+        ''' --- table --- '''
+        dataset_label = "Datasets"
+        coefs_labels = [r"$\alpha$", r"$\beta$", r"$\delta$", r"$\gamma$", r"$\eta$", r"$\phi$"]
+        # coefs_fmt = [".2e", ".2e", ".2e", ".2e", ".2e", ".2e"]
+        coefs_fmt = [".3e", ".3e", ".3e", ".3e", ".3e", ".3e"]
+        other_labels = [r"$\chi^2_{\nu}$", r"$R^2$"]
+        other_fmt = [".1f", ".3f"]
+
+        # label line
+        label_line = dataset_label + ' '
+        for name in coefs_labels[:len(all_coeffs[0])] + other_labels:
+            if name == other_labels[-1]:
+                label_line = label_line + name + r' \\ '
+            else:
+                label_line = label_line + name + r' {}'.format(self.dlm)
+
+        lines = []
+        # collect table lines
+        for i in range(len(row_labels)):
+            # fiest element -- name of the dataset
+            row_name = row_labels[i]
+            #row_name = row_names[-1]
+
+            if i == 0:
+                pass
+                #row_name = row_names[-1]
+            else:
+                row_name = "\& " + "\cite{" + row_name + "} "
+
+            row = row_name + " {} ".format(self.dlm)
+
+            # add coefficients
+            i_coeffs = all_coeffs[i]
+            for coeff, fmt in zip(i_coeffs, coefs_fmt[:len(i_coeffs)]):
+                val = self.__get_str_val(coeff, fmt, fancy)
+                if coeff != i_coeffs[-1]:
+                    row = row + val + " {} ".format(self.dlm)
+                else:
+                    if len(other_labels) == 0:
+                        row = row + val + r" \\ "
+                    else:
+                        row = row + val + " {} ".format(self.dlm)
+
+            # add other values
+            i_pars = all_pars[i]
+            assert len(i_pars) == len(other_fmt)
+            for par, fmt in zip(i_pars, other_fmt):
+                val = self.__get_str_val(par, fmt, fancy)
+                if par == i_pars[-1]:
+                    row = row + val + r" \\ "
+                else:
+                    row = row + val + r" {} ".format(self.dlm)
+
+            # done
+            lines.append(row)
+
+        ''' --- printing --- '''
+
+        cells = "c" * (1 + len(coefs_labels) + len(other_labels))
+        #
+        print("\n")
+        print(r"\begin{table}")
+        print(r"\caption{I am your little table}")
+        print(r"\begin{tabular}{l|" + cells + "}")
+
+        print(label_line)
+
+        for line in lines:
+            print(line)
+
+        print(r"\end{tabular}")
+        print(r"\end{table}")
+
+    # def print_mej_chi2dofs(self):
+    #
+    #     v_ns = ["datasets", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"]
+    #
+    #     row_labels, all_vals = [], []
+    #     sel_dsets = []
+    #     for i in range(len(self.dsets_order)):
+    #         if self.dsets_order[i] in list(self.df["bibkey"]):
+    #             sel_dsets.append(self.dsets_order[i])
+    #             dataframe = self.get_dataframe_subset("bibkey", sel_dsets)
+    #             print("\t Adding {} : {}".format(sel_dsets[-1],len(dataframe["bibkey"])))
+    #             #
+    #             df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
+    #             row_labels.append(sel_dsets[-1])
+    #             # i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name)
+    #             #
+    #             vals = []
+    #             for v_n in v_ns:
+    #                 if v_n.__contains__("mean-"):
+    #                     if v_n.__contains__("chi2dof"):
+    #                         _, chi2dof = df.get_chi2dof_for_mean()
+    #                         vals.append(chi2dof)
+    #
+    #                 if v_n.__contains__("diet16-"):
+    #                     print("\tTask: {}".format(v_n))
+    #                     i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="diet16", cf_name="diet16")
+    #                     # print(chi2dof); exit(1)
+    #                     if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+    #
+    #                 if v_n.__contains__("krug19-"):
+    #                     print("\tTask: {}".format(v_n))
+    #                     i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="krug19", cf_name="krug19")
+    #                     if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+    #
+    #                 if v_n.__contains__("poly2-"):
+    #                     print("\tTask: {}".format(v_n))
+    #                     coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    #                     if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+    #
+    #                 if v_n.__contains__("poly22-"):
+    #                     print("\tTask: {}".format(v_n))
+    #                     coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+    #                     if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+    #             all_vals.append(vals)
+    #             #
+    #         else:
+    #             print("\t Neglecting {} ".format(sel_dsets[-1]))
+    #
+    #     print("\t---<DataCollected>---")
+    #
+    #     ''' --- --- --- table --- --- --- '''
+    #
+    #     fmts = [".1f", ".2f", ".2f", ".2f", ".2f"]
+    #     v_ns_labels = ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
+    #                    r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"]
+    #
+    #     cells = "c" * len(v_ns_labels)
+    #     print("\n")
+    #     print(r"\begin{table*}")
+    #     print(r"\caption{I am your little table}")
+    #     print(r"\begin{tabular}{l|" + cells + "}")
+    #     line = ''
+    #     # HEADER
+    #     for name, label in zip(v_ns, v_ns_labels):
+    #         if name != v_ns[-1]:
+    #             line = line + label + ' {} '.format(self.dlm)
+    #         else:
+    #             line = line + label + r' \\'
+    #     print(line)
+    #     # TABLE
+    #
+    #     #
+    #     for i in range(len(row_labels)):
+    #         # DATA SET NAME
+    #         row_name = row_labels[i]
+    #
+    #         #row_name = row_names[-1]
+    #
+    #         if row_name == row_labels[0]:
+    #             # row_name = row_names[-1]
+    #             pass
+    #         else:
+    #             row_name = "\& " + "\cite{" + row_name + "} "
+    #
+    #         # DATA ITSELF
+    #         vals = all_vals[i]
+    #         row = row_name + " {} ".format(self.dlm)
+    #         assert len(vals) == len(fmts)
+    #         for val, fmt in zip(vals, fmts):
+    #             if val != vals[-1]:
+    #                 val = self.__get_str_val(val, fmt)
+    #                 # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
+    #                 # else: val = __get_str_val()#str(("%{}".format(coeff_fmt) % float(val)))
+    #                 row = row + val + " {} ".format(self.dlm)
+    #             else:
+    #                 val = self.__get_str_val(val, fmt)
+    #                 # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
+    #                 # else: val = str(("%{}".format(coeff_fmt) % float(val)))
+    #                 row = row + val + r" \\ "
+    #
+    #         print(row)
+    #         # row[-2] = r" \\ "
+    #
+    #     print(r"\end{tabular}")
+    #     print(r"\end{table}")
+
+    def print_chi2dofs(self, v_ns, v_ns_labels, fmts):
+
+        #v_ns = ["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"]
+
+        row_labels, all_vals = [], []
+        sel_dsets = []
+        for i in range(len(self.dsets_order)):
+            if self.dsets_order[i] in list(self.df["bibkey"]):
+                sel_dsets.append(self.dsets_order[i])
+                dataframe = self.get_dataframe_subset("bibkey", sel_dsets)
+                print("\t Adding {} : {}".format(sel_dsets[-1], len(dataframe["bibkey"])))
+                #
+                df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
+                row_labels.append(sel_dsets[-1])
+                # i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name)
+                #
+                vals = []
+                for v_n in v_ns:
+                    if v_n.__contains__("mean-"):
+                        if v_n.__contains__("chi2dof"):
+                            _, chi2dof = df.get_chi2dof_for_mean()
+                            vals.append(chi2dof)
+
+                    if v_n.__contains__("our-"):
+                        print("\tTask: {}".format(v_n))
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="our", cf_name="our")
+                        # print(chi2dof); exit(1)
+                        if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+
+                    if v_n.__contains__("diet16-"):
+                        print("\tTask: {}".format(v_n))
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="diet16", cf_name="diet16")
+                        # print(chi2dof); exit(1)
+                        if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+
+                    if v_n.__contains__("rad18-"):
+                        print("\tTask: {}".format(v_n))
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="rad18", cf_name="rad18")
+                        # print(chi2dof); exit(1)
+                        if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+
+                    if v_n.__contains__("krug19-"):
+                        print("\tTask: {}".format(v_n))
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="krug19", cf_name="krug19")
+                        if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+
+                    if v_n.__contains__("poly2-"):
+                        print("\tTask: {}".format(v_n))
+                        coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+                        if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+
+                    if v_n.__contains__("poly22-"):
+                        print("\tTask: {}".format(v_n))
+                        coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+                        if v_n.__contains__("chi2dof"): vals.append(chi2dof)
+                all_vals.append(vals)
+                #
+            else:
+                print("\t Neglecting {} ".format(sel_dsets[-1]))
+
+        print("\t---<DataCollected>---")
+
+        ''' --- --- --- table --- --- --- '''
+
+        #fmts = [ ".2f", ".2f", ".2f", ".2f"]
+        #v_ns_labels = ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_vej}", r"$P_2(\tilde{\Lambda})$",
+        #               r"$P_2(q,\tilde{\Lambda})$"]
+
+        cells = "c" * len(v_ns_labels)
+        print("\n")
+        print(r"\begin{table*}")
+        print(r"\caption{I am your little table}")
+        print(r"\begin{tabular}{l|" + cells + "}")
+        line = ''
+        # HEADER
+        for name, label in zip(v_ns, v_ns_labels):
+            if name != v_ns[-1]:
+                line = line + label + ' & '
+            else:
+                line = line + label + r' \\'
+        print(line)
+        # TABLE
+
+        #
+        for i in range(len(row_labels)):
+            # DATA SET NAME
+            row_name = row_labels[i]
+
+            # row_name = row_names[-1]
+
+            if row_name == row_labels[0]:
+                # row_name = row_names[-1]
+                pass
+            else:
+                row_name = "\& " + "\cite{" + row_name + "} "
+
+            # DATA ITSELF
+            vals = all_vals[i]
+            row = row_name + " {} ".format(self.dlm)
+            assert len(vals) == len(fmts)
+            for val, fmt in zip(vals, fmts):
+                if val != vals[-1]:
+                    val = self.__get_str_val(val, fmt)
+                    # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
+                    # else: val = __get_str_val()#str(("%{}".format(coeff_fmt) % float(val)))
+                    row = row + val + " {} ".format(self.dlm)
+                else:
+                    val = self.__get_str_val(val, fmt)
+                    # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
+                    # else: val = str(("%{}".format(coeff_fmt) % float(val)))
+                    row = row + val + r" \\ "
+
+            print(row)
+            # row[-2] = r" \\ "
+
+        print(r"\end{tabular}")
+        print(r"\end{table}")
+
+
+
 
 if __name__ == "__main__":
     dfname2 = "/home/vsevolod/GIT/bitbucket/bns_gw170817/data/dynej_disc_literature/LiteratureData.csv"
     allmodels = pd.read_csv(dfname2)
     print(allmodels.keys())
+    print(list(set(allmodels["bibkey"])))
+    # print(allmodels.loc["bibkey","Nedora:2020"])
+
     allmodels["Lambda"] = allmodels["tLam"]
     allmodels["M1"] = allmodels["MA"]
     allmodels["M2"] = allmodels["MB"]
@@ -414,26 +1050,104 @@ if __name__ == "__main__":
     allmodels["Mdisk3D"] = allmodels["Mdisk1e-2"] * 1.e-2 # Msun
     allmodels["Mej_tot-geo"] = allmodels["Mej1e-2"] * 1.e-2 # Msun
 
-    o_fit = Fit(allmodels, fit_v_n="vel_inf_ave-geo", err_method="default")
-    o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-    o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    dfname2 = "/home/vsevolod/GIT/GitHub/prj_gw170817/datasets/summary_table.csv"
+    allmodels = pd.read_csv(dfname2)
+    print(allmodels.keys())
+    print(list(set(allmodels["bibkey"])))
 
-    o_fit = Fit(allmodels, fit_v_n="Ye_ave-geo", err_method="default")
-    o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-    o_fit.fit_curve(ff_name="our", cf_name="our")
+    # with_lambda = (~np.isnan(allmodels["Lambda"])) & \
+    #               (~np.isnan(allmodels["M1"])) & \
+    #               (~np.isnan(allmodels["M2"])) & \
+    #               (~np.isnan(allmodels["Mb1"])) & \
+    #               (~np.isnan(allmodels["Mb2"])) & \
+    #               (~np.isnan(allmodels["C1"])) & \
+    #               (~np.isnan(allmodels["C2"]))
+    # allmodels = allmodels[with_lambda]
+    # print(len(allmodels[allmodels["bibkey"] == "Bauswein:2013yna"]))
+    # print(np.mean(allmodels[allmodels["bibkey"] == "Bauswein:2013yna"]["Mej_tot-geo"]))
+    # print(len(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]))
+    # print(np.mean(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]["Mej_tot-geo"]))
+    ''' ejecta mass'''
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator=',')
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16")
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
+    #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".1f", ".2f", ".2f", ".2f", ".2f"])
 
-    o_fit = Fit(allmodels, fit_v_n="Mej_tot-geo", err_method="default", clean_nans=True)
-    o_fit.get_chi2dof_for_mean()
-    o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
-    o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-    o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
-    o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+    ''' ejecta velocity '''
+    # o_tbl = Fit_Tex_Tables(allmodels, "vel_inf_ave-geo", "default", True, deliminator=",")
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}",
+    #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f", ".2f", ".2f", ".2f"])
 
-    o_fit = Fit(allmodels, fit_v_n="Mdisk3D", err_method="default", clean_nans=True)
-    o_fit.get_chi2dof_for_mean()
-    o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
-    o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-    o_fit.fit_poly(ff_name="poly22_qLam")
-    o_fit.fit_curve(ff_name="rad18", cf_name="rad18")
-    o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
-    o_fit.git_func(ff_name="krug19", cf_name="krug19")
+    ''' ejecta electron fraction '''
+    o_tbl = Fit_Tex_Tables(allmodels, "Ye_ave-geo", "default", True, deliminator=",")
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
+    o_tbl.print_fitfunc_table(ff_name="our", cf_name="our")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "our-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Yeej}", r"$P_2(\tilde{\Lambda})$",
+    #                       r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f", ".2f", ".2f", ".2f"])
+    #
+    # print(list(set(allmodels["bibkey"])))
+
+    ''' ejecta rms angle '''
+    # o_tbl = Fit_Tex_Tables(allmodels, "theta_rms-geo", "default", True)
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLam", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f",  ".2f", ".2f"])
+
+    ''' disk mass '''
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True)
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLam", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "rad18-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}",
+    #                       r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f", ".2f", ".2f", ".2f", ".2f"])
+    #
+    # print(list(set(allmodels["bibkey"])))
+
+
+
+    # o_fit = Fit_Data(allmodels, fit_v_n="vel_inf_ave-geo", err_method="default")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    #
+    # o_fit = Fit_Data(allmodels, fit_v_n="Ye_ave-geo", err_method="default")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_curve(ff_name="our", cf_name="our")
+
+    # o_fit = Fit_Data(allmodels, fit_v_n="Mej_tot-geo", err_method="default", clean_nans=True)
+    # o_fit.get_chi2dof_for_mean()
+    # o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    # o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+    #
+    # o_fit = Fit_Data(allmodels, fit_v_n="Mdisk3D", err_method="default", clean_nans=True)
+    # o_fit.get_chi2dof_for_mean()
+    # o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_poly(ff_name="poly22_qLam")
+    # o_fit.fit_curve(ff_name="rad18", cf_name="rad18")
+    # o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+    # o_fit.git_func(ff_name="krug19", cf_name="krug19")

@@ -48,6 +48,9 @@ params = Struct()
 simulations = pandas.read_csv(Paths.to_csv_table)
 simulations = simulations.set_index("model")
 
+simulations["arxiv"] = "https://arxiv.org/abs/1903.01466"
+simulations["nus"] = "none"
+
 translation = {
     "Lambda":"Lambda",
     "Mdisk3Dmax":"Mdisk",
@@ -62,7 +65,10 @@ translation = {
     "C1": "C1",
     "C2": "C2",
     "Mb1": "Mb1",
-    "Mb2": "Mb2"
+    "Mb2": "Mb2",
+    "EOS": "EOS",
+    "nus": "nus",
+    "arxiv": "arxiv"
     # "vel_inf_ave-geo":"None"  # does not have vel_inf
 }
 
@@ -106,7 +112,11 @@ def get_mod_err(v_n, mod_dic, simulations, arr=np.zeros(0,)):
     return arr
 
 def get_mod_data(v_n, mod_dic, simulations, arr=np.zeros(0,)):
-    if len(arr) == 0: arr = np.array(simulations[translation[v_n]])
+    if len(arr) == 0:
+        if v_n in ["EOS", "nus", "arxiv"]:
+            arr = list(simulations[translation[v_n]])
+        else:
+            arr = np.array(simulations[translation[v_n]], dtype=float)
     if "mult" in mod_dic.keys():
         print("mult, {}".format(mod_dic["mult"]))
         for entry in mod_dic["mult"]:
