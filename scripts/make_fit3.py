@@ -95,7 +95,7 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
                     value_arr = np.append(value_arr, np.full(shape, ifabsent))
                 else:
 
-                    print("appending dataset: {}".format(name))
+                    print("appending dataset: {} ({} models)".format(name, len(models)))
                     x = d_cl.get_mod_data(v_n, special_instructions, models)
                     value_arr = np.append(value_arr, x)
                 #
@@ -2990,8 +2990,8 @@ def task_save_csv_of_all_datasets(save=True):
     datasets = OrderedDict()
     datasets['Reference set'] = {"models": md.groups, "data": md, "fit": True}
     datasets["Vincent:2019kor"] = {"models": vi.simulations[vi.with_mj], "data": vi, "fit": True}
-    datasets["Radice:2018pdn[M0]"] = {"models": rd.simulations[rd.with_m0], "data": rd, "fit": True}
-    datasets["Radice:2018pdn"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
+    datasets["Radice:2018pdn"] = {"models": rd.simulations[(rd.with_m0)|(rd.fiducial)], "data": rd, "fit": True}
+    # datasets["Radice:2018pdn"] = {"models": rd.simulations[rd.fiducial], "data": rd, "fit": True}
     datasets["Lehner:2016lxy"] = {"models": lh.simulations, "data": lh, "fit": True}
     datasets["Kiuchi:2019lls"] = {"models": ki.simulations[ki.mask_for_with_tov_data], "data": ki, "fit": True}
     datasets["Dietrich:2016lyp"] = {"models": di16.simulations[di16.mask_for_with_sr], "data": di16, "fit": True}

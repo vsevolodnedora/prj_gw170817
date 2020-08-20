@@ -118,12 +118,14 @@ def plot_datasets_scatter2(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets):
         elif label != "#EOS":
             if color == None:
                 if "labelmarkercolor" in model_dic.keys():
-                    ax[0].scatter([-100], [-100], marker=marker, s=ms,
+                    ax[0].scatter([-100,-100], [-100,-100], marker=marker, s=ms,
                                   color=model_dic["labelmarkercolor"], alpha=1., edgecolor=None,label=label)
                 else:
-                    ax[0].scatter([-100], [-100], marker=marker, s=ms, color=color, alpha=1., edgecolor=None, label=label)
+                    ax[0].scatter([-100,-100], [-100,-100], marker=marker, s=ms,
+                                  color=color, alpha=1., edgecolor=None, label=label)
             else:
-                ax[0].scatter([-100], [-100], marker=marker, s=ms, edgecolor=color, facecolor='none', alpha=1., label=label)
+                ax[0].scatter([-100,-100], [-100,-100], marker=marker, s=ms,
+                              edgecolor=color, facecolor='none', alpha=1., label=label)
         else:
             for ieos in ourmd.eos_dic_color.keys():
                 icolor = ourmd.eos_dic_color[ieos]
@@ -439,7 +441,7 @@ def plot_datasets_scatter2(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets):
         han, lab = ax[0].get_legend_handles_labels()
         ax[0].add_artist(ax[0].legend(han[:-1 * n], lab[:-1 * n], **plot_dic["legend"]))
         ax[0].add_artist(ax[0].legend(han[len(han) - n:], lab[len(lab) - n:], **dic_))
-    elif  "legend" in plot_dic.keys() and len(plot_dic["legend"].keys()) > 0:
+    elif "legend" in plot_dic.keys() and len(plot_dic["legend"].keys()) > 0:
         ax[0].legend(**plot_dic["legend"])
     #
     if 'plot_cbar' in plot_dic.keys() and plot_dic['plot_cbar']:

@@ -13,7 +13,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 # plt.rc('text', usetex=True)
 # plt.rc('font', family='serif')
-
+from matplotlib import rc
+rc('text', usetex=True)
+rc('font', family='serif')
 from collections import OrderedDict
 
 from matplotlib.colors import LogNorm, Normalize
@@ -21,7 +23,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 from model_sets import models as ourmd
 
-__outplotdir__ = "../figs/all3/plot_dynej_summary2/"
+__outplotdir__ = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/residuals/"
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
 
@@ -413,8 +415,8 @@ def task_plot_mdisk_fits_only():
 
     subplot_dics = OrderedDict()
     subplot_dics["poly2"] = {
-        "xmin": -0.02, "xmax": .35, "xscale": "linear",
-        "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+        "xmin": -0.02, "xmax": .27, "xscale": "linear",
+        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -425,15 +427,11 @@ def task_plot_mdisk_fits_only():
         "text": {'x': 0.85, 'y': 0.85, 's':r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
                  'horizontalalignment': 'center'},
         "plot_zero": True,
-        "labels": True,
-        "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
-                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 2, "fontsize": 11,
-                   "framealpha": 0., "borderaxespad": 0., "frameon": False}
+        "labels": True
     }
     subplot_dics["Eq.15"] = {
-        "xmin": -0.02, "xmax": .35, "xscale": "linear",
-        "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+        "xmin": -0.02, "xmax": .27, "xscale": "linear",
+        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -447,8 +445,8 @@ def task_plot_mdisk_fits_only():
         "labels": True
     }
     subplot_dics["Eq.14"] = {
-        "xmin": -0.02, "xmax": .35, "xscale": "linear",
-        "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+        "xmin": -0.02, "xmax": .27, "xscale": "linear",
+        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -462,8 +460,8 @@ def task_plot_mdisk_fits_only():
         "labels": True
     }
     subplot_dics["poly1"] = {
-        "xmin": -0.02, "xmax": .35, "xscale": "linear",
-        "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+        "xmin": -0.02, "xmax": .27, "xscale": "linear",
+        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -474,7 +472,11 @@ def task_plot_mdisk_fits_only():
         "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
                  'horizontalalignment': 'center'},
         "plot_zero": True,
-        "labels": True
+        "labels": True,
+        "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 2, "fontsize": 11,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False}
     }
 
     # subplot_dics = {
@@ -552,7 +554,7 @@ def task_plot_mdisk_fits_only():
         "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
         "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "disk_mass_fits_cl_all.png",
+        "figname": __outplotdir__ + "residuals_disk_mass.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
         # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
@@ -613,8 +615,8 @@ def task_plot_mej_fits_only():
 
 
     for key in datasets.keys():
-        datasets[key]["x_dic"] = {"v_n": "Mej_tot-geo_fit", "err": None, "deferr": None, "mod":{"mult": [1e3]}}#, "mod": {"mult": [1e3]}}
-        datasets[key]["y_dic"] = {"v_n": "Mej_tot-geo",     "err": "ud", "deferr": 0.2, "mod":{"mult": [1e3]}}#,  "mod": {"mult": [1e3]}}
+        datasets[key]["x_dic"] = {"v_n": "Mej_tot-geo_fit", "err": None, "deferr": None, "mod":{"mult": [1e3]}}#{"mult": [1e3]}}#, "mod": {"mult": [1e3]}}
+        datasets[key]["y_dic"] = {"v_n": "Mej_tot-geo",     "err": "ud", "deferr": 0.2, "mod":{"mult": [1e3]}}#}{"mult": [1e3]}}#,  "mod": {"mult": [1e3]}}
         datasets[key]["mod_x"] = {}
         datasets[key]["facecolor"] = 'none'
         datasets[key]["plot_errorbar"] = False
@@ -624,17 +626,6 @@ def task_plot_mej_fits_only():
         datasets[key]["ms"] = 40
         datasets[key]["alpha"] = 0.8
 
-    '''
-    datasets & Mean & Eq.~\eqref{eq:fit_Mej} & Eq.~\eqref{eq:fit_Mej_Kruger} & $P_2(\tilde{\Lambda})$ & $P_2(q,\tilde{\Lambda})$ \\
-    Reference set & 4.0 & 3.2 & 2.0 & 3.8 & 2.1 \\ 
-    \& \cite{Vincent:2019kor}  & 35.7 & 6.5 & 15.9 & 39.3 & 35.6 \\ 
-    \& \cite{Radice:2018pdn[M0]}  & 26.5 & 4.3 & 13.8 & 35.0 & 31.1 \\ 
-    \& \cite{Radice:2018pdn}  & 73.9 & 71.0 & 33.2 & 68.0 & 34.1 \\ 
-    \& \cite{Lehner:2016lxy}  & 86.0 & 45.9 & 31.9 & 71.7 & 39.1 \\ 
-    \& \cite{Kiuchi:2019lls}  & 104.5 & 101.7 & 79.8 & 105.0 & 42.3 \\ 
-    \& \cite{Dietrich:2016lyp}  & 372.2 & 300.8 & 50.2 & 766.7 & 75.9 \\ 
-    \& \cite{Dietrich:2015iva}  & 347.6 & 301.6 & 52.2 & 625.8 & 81.5 \\
-    '''
 
     o_fit = Fit_Data(md.simulations, "Mej_tot-geo", err_method="default", clean_nans=True)
 
@@ -697,8 +688,8 @@ def task_plot_mej_fits_only():
 
     subplot_dics = OrderedDict()
     subplot_dics["Eq.7"] = {
-        "xmin": -8, "xmax": 10., "xscale": "linear",
-        "ymin": -4.0, "ymax": 4.0, "yscale": "linear",
+        "xmin": -0.5, "xmax": 7., "xscale": "linear",
+        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -712,8 +703,8 @@ def task_plot_mej_fits_only():
         "labels": True,
     }
     subplot_dics["poly2"] = {
-        "xmin": -8, "xmax": 10., "xscale": "linear",
-        "ymin": -4.0, "ymax": 4.0, "yscale": "linear",
+        "xmin": -0.5, "xmax": 7., "xscale": "linear",
+        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -724,15 +715,11 @@ def task_plot_mej_fits_only():
         "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
                  'horizontalalignment': 'center'},
         "plot_zero": True,
-        "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
-                   # "bbox_to_anchor": (0.8, 1.1),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 2, "fontsize": 11,
-                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "labels": True
     }
     subplot_dics["Eq.6"] = {
-        "xmin": -8, "xmax": 10., "xscale": "linear",
-        "ymin": -4.0, "ymax": 4.0, "yscale": "linear",
+        "xmin": -0.5, "xmax": 7., "xscale": "linear",
+        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -746,8 +733,8 @@ def task_plot_mej_fits_only():
         "labels": True
     }
     subplot_dics["poly1"] = {
-        "xmin": -8, "xmax": 10., "xscale": "linear",
-        "ymin": -4, "ymax": 4.0, "yscale": "linear",
+        "xmin": -0.5, "xmax": 7., "xscale": "linear",
+        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -757,6 +744,10 @@ def task_plot_mej_fits_only():
                         "bottom": True, "top": True, "left": True, "right": True},
         "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
                  'horizontalalignment': 'center'},
+        "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+                   # "bbox_to_anchor": (0.8, 1.1),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 2, "fontsize": 11,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "plot_zero": True,
         "labels": True
     }
@@ -839,7 +830,7 @@ def task_plot_mej_fits_only():
         "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
         "tick_params": {"labelcolor":'none', "top":False, "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "mej_fits_cl_all.png",
+        "figname": __outplotdir__ + "residuals_mej.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
         # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
@@ -1045,7 +1036,7 @@ def task_plot_vej_fits_only():
         "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
         "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "vej_fits_cl_all.png",
+        "figname": __outplotdir__ + "residuals_vej.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
         "add_error_bar": {
@@ -1156,8 +1147,8 @@ def task_plot_yeej_fits_only():
     # }
     subplot_dics = OrderedDict()
     subplot_dics["poly2"] = {
-        "xmin": 0.05, "xmax": .25, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-        "ymin": -0.3, "ymax": 0.3, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "xmin": 0.05, "xmax": .225, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.18, "ymax": 0.18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                         "labelright": False, "tick1On": True, "tick2On": True,
                         "labelsize": 14,
@@ -1169,8 +1160,8 @@ def task_plot_yeej_fits_only():
         "labels": True
     }
     subplot_dics["Eq.11"] = {
-        "xmin": 0.05, "xmax": .25, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-        "ymin": -0.3, "ymax": 0.3, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "xmin": 0.05, "xmax": .225, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.18, "ymax": 0.18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                         "labelright": False, "tick1On": True, "tick2On": True,
                         "labelsize": 14,
@@ -1182,8 +1173,8 @@ def task_plot_yeej_fits_only():
         "labels": True
     }
     subplot_dics["poly1"] = {
-        "xmin": 0.05, "xmax": .25, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-        "ymin": -0.3, "ymax": 0.3, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "xmin": 0.05, "xmax": .225, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.18, "ymax": 0.18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                         "labelright": False, "tick1On": True, "tick2On": True,
                         "labelsize": 14,
@@ -1252,7 +1243,7 @@ def task_plot_yeej_fits_only():
         "ylabel": r"$\Delta Y_{e\: \rm ej}$", #r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$"
         "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "yeej_fits_cl_all.png",
+        "figname": __outplotdir__ + "residuals_yeej.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
         "add_error_bar": {
@@ -1354,8 +1345,8 @@ def task_plot_thetaej_fits_only():
     # }
     subplot_dics = OrderedDict()
     subplot_dics["poly2"] = {
-        "xmin": 0, "xmax": 40, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-        "ymin": -38, "ymax": 38, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "xmin": 0, "xmax": 35, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -18, "ymax": 18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                         "labelright": False, "tick1On": True, "tick2On": True,
                         "labelsize": 14,
@@ -1367,8 +1358,8 @@ def task_plot_thetaej_fits_only():
         "labels": True
     }
     subplot_dics["poly1"] = {
-        "xmin": 0, "xmax": 40, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
-        "ymin": -38, "ymax": 38, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "xmin": 0, "xmax": 35, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -18, "ymax": 18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
                         "labelright": False, "tick1On": True, "tick2On": True,
                         "labelsize": 14,
@@ -1438,7 +1429,7 @@ def task_plot_thetaej_fits_only():
         "ylabel": r"$\Delta \theta_{\rm RMS}$", #r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$"
         "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
         "savepdf": True,
-        "figname": __outplotdir__ + "thetaej_fits_cl_all.png",
+        "figname": __outplotdir__ + "residual_thetaej.png",
         "commonaxislabel":True,
         "subplots_adjust":{"hspace":0, "wspace":0},
         "add_error_bar": {

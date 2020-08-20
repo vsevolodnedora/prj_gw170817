@@ -7,11 +7,11 @@ import h5py
 import csv
 from scipy import interpolate
 sys.path.append('/data01/numrel/vsevolod.nedora/bns_ppr_tools/')
-from preanalysis import LOAD_INIT_DATA
+# from preanalysis import LOAD_INIT_DATA
 from outflowed import EJECTA_PARS, outflowed_historgrams, outflowed_correlations, outflowed_totmass, outflowed_timecorr
-from preanalysis import LOAD_ITTIME
-from plotting_methods import PLOT_MANY_TASKS
-from profile import LOAD_PROFILE_XYXZ, LOAD_RES_CORR, LOAD_DENSITY_MODES
+# from preanalysis import LOAD_ITTIME
+# from plotting_methods import PLOT_MANY_TASKS
+# from profile import LOAD_PROFILE_XYXZ, LOAD_RES_CORR, LOAD_DENSITY_MODES
 from utils import Paths, Lists, Labels, Constants, Printcolor, UTILS, Files, PHYSICS
 
 from data import *

@@ -180,6 +180,7 @@ class DataCSV(object):
         bfit = model(X, *popt)
         res = bfit - data
         chi2 = self.chi2dof(data, bfit, len(popt), sigma)
+        print("chi2dof:{} coeffs:{}".format(chi2,popt))
         return popt, pcov, perr, res, chi2, bfit
 
     def plot_fit(self, yres, yfit, lab=None, fout=None):
@@ -276,6 +277,17 @@ class DataCSV(object):
         if 'model_mass_poly2_tLam' in fit_to_do:
             p0 = 0.1, 0.01, 0.,
             popt, pcov, perr, res, chi2, bfit = self.fitme(self.model_poly2_1d, tLam, Mej, p0, sigma_Mej)
+            result['model_mass_poly2_tLam'] = {}
+            result['model_mass_poly2_tLam']['opt'] = popt
+            result['model_mass_poly2_tLam']['perr'] = perr
+            result['model_mass_poly2_tLam']['res'] = res
+            result['model_mass_poly2_tLam']['bfit'] = bfit
+            result['model_mass_poly2_tLam']['lab'] = '$M_{ej\ 100}$'
+            result['model_mass_poly2_tLam']['chi2'] = chi2
+
+        if 'model_mass_poly2_q' in fit_to_do:
+            p0 = 0.1, 0.01, 0.,
+            popt, pcov, perr, res, chi2, bfit = self.fitme(self.model_poly2_1d, q, Mej, p0, sigma_Mej)
             result['model_mass_poly2_tLam'] = {}
             result['model_mass_poly2_tLam']['opt'] = popt
             result['model_mass_poly2_tLam']['perr'] = perr
@@ -426,8 +438,8 @@ if __name__ == "__main__":
     # Fits list
     # ##############################################
 
-    dynej_mass_fits = []#['model_mass_poly2_tLam', 'model_mass_poly2_tLamq', 'model_mass_KDR', 'model_mass_KF']
-    dynej_vel_fits = ["model_vel_poly2_tLamq","model_vel_KDR"]
+    dynej_mass_fits = ["model_mass_poly2_tLam"]#['model_mass_poly2_q','model_mass_poly2_tLam', 'model_mass_poly2_tLamq', 'model_mass_KDR', 'model_mass_KF']
+    dynej_vel_fits = []#["model_vel_poly2_tLamq","model_vel_KDR"]
     dynej_ye_fits = []#['model_Ye_poly2_tLamq', 'model_Ye_KDR']
     dynej_mean = []#['model_mass_mean', 'model_vel_mean', 'model_Ye_mean']
     dynej_all = dynej_mass_fits + dynej_vel_fits + dynej_ye_fits + dynej_mean
@@ -436,9 +448,9 @@ if __name__ == "__main__":
 
     make_plot = 0
     save_file = None
-    verbose = 1
+    verbose = 0
 
-    if 0:
+    if 1:
         # Ejecta
         # ##############################################
 
@@ -471,14 +483,14 @@ if __name__ == "__main__":
         #dsref.fit(fit_to_do=dynej_all, make_plot=make_plot, save_file="dynejset_M0_M1", verbose=verbose)
 
         # ... add leak
-        dsref.add(ds.group(*('nus', 'leak')))
+        #dsref.add(ds.group(*('nus', 'leak')))
         #dsref.fit(fit_to_do=dynej_all, make_plot=make_plot, save_file="dynejset_M0_M1_leak", verbose=verbose)
 
         # ... add no nus
         dsref.add(ds.group(*('nus', 'none')))
         dsref.fit(fit_to_do=dynej_all, make_plot=make_plot, save_file="dynejset_M0_M1_leak_none", verbose=verbose)
 
-    if 1:
+    if 0:
         # Disc mass
         # ##############################################
 

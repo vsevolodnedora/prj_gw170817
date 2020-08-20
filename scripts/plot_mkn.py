@@ -62,9 +62,14 @@ except ImportError:
 
 __curdir__ = '/home/vsevolod/GIT/GitHub/prj_gw170817/scripts/'
 __outplotdir__ = "../figs/all3/mkn_fit/"
+__lightcurves_store__ = "/home/vsevolod/GIT/GitHub/prj_gw170817/data/"
+__obs_filter_fname__ = "AT2017gfo.h5"
+__nr_data__ = "/home/vsevolod/GIT/GitHub/prj_gw170817/data/"
 
 if not os.path.isdir(__outplotdir__):
     os.mkdir(__outplotdir__)
+
+from model_sets import models as md
 
 __mkn__ = {"tasklist":["nrmkn", "plotmkn", "mkn", "print_table"],
            "geometries":["iso","aniso"],
@@ -84,19 +89,22 @@ class COMPUTE_LIGHTCURVE():
     def __init__(self, sim, outdir=None):
 
         self.sim = sim
-        self.path = "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/"
+        self.path = __lightcurves_store__
         self.output_fname = 'mkn_model.h5'
-        if sim != None:
-            self.o_data = ADD_METHODS_ALL_PAR(sim)
-        else:
-            self.o_data = None
+        # if sim != None:
+        #     self.o_data = ADD_METHODS_ALL_PAR(sim)
+        # else:
+        #     self.o_data = None
         #
-        if outdir == None:
-            self.outdir = Paths.ppr_sims+self.sim+'/mkn/'
-            self.outfpath = Paths.ppr_sims+self.sim+'/mkn/' + self.output_fname
-        else:
-            self.outdir = outdir
-            self.outfpath = self.outdir + self.output_fname
+        self.outdir = __lightcurves_store__
+        self.outfpath = self.outdir + self.output_fname
+
+        # if outdir == None:
+        #     self.outdir = Paths.ppr_sims+self.sim+'/mkn/'
+        #     self.outfpath = Paths.ppr_sims+self.sim+'/mkn/' + self.output_fname
+        # else:
+        #     self.outdir = outdir
+        #     self.outfpath = self.outdir + self.output_fname
         # if criteria == '' or criteria == 'geo':
         #     self.path_to_outflow_dir = LISTS.loc_of_sims + sim + '/outflow_{}/'.format(det)
         # elif criteria == 'bern' or criteria == ' bern':
@@ -174,7 +182,8 @@ class COMPUTE_LIGHTCURVE():
             mdisk = None
         else:
             if self.sim != None:
-                mdisk = self.o_data.get_par("Mdisk3D")
+                # mdisk = self.o_data.get_par("Mdisk3D")
+                mdisk = float(md.simulations.loc[self.sim]["Mdisk3D"])
                 if np.isnan(mdisk):
                     raise ValueError("mass of the disk is not avilable (nan) for sim:{}".format(self.sim))
             else:
@@ -182,8 +191,8 @@ class COMPUTE_LIGHTCURVE():
                 mdisk = 0.012
 
         if NR2_data:
-            mdisk = self.o_data.get_par("Mdisk3D")
-
+            # mdisk = self.o_data.get_par("Mdisk3D")
+            mdisk = float(md.simulations.loc[self.sim]["Mdisk3D"])
         self.glob_vars = {'m_disk':     mdisk, # mass of the disk [Msun], useful if the ejecta is expressed as a fraction of the disk mass
                          'eps0':        2e19, # prefactor of the nuclear heating rate [erg/s/g]
                          'view_angle':  180/12.,  # [deg]; if None, it uses the one in source properties
@@ -379,7 +388,7 @@ class COMPUTE_LIGHTCURVE():
     ''' set parameters '''
 
     def set_dyn_ej_nr(self, det, mask):
-        fpath = Paths.ppr_sims+self.sim+'/'+"outflow_{:d}".format(det)+'/'+mask+'/'
+        fpath = __nr_data__ + self.sim + '/' + "outflow_{:d}".format(det) + '/' + mask + '/'
         if not os.path.isdir(fpath):
             raise IOError("dir with outflow + mask is not found: {}".format(fpath))
         fname = "ejecta_profile.dat"
@@ -389,7 +398,7 @@ class COMPUTE_LIGHTCURVE():
         self.dyn_ejecta_profile_fpath = fpath
 
     def set_bern_ej_nr(self, det, mask):
-        fpath = Paths.ppr_sims + self.sim + '/' + "outflow_{:d}".format(det) + '/' + mask + '/'
+        fpath = __nr_data__ + self.sim + '/' + "outflow_{:d}".format(det) + '/' + mask + '/'
         if not os.path.isdir(fpath):
             raise IOError("dir with outflow + mask is not found: {}".format(fpath))
         fname = "ejecta_profile.dat"
@@ -478,7 +487,7 @@ class COMPUTE_LIGHTCURVE():
         # glob_params, glob_vars, ejecta_params, shell_vars, source_name = self.mkn_parameters()
 
         # go into the fold with all classes of mkn
-        os.chdir(Paths.mkn)
+        os.chdir(mkn_code_path)
         # from mkn import MKN
 
         # print(self.ejecta_vars['psdynamics']['m_ej'])
@@ -768,15 +777,17 @@ class LOAD_LIGHTCURVE():
             fpaths = glob(indir + "mkn_model*.h5")
         else:
             self.models_dir = "mkn/"
-            self.indir = Paths.ppr_sims + sim + "/" + self.models_dir
+            self.indir = __nr_data__ + sim + "/" + self.models_dir
             fpaths = glob(self.indir + "mkn_model*.h5")
         #
-        if len(fpaths) == 0: raise IOError("No mkn files found {}".format(self.indir + "mkn_model*.h5"))
+        if len(fpaths) == 0:
+            print("Error: No mkn files found {}".format(self.indir + "mkn_model*.h5"))
+            # raise IOError("No mkn files found {}".format(self.indir + "mkn_model*.h5"))
         #
-        self.filter_fpath = mkn_code_path + "filter_data_AT2017gfo/"
+        self.filter_fpath = __lightcurves_store__ + __obs_filter_fname__
         #
         #
-        flist = []
+        flist = ["mkn_model.h5"]
         for file_ in fpaths:
             flist.append(file_.split('/')[-1])
         self.list_model_fnames = flist
@@ -797,8 +808,7 @@ class LOAD_LIGHTCURVE():
 
     def check_fname(self, fname=''):
         if not fname in self.list_fnames:
-            raise NameError("fname: {} not in list_fnames:\n{}"
-                            .format(fname, self.list_fnames))
+            raise NameError("fname: {} not in list_fnames:\n{}".format(fname, self.list_fnames))
 
     def check_attr(self, attr):
         if not attr in self.list_attrs:
@@ -823,6 +833,8 @@ class LOAD_LIGHTCURVE():
 
         if fname == '': fname = self.default_fname
         model_fpath = self.indir + fname
+        if not os.path.isfile(model_fpath):
+            raise IOError("File not found: {}".format(model_fpath))
 
         dict_model = {}
 
@@ -1316,7 +1328,7 @@ class COMBINE_LIGHTCURVES(EXTRACT_LIGHTCURVE):
 
     def get_model_peak_durations(self, band, files_name_gen=r"mkn_model2_m*.h5"):
 
-        files = glob(Paths.ppr_sims + self.sim + '/' + self.models_dir + files_name_gen)
+        files = glob(__nr_data__ + self.sim + '/' + self.models_dir + files_name_gen)
         # print(files)
 
         tdurs = []
@@ -1335,7 +1347,7 @@ class COMBINE_LIGHTCURVES(EXTRACT_LIGHTCURVE):
 
     def get_table(self, band='g', files_name_gen=r"mkn_model2_m*.h5"):
 
-        files = glob(Paths.ppr_sims+self.sim+'/' + self.models_dir+files_name_gen)
+        files = glob(__nr_data__ + self.sim + '/' + self.models_dir + files_name_gen)
         # print(files)
 
         t_arr = []
@@ -2449,7 +2461,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
             if "obs" in task.keys():
                 task_dic = task["obs"]
                 if task_dic["method"] == "peak marker":
-                    load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                    load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
                     tp, mp, emp = load_mkn.get_obs_peak(band)
                     # print(tp, mp, emp); exit(1)
                     # ax.scatter(tp, mp, **task_dic["plot"])
@@ -2468,7 +2480,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                 # load the NR data, compute lightcurve, plot lightcurve
 
                 # mdisk = ofit.value("Mdisk3D", task["Mdisk3D"])
-                fname = "/data01/numrel/vsevolod.nedora/postprocessed4/{}/outflow_0/geo/ejecta_profile.dat".format(sim)
+                fname = "{}{}/outflow_0/geo/ejecta_profile.dat".format(__nr_data__, sim)
                 assert os.path.isfile(fname)
 
                 task_dic = task["model"]
@@ -2486,7 +2498,8 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
 
                 o_mkn.compute_save_lightcurve(write_output=True)
 
-                load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                # "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/"
+                load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
                 times, mags = load_mkn.get_model_median(band)
                 #
                 ax.plot(times, mags, **task_dic["plot"])
@@ -2519,7 +2532,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                 o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
                 o_mkn.compute_save_lightcurve(write_output=True)
                 #
-                load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
                 times, mags = load_mkn.get_model_median(band)
 
                 ax.plot(times, mags, **task_dic["plot"])
@@ -2540,7 +2553,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                 mdisk = ofit.value("Mdisk3D",       task_dic["Mdisk3D"])
                 theta_ej = ofit.value("theta_rms-geo", task_dic["theta_rms-geo"])
 
-                o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                o_mkn = COMPUTE_LIGHTCURVE(None, __lightcurves_store__)
                 o_mkn.set_glob_par_var_source(False, False)
                 if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
                 if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
@@ -2552,7 +2565,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                 o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
                 o_mkn.compute_save_lightcurve(write_output=True)
                 #
-                load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
                 times, mags = load_mkn.get_model_median(band)
 
                 # print("mags", mags)
@@ -2579,7 +2592,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                     theta_ej = ofit.value("theta_rms-geo", fit_par_dic["theta_rms-geo"])
 
                     #compute line
-                    o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                    o_mkn = COMPUTE_LIGHTCURVE(None, __lightcurves_store__)
                     o_mkn.set_glob_par_var_source(False, False)
                     if "dyn" in fit_par_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
                     if "sec" in fit_par_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
@@ -2591,7 +2604,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
                     o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
                     o_mkn.compute_save_lightcurve(write_output=True)
                     #
-                    load_mkn = COMBINE_LIGHTCURVES(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                    load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
                     times, mags = load_mkn.get_model_median(band)
                     all_mags.append(mags)
                 all_mags = np.reshape(np.array(all_mags), (len(fit_list), len(times))).T
