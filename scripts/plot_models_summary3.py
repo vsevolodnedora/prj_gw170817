@@ -760,7 +760,11 @@ def plot_datasets_scatter3(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets):
             dic_ = dict(entry)
             x_arr = dic_["x"]
             coeffs = dic_["coeffs"]
-            if len(coeffs) == 1:
+            if "func" in dic_.keys() and dic_["func"] == "rad18":
+                del dic_["func"]
+                a, b, c, d = coeffs
+                y_arr = np.array(np.maximum(a + b * (np.tanh((x_arr - c) / d)), 1.e-3))
+            elif len(coeffs) == 1:
                 y_arr = coeffs[0]
             elif len(coeffs) == 2:
                 y_arr = coeffs[0] + coeffs[1] * x_arr
@@ -772,6 +776,11 @@ def plot_datasets_scatter3(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets):
                 raise ValueError("Too many coeffs")
             del dic_["x"]
             del dic_["coeffs"]
+            if "to_val" in dic_.keys():
+                if dic_["to_val"] == "10**": y_arr = 10**y_arr
+                else:
+                    raise NameError("Not implemented")
+                del dic_["to_val"]
             # print(x_arr)
             # print(y_arr) ; exit(1)
             ax[0].plot(np.array(x_arr).flatten(), np.array(y_arr).flatten(), **dic_)
@@ -802,14 +811,15 @@ def plot_datasets_scatter3(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets):
     #
     print("plotted: \n")
     print(plot_dic["figname"])
-    if plot_dic["show"]: plt.show()
     if plot_dic["tight_layout"]: plt.tight_layout()
     #
+    plt.draw()
     plt.savefig(plot_dic["figname"], dpi=plot_dic["dpi"])
-    if plot_dic["savepdf"]: plt.savefig(plot_dic["figname"].replace(".png", ".pdf"))
-    plt.close()
+    if plot_dic["savepdf"]:
+        plt.savefig(plot_dic["figname"].replace(".png", ".pdf"))
+    if plot_dic["show"]: plt.show()
     print(plot_dic["figname"])
-
+    plt.close()
 ''' -----------------------------| Tasks |------------------------------------------'''
 
 def task_plot_mej_all_q():
@@ -990,8 +1000,9 @@ def task_plot_mej_all_Lambda():
     col_dic  = {"v_n": "Lambda", "err": None, "mod": {}, "deferr": None}
 
     # fits for different neutrino schemes
-    o_fit = Fit_Data(md.simulations[md.simulations["nus"]!="leak"], v_n, "default", clean_nans=True) # [md.simulations["nus"]=="leak"]
-    coeffs_l, _, chi2, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    o_fit = Fit_Data(md.simulations[(md.simulations["bibkey"]=="Reference set")|
+                                    (md.simulations["bibkey"]=="Vincent:2019kor")], v_n, "default", clean_nans=True) # [md.simulations["nus"]=="leak"] md.simulations[md.simulations["nus"]!="leak"]
+    coeffs_l, _, chi2, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify="log10")
     # o_fit = Fit_Data(md.simulations[(md.simulations["nus"] == "leakM0")|
     #                                 (md.simulations["nus"] == "M1")|
     #                                 (md.simulations["nus"] == "leakM1")], v_n, "default", clean_nans=True)
@@ -1013,7 +1024,7 @@ def task_plot_mej_all_Lambda():
         "cbar_label": r"$\tilde{\Lambda}$",
         "figname": __outplotdir__ + "ej_lambda_mej.png",
         "add_poly": [
-            # {"x": np.arange(0, 1600, 100), "coeffs": np.array(coeffs_l), # 625.8 & 0.125
+            # {"x": np.arange(0, 1600, 100), "coeffs": np.array(coeffs_l), "to_val":"10**", # 625.8 & 0.125
             # "color": "black", "lw": 0.8, "ls": "-.", "label": r"$P_2 ^{\rm tot}$ $\chi_{\nu}^2=$"+"{:.1f}".format(chi2)},
             #
             # {"x": np.arange(0, 1600, 100), "coeffs": 1.e-2*np.array([-2.93319697e-02 , 1.63389243e-04 ,-4.63276134e-08]), # 71.6 & 0.031
@@ -1031,6 +1042,274 @@ def task_plot_mej_all_Lambda():
         "legend": {"fancybox": False, "loc": 'upper left',
                    #"bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
                    "shadow": "False", "ncol": 2, "fontsize": 12,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "alpha":0.8,
+        # "hline": {"y":5.220 * 1.e-3, "color":'blue', "linestyle":"dashed", "label":"Mean"},
+        # "legend":{"fancybox":True, "loc":'upper right',
+        #        # bbox_to_anchor=(0.5, 0.5),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+        #        "shadow":False, "ncol":2, "fontsize":9,
+        #        "framealpha":0., "borderaxespad":0.},
+        "show":True,
+        "savepdf":True,
+        "tight_layout":True
+    }
+
+    # ---------------- fit ------------------
+    from make_fit import fitting_function_mej, fitting_coeffs_mej_our
+    fit_dic = {}
+    #     {
+    #     "func":fitting_function_mej, "coeffs": fitting_coeffs_mej_our(),
+    #     "xmin": 0, "xmax": 7.5, "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+    #     "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+    #     "plot_zero":True
+    # }
+
+    # Fit
+    from make_fit import fitting_function_mej
+    #from make_fit import fitting_coeffs_mej_david, fitting_coeffs_mej_our
+    #from make_fit import complex_fic_data_mej_module
+    #complex_fic_data_mej_module(datasets, fitting_coeffs_mej_our(), key_for_usable_dataset="fit")
+
+
+    # -------------- colorcoding models with data ------------
+    # for k in datasets.keys():
+    #     if k == "kiuchi": datasets["kiuchi"]["color"]           = "gray"
+    #     if k == "dietrich": datasets["dietrich"]["color"]       = "gray"
+    #     if k == "bauswein": datasets["bauswein"]["color"]       = "gray"
+    #     if k == "hotokezaka": datasets["hotokezaka"]["color"]   = "gray"
+    #     if k == "lehner": datasets["lehner"]["color"]           = "gray"
+    #     if k == "radice": datasets["radice"]["color"]           = None
+    #     if k == "vincent": datasets["vincent"]["color"]         = None
+    #     if k == "our": datasets["our"]["color"]                 = None
+    # for k in datasets.keys():
+    #     datasets[k]["plot_errorbar"] = False
+
+    plot_datasets_scatter3(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets)
+
+# mdisk
+
+def task_plot_mdisk_all_q():
+
+    # bibblacklist = []
+    v_n = "Mdisk3D"
+    # sel = md.simulations[~np.isnan(md.simulations[v_n])]
+    # bibkeys = list(set(sel["bibkey"]))
+    # datasets = OrderedDict()
+    # for key in bibkeys:
+    #     if not key in bibblacklist:
+    #         datasets[key] = {"models":sel[sel["bibkey"]==key], "data":md, "fit":True,
+    #                          "color":None,"marker":None,"ms":None,"label":None, "err":md.params.Mej_err}
+    # assert len(datasets.keys()) > 0
+    datasets = OrderedDict()
+    datasets['reference'] = {"models": md.reference, "data": md, "fit": True, "plot_errorbar": True, "err": "v_n"}
+    datasets["radiceLK"] =  {"models": md.radice18lk, "data": md, "fit": True, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["radiceM0"] =  {"models": md.radice18m0, "data": md, "fit": True, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["lehner"] =    {"models": md.lehner16, "data": md, "fit": True, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["kiuchi"] =    {"models": md.kiuchi19, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["vincent"] =   {"models": md.vincent19, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["dietrich16"] ={"models": md.dietrich16, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["dietrich15"] ={"models": md.dietrich15, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+    datasets["sekiguchi15"]={"models": md.sekiguchi15, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2015",  "fit": True}
+    datasets["sekiguchi16"]={"models": md.sekiguchi16, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2016", "fit": True}
+    datasets["hotokezaka"] ={"models": md.hotokezaka12, "data": md, "err": md.params.Mej_err, "label": r"Hotokezaka+2013", "fit": True}
+    datasets["bauswein"] =  {"models": md.basuwein13, "data": md, "err": md.params.Mej_err, "label": r"Bauswein+2013", "fit": True}
+
+    label_whitelist = ["dietrich15", "dietrich16", "kiuchi"] # "bauswein", "hotokezaka",
+
+    for t in datasets.keys():
+        datasets[t]["ms"] = 60
+        datasets[t]["label"] = md.datasets_labels[t]
+        datasets[t]["marker"] = md.datasets_markers[t]
+        datasets[t]["fill_style"] = "none"
+        datasets[t]["plot_errorbar"] = False
+        datasets[t]["plot_xerrorbar"] = False
+        datasets[t]["facecolor"] = "none"
+        datasets[t]["edgecolor"] = md.datasets_colors[t]
+        datasets[t]["plot_errorbar"] = False
+        datasets[t]["labelmarkercolor"] = md.datasets_colors[t]
+        if not t in label_whitelist:
+            datasets[t]["label"] = None
+
+    x_dic    = {"v_n": "q", "err": None, "deferr": None, "mod": {}}
+    y_dic    = {"v_n": "Mdisk3D",     "err": "ud", "deferr": 0.2,  "mod": {}}#"mod": {"mult": [1e3]}
+    col_dic  = {"v_n": "Lambda", "err": None, "mod": {}, "deferr": None}
+
+    # fits for different neutrino schemes
+    o_fit = Fit_Data(md.simulations, v_n, "default", clean_nans=True) # [md.simulations["nus"]=="leak"]
+    coeffs_l, _, chi2, _ = o_fit.fit_curve(ff_name="poly2_q", cf_name="poly2", modify="log10")
+    # o_fit = Fit_Data(md.simulations[(md.simulations["nus"] == "leakM0")|
+    #                                 (md.simulations["nus"] == "M1")|
+    #                                 (md.simulations["nus"] == "leakM1")], v_n, "default", clean_nans=True)
+    # coeffs_m, _, _, _ = o_fit.fit_curve(ff_name="poly2_q", cf_name="poly2")
+    # o_fit = Fit_Data(md.simulations[md.simulations["nus"] == "none"], v_n, "default", clean_nans=True)
+    # coeffs_n, _, _, _ = o_fit.fit_curve(ff_name="poly2_q", cf_name="poly2")
+
+    plot_dic = {
+         "figsize": (6.0, 5.5),
+        "left" : 0.15, "bottom" : 0.14, "top" : 0.92, "right" : 0.95, "hspace" : 0,
+        "dpi": 128, "fontsize": 14, "labelsize": 14,
+        "fit_panel": False,
+        "plot_diagonal":False,
+        "vmin": 350,  "vmax": 900.0, "cmap": "jet", "plot_cbar": False,  # "tab10",
+        "xmin": 0.95, "xmax": 1.9,   "xscale": "linear",
+        "ymin": 0,    "ymax": 0.41,   "yscale": "linear",
+        "xlabel": "$q$",#r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+        "ylabel": r"$M_{\rm disk}$ [$M_{\odot}$]",
+        "cbar_label": r"$\tilde{\Lambda}$",
+        "figname": __outplotdir__ + "disk_q_mdisk.png",
+        "legend": {"fancybox": False, "loc": 'upper left',
+                   #"bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 2, "fontsize": 13,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "alpha":0.8,
+        "add_poly": [
+            # {"x": np.arange(1., 2., 0.1), "coeffs": np.array(coeffs_l), "to_val": "10**", # 52.3 & 0.549
+            # "color": "black", "lw": 0.8, "ls": "-.", "label": r"$P_2 ^{\rm tot}$ $\chi_{\nu}^2=$"+"{:.1f}".format(chi2)},
+            #
+            # {"x": np.arange(1., 2., 0.1), "coeffs": np.array(coeffs_m), # 36.3 & 0.238
+            # "color": "blue", "lw": 0.8, "ls": "-.", "label": r"$P_2 ^{\rm M0/M1}$"},
+            #
+            # {"x": np.arange(1., 2., 0.1), "coeffs": np.array(coeffs_n), # 12.3 & 0.830
+            # "color": "gray", "lw": 0.8, "ls": "-.", "label": r"$P_2 ^{\rm none}$"}
+        ],
+        # "add_legend":{"last_n":12,
+        #               "fancybox": False, "loc": 'uppwer left',
+        #               # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+        #               "shadow": "False", "ncol": 2, "fontsize": 12,
+        #               "framealpha": 0., "borderaxespad": 0., "frameon": False
+        #               },
+        # "hline": {"y":5.220 * 1.e-3, "color":'blue', "linestyle":"dashed", "label":"Mean"},
+        # "legend":{"fancybox":True, "loc":'upper right',
+        #        # bbox_to_anchor=(0.5, 0.5),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+        #        "shadow":False, "ncol":2, "fontsize":9,
+        #        "framealpha":0., "borderaxespad":0.},
+        "show":True,
+        "savepdf":True,
+        "tight_layout":True
+    }
+
+    # ---------------- fit ------------------
+    from make_fit import fitting_function_mej, fitting_coeffs_mej_our
+    fit_dic = {}
+    #     {
+    #     "func":fitting_function_mej, "coeffs": fitting_coeffs_mej_our(),
+    #     "xmin": 0, "xmax": 7.5, "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+    #     "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+    #     "plot_zero":True
+    # }
+
+    # Fit
+    from make_fit import fitting_function_mej
+    #from make_fit import fitting_coeffs_mej_david, fitting_coeffs_mej_our
+    #from make_fit import complex_fic_data_mej_module
+    #complex_fic_data_mej_module(datasets, fitting_coeffs_mej_our(), key_for_usable_dataset="fit")
+
+
+    # -------------- colorcoding models with data ------------
+    # for k in datasets.keys():
+    #     if k == "kiuchi": datasets["kiuchi"]["color"]           = "gray"
+    #     if k == "dietrich": datasets["dietrich"]["color"]       = "gray"
+    #     if k == "bauswein": datasets["bauswein"]["color"]       = "gray"
+    #     if k == "hotokezaka": datasets["hotokezaka"]["color"]   = "gray"
+    #     if k == "lehner": datasets["lehner"]["color"]           = "gray"
+    #     if k == "radice": datasets["radice"]["color"]           = None
+    #     if k == "vincent": datasets["vincent"]["color"]         = None
+    #     if k == "our": datasets["our"]["color"]                 = None
+
+
+    plot_datasets_scatter3(x_dic, y_dic, col_dic, plot_dic, fit_dic, datasets)
+
+def task_plot_mdisk_all_Lambda():
+
+    v_n = "Mdisk3D"
+    # sel = md.simulations[~np.isnan(md.simulations[v_n])]
+    # bibkeys = list(set(sel["bibkey"]))
+    # datasets = OrderedDict()
+    # for key in bibkeys:
+    #     if not key in bibblacklist:
+    #         datasets[key] = {"models":sel[sel["bibkey"]==key], "data":md, "fit":True,
+    #                          "color":None,"marker":None,"ms":None,"label":None, "err":md.params.Mej_err}
+    # assert len(datasets.keys()) > 0
+    datasets = OrderedDict()
+    datasets['reference'] = {"models": md.reference, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["radiceLK"] =  {"models": md.radice18lk, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["radiceM0"] =  {"models": md.radice18m0, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["lehner"] =    {"models": md.lehner16, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["kiuchi"] =    {"models": md.kiuchi19, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["vincent"] =   {"models": md.vincent19, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["dietrich16"] ={"models": md.dietrich16, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["dietrich15"] ={"models": md.dietrich15, "data": md, "fit": True, "plot_errorbar": False, "err": md.params.Mej_err}
+    datasets["sekiguchi15"]={"models": md.sekiguchi15, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2015",  "fit": True,"plot_errorbar": False}
+    datasets["sekiguchi16"]={"models": md.sekiguchi16, "data": md, "err": md.params.Mej_err, "label": r"Sekiguchi+2016", "fit": True,"plot_errorbar": False}
+    datasets["hotokezaka"] ={"models": md.hotokezaka12, "data": md, "err": md.params.Mej_err, "label": r"Hotokezaka+2013", "fit": True,"plot_errorbar": False}
+    datasets["bauswein"] =  {"models": md.basuwein13, "data": md, "err": md.params.Mej_err, "label": r"Bauswein+2013", "fit": True,"plot_errorbar": False}
+
+    label_whitelist = ['reference', "radiceLK", "radiceM0", "vincent", "sekiguchi16"] #  "sekiguchi15" "lehner"
+
+    for t in datasets.keys():
+        datasets[t]["ms"] = 60
+        datasets[t]["label"] = md.datasets_labels[t]
+        datasets[t]["marker"] = md.datasets_markers[t]
+        datasets[t]["fill_style"] = "none"
+        #datasets[t]["plot_errorbar"] = False
+        #datasets[t]["plot_xerrorbar"] = False
+        datasets[t]["facecolor"] = "none"
+        datasets[t]["edgecolor"] = md.datasets_colors[t]
+        #datasets[t]["plot_errorbar"] = False
+        datasets[t]["labelmarkercolor"] = md.datasets_colors[t]
+        if not t in label_whitelist:
+            datasets[t]["label"] = None
+
+
+    x_dic    = {"v_n": "Lambda", "err": None, "deferr": None, "mod": {}}
+    y_dic    = {"v_n": "Mdisk3D",     "err": "ud", "deferr": 0.2,  "mod": {}}#"mod": {"mult": [1e3]}
+    col_dic  = {"v_n": "Lambda", "err": None, "mod": {}, "deferr": None}
+
+    # fits for different neutrino schemes
+    o_fit = Fit_Data(md.simulations, v_n, "default", clean_nans=True) # [md.simulations["nus"]=="leak"] md.simulations[md.simulations["nus"]!="leak"]
+    coeffs_l, _, chi2, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")#, modify="log10", )
+    coeffs_d, _, chi2d, _ = o_fit.fit_curve(ff_name="rad18", cf_name="rad18")#, modify=None)
+    # o_fit = Fit_Data(md.simulations[(md.simulations["nus"] == "leakM0")|
+    #                                 (md.simulations["nus"] == "M1")|
+    #                                 (md.simulations["nus"] == "leakM1")], v_n, "default", clean_nans=True)
+    # coeffs_m, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    # o_fit = Fit_Data(md.simulations[md.simulations["nus"] == "none"], v_n, "default", clean_nans=True)
+    # coeffs_n, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+
+    plot_dic = {
+        "figsize": (6.0, 5.5),
+        "left" : 0.15, "bottom" : 0.14, "top" : 0.92, "right" : 0.95, "hspace" : 0,
+        "dpi": 128, "fontsize": 14, "labelsize": 14,
+        "fit_panel": False,
+        "plot_diagonal":False,
+        "vmin": 350,  "vmax": 900.0, "cmap": "jet", "plot_cbar": False,  # "tab10",
+        "xmin": 0, "xmax": 2000,   "xscale": "linear",
+        "ymin": 0,    "ymax": 0.41,   "yscale": "linear",
+        "xlabel": r"$\tilde{\Lambda}$",#r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+        "ylabel": r"$M_{\rm disk}$ [$M_{\odot}$]",
+        "cbar_label": r"$\tilde{\Lambda}$",
+        "figname": __outplotdir__ + "disk_lambda_mdisk.png",
+        "add_poly": [
+            # {"x": np.arange(0, 1600, 100), "coeffs": np.array(coeffs_l), #"to_val":"10**",#"10**", # 625.8 & 0.125
+            # "color": "black", "lw": 0.8, "ls": "--", "label": r"$P_2 ^{\rm tot}$ $\chi_{\nu}^2=$"+"{:.1f}".format(chi2)},
+            # {"x": np.arange(0, 1600, 100), "coeffs": np.array(coeffs_d), "func":"rad18", #"to_val": None,#"10**",  # "10**", # 625.8 & 0.125
+            #  "color": "black", "lw": 0.8, "ls": "-.", "label": r"$Eq.(R) ^{\rm tot}$ $\chi_{\nu}^2=$" + "{:.1f}".format(chi2d)},
+            #
+            # {"x": np.arange(0, 1600, 100), "coeffs": 1.e-2*np.array([-2.93319697e-02 , 1.63389243e-04 ,-4.63276134e-08]), # 71.6 & 0.031
+            # "color": "red", "lw": 0.8, "ls": "-.", "label": r"$P_2 ^{Bernuzzi}$"},
+            #
+            # {"x": np.arange(0, 1600, 100), "coeffs": np.array(coeffs_n), # 96.8 & 0.228
+            #  "color": "gray", "lw": 0.8, "ls": "-.", "label": r"$P_2 ^{\rm none}$"}
+        ],
+        # "add_legend":{"last_n":11,
+        #               "fancybox": False, "loc": 'uppwer right',
+        #               # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+        #               "shadow": "False", "ncol": 2, "fontsize": 12,
+        #               "framealpha": 0., "borderaxespad": 0., "frameon": False
+        #               },
+        "legend": {"fancybox": False, "loc": 'upper left',
+                   #"bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 2, "fontsize": 13,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "alpha":0.8,
         # "hline": {"y":5.220 * 1.e-3, "color":'blue', "linestyle":"dashed", "label":"Mean"},
@@ -1355,7 +1634,7 @@ def task_plot_vej_vs_ye_all():
         # datasets[t]["plot_errorbar"] = False
         datasets[t]["labelmarkercolor"] = md.datasets_colors[t]
 
-        datasets['reference']["label"] = r"Perego+2019, Nedora+2019,\\ Bernuzzi+2020, Nedora+2020"
+        #datasets['reference']["label"] = r"Perego+2019, Nedora+2019,\\ Bernuzzi+2020, Nedora+2020"
         if not t in whitelist_labels2:
             datasets[t]["label"] = None
 
@@ -1711,15 +1990,20 @@ if __name__ == "__main__":
 
     ''' --- ejecta mass --- '''
 
-    task_plot_mej_all_q()
-    task_plot_mej_all_Lambda()
+    # task_plot_mej_all_q()
+    # task_plot_mej_all_Lambda()
+
+    ''' --- disk mass --- '''
+
+    task_plot_mdisk_all_q()
+    task_plot_mdisk_all_Lambda()
 
     ''' --- mixed --- '''
 
-    task_plot_mej_vs_vej_all()
-    task_plot_mej_vs_ye_all()
-    task_plot_vej_vs_ye_all()
+    #task_plot_mej_vs_vej_all()
+    #task_plot_mej_vs_ye_all()
+    # task_plot_vej_vs_ye_all()
     #
-    task_plot_mej_vs_theta_all()
-    task_plot_vej_vs_theta_all()
-    task_plot_theta_vs_ye_all()
+    # task_plot_mej_vs_theta_all()
+    # task_plot_vej_vs_theta_all()
+    # task_plot_theta_vs_ye_all()

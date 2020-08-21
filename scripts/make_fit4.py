@@ -4,6 +4,8 @@ from __future__ import division
 import pandas as pd
 import numpy as np
 from collections import OrderedDict
+
+from docutils.utils.math.latex2mathml import mo
 from scipy.optimize import curve_fit, least_squares
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
@@ -20,6 +22,14 @@ class FittingCoefficients:
     @staticmethod
     def default_poly2():
         return (0.1, 0.01, 0.001)
+
+    @staticmethod
+    def default_log_poly2():
+        return tuple(2 * 10 ** np.array(FittingCoefficients.default_poly2()))
+
+    @staticmethod
+    def default_log_poly22():
+        return tuple(2 * 10 ** np.array(FittingCoefficients.default_poly22()))
 
     @staticmethod
     def vej_diet16_default():
@@ -66,6 +76,16 @@ class FittingFunctions:
         return b0 + b1*v.Lambda + b2*v.Lambda**2
 
     @staticmethod
+    def log_poly_2_Lambda(v, b0, b1, b2):
+        #b0, b1, b2 = x
+        return np.log10(b0 + b1*v.Lambda + b2*v.Lambda**2)
+
+    @staticmethod
+    def log_poly_2_qLambda(v, b0, b1, b2, b3, b4, b5):
+        #b0, b1, b2 = x
+        return np.log10(b0 + b1 * v.q + b2 * v.Lambda + b3 * v.q ** 2 + b4 * v.q * v.Lambda + b5 * v.Lambda ** 2)
+
+    @staticmethod
     def poly_2_q(v, b0, b1, b2):
         #b0, b1, b2 = x
         return b0 + b1*v.q + b2*v.q**2
@@ -99,10 +119,11 @@ class FittingFunctions:
     @staticmethod
     def mdisk_kruger19(v, a, c, d):
         val = 5. * 10 ** (-4)
-        # print("lighter? {} then {}".format(v["M2"], v["M1"])); exit(1)
-        arr = v["M2"] * np.maximum(val, ((a * v["C2"]) + c) ** d)
-        arr[np.isnan(arr)] = val
 
+        # print("lighter? {} then {}".format(v["M2"], v["M1"])); exit(1)
+        arr = (v["M2"] * np.maximum(val, ((a * v["C2"]) + c) ** d) )
+        arr[np.isnan(arr)] = val
+        # print(np.array(arr))
         return arr
 
 class Fit_Data:
@@ -284,6 +305,10 @@ class Fit_Data:
             return FittingCoefficients.default_poly22()
         elif name == "poly2":
             return FittingCoefficients.default_poly2()
+        elif name == "log_poly2":
+            return FittingCoefficients.default_log_poly2()
+        elif name == "log_poly22":
+            return FittingCoefficients.default_log_poly22()
 
         elif self.fit_v_n in ["Vej", "vel_inf_ave-geo"]:
             if name == "diet16":
@@ -322,6 +347,10 @@ class Fit_Data:
             return FittingFunctions.poly_2_Lambda
         elif name == "poly2_q":
             return FittingFunctions.poly_2_q
+        elif name == "log_poly2_Lambda":
+            return FittingFunctions.log_poly_2_Lambda
+        elif name == "log_poly22_qLambda":
+            return FittingFunctions.log_poly_2_qLambda
 
         elif self.fit_v_n in ["Vej", "vel_inf_ave-geo"]:
             if name == "diet16":
@@ -428,21 +457,36 @@ class Fit_Data:
 
         print("{} = f({}) : [{}] : {} : {}".format(self.fit_v_n, v_ns_x, len(ydata), chi2, chi2dof))
 
-    def fit_curve(self, ff_name="poly22_qLam", cf_name="default"):
+    def fit_curve(self, ff_name="poly22_qLam", cf_name="default", modify=None, usesigma=True):
 
         fitfunc = self.get_fitfunc(ff_name)
         init_coeffs = self.get_coeffs(cf_name)
 
         fitdata = self.ds
-        ydata = self.ds[self.fit_v_n]
+        ydata = np.array(self.ds[self.fit_v_n],dtype=np.float64)
         yerrs = self.get_err(ydata)
+
+        if modify == "log10":
+            ydata = np.log10(ydata)
+            yerrs = np.log10(yerrs)
+        elif modify == "log2":
+            ydata = np.log2(ydata)
+            yerrs = np.log2(yerrs)
+        elif modify == "10**":
+            ydata = 10**(ydata)
+            yerrs = 10**(yerrs)
+            # init_coeffs = tuple(100*(np.array(init_coeffs)))
 
         # Note: Dietrich and Kruger fitformulas are for 1e3 Msun, so we adapt
         # if self.fit_v_n in ["Mej", "Mej_tot-geo"]:
         #     ydata *= 1e3
         #     yerrs *= 1e3
 
-        pred_coeffs, pcov = curve_fit(f=fitfunc, xdata=fitdata, ydata=ydata, p0=init_coeffs, sigma=yerrs, maxfev=10000)
+        if usesigma: sigma = yerrs
+        else: sigma = None
+        # pred_coeffs, pcov = curve_fit(f=fitfunc, xdata=fitdata, ydata=ydata, p0=init_coeffs, sigma=yerrs, maxfev=20000)
+        pred_coeffs, pcov = curve_fit(f=fitfunc, xdata=fitdata, ydata=ydata, p0=init_coeffs, sigma=sigma, maxfev=20000)
+
         perr = np.sqrt(np.diag(pcov))
         ypred = fitfunc(fitdata, *pred_coeffs)
 
@@ -450,10 +494,29 @@ class Fit_Data:
         #     ydata *= 1e-3
         #     yerrs *= 1e-3
         #     ypred *= 1e-3
+        if  modify == "log10":
+            ydata = 10**(ydata)
+            yerrs = 10**(yerrs)
+            ypred = 10**(ypred)
+        elif modify == "log2":
+            ydata = np.exp(ydata)
+            yerrs = np.exp(yerrs)
+            ypred = np.exp(ypred)
+        elif modify == "10**":
+            ydata = np.log10(ydata)
+            yerrs = np.log10(yerrs)
+            ypred = np.log10(ypred)
 
-        res = ypred - ydata # residuals
+        res = np.array((ydata - ypred)/ydata) # residuals
         chi2 = self.get_chi2(ypred, ydata, yerrs)
         chi2dof = self.get_ch2dof(chi2, len(ydata), len(pred_coeffs))
+
+        # if modify == "log10":
+        #     chi2dof = np.log10(chi2dof)
+
+        # print(chi2dof)
+        # print(res);
+        # exit(1)
 
         rs = self.get_score(ydata, ypred)
         # print(chi2dof)
@@ -479,11 +542,11 @@ class Fit_Tex_Tables:
             # leakage + M0/M1
             "Reference set",
             "Vincent:2019kor",
-            "Radice:2018pdn[M0]",
+            "Radice:2018pdn(M0)",
             "Sekiguchi:2016bjd",
             "Sekiguchi:2015dma",
             # leakage
-            "Radice:2018pdn",
+            "Radice:2018pdn(LK)",
             "Lehner:2016lxy",
             # None
             "Kiuchi:2019lls",
@@ -616,7 +679,7 @@ class Fit_Tex_Tables:
         print(r"\end{tabular}")
         print(r"\end{table*}")
 
-    def print_polyfit_table(self, ff_name="poly22_qLambda", cf_name="default", v_n_x=("q","Lambda"), fancy=False):
+    def print_polyfit_table(self, ff_name="poly22_qLambda", cf_name="default", fancy=False, modify=None, usesigma=True):
 
         sel_dsets = []
         row_labels = []
@@ -629,7 +692,7 @@ class Fit_Tex_Tables:
                 print("\t Adding {} : {}".format(sel_dsets[-1],len(dataframe["bibkey"])))
                 #
                 df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
-                i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name)
+                i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name, modify=modify, usesigma=usesigma)
                 #
                 row_labels.append(sel_dsets[-1])
                 all_coeffs.append(i_coeffs)
@@ -712,7 +775,7 @@ class Fit_Tex_Tables:
         print(r"\end{tabular}")
         print(r"\end{table}")
 
-    def print_fitfunc_table(self,  ff_name="diet16", cf_name="default", fancy=False):
+    def print_fitfunc_table(self,  ff_name="diet16", cf_name="default", fancy=False, modify=None, usesigma=True):
 
         sel_dsets = []
         row_labels = []
@@ -725,7 +788,7 @@ class Fit_Tex_Tables:
                 print("\t Adding {} : {}".format(sel_dsets[-1],len(dataframe["bibkey"])))
                 #
                 df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
-                i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name)
+                i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name, modify=modify, usesigma=usesigma)
                 #
                 row_labels.append(sel_dsets[-1])
                 all_coeffs.append(i_coeffs)
@@ -915,7 +978,7 @@ class Fit_Tex_Tables:
     #     print(r"\end{tabular}")
     #     print(r"\end{table}")
 
-    def print_chi2dofs(self, v_ns, v_ns_labels, fmts):
+    def print_chi2dofs(self, v_ns, v_ns_labels, fmts, modify=None, usesigma=True):
 
         #v_ns = ["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"]
 
@@ -940,35 +1003,35 @@ class Fit_Tex_Tables:
 
                     if v_n.__contains__("our-"):
                         print("\tTask: {}".format(v_n))
-                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="our", cf_name="our")
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="our", cf_name="our", modify=modify, usesigma=usesigma)
                         # print(chi2dof); exit(1)
                         if v_n.__contains__("chi2dof"): vals.append(chi2dof)
 
                     if v_n.__contains__("diet16-"):
                         print("\tTask: {}".format(v_n))
-                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="diet16", cf_name="diet16")
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="diet16", cf_name="diet16", modify=modify, usesigma=usesigma)
                         # print(chi2dof); exit(1)
                         if v_n.__contains__("chi2dof"): vals.append(chi2dof)
 
                     if v_n.__contains__("rad18-"):
                         print("\tTask: {}".format(v_n))
-                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="rad18", cf_name="rad18")
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="rad18", cf_name="rad18", modify=modify, usesigma=usesigma)
                         # print(chi2dof); exit(1)
                         if v_n.__contains__("chi2dof"): vals.append(chi2dof)
 
                     if v_n.__contains__("krug19-"):
                         print("\tTask: {}".format(v_n))
-                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="krug19", cf_name="krug19")
+                        i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="krug19", cf_name="krug19", modify=modify, usesigma=usesigma)
                         if v_n.__contains__("chi2dof"): vals.append(chi2dof)
 
                     if v_n.__contains__("poly2-"):
                         print("\tTask: {}".format(v_n))
-                        coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+                        coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify, usesigma=usesigma)
                         if v_n.__contains__("chi2dof"): vals.append(chi2dof)
 
                     if v_n.__contains__("poly22-"):
                         print("\tTask: {}".format(v_n))
-                        coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+                        coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
                         if v_n.__contains__("chi2dof"): vals.append(chi2dof)
                 all_vals.append(vals)
                 #
@@ -1041,13 +1104,13 @@ class BestFits:
         self.clean = clean_nans
         # ejecta mass
 
-        self.mass_ds = self.compute_ejecta_mass_fits().sort_values(by="chi2dof")
-        self.vel_ds = self.compute_ejecta_vel_fits().sort_values(by="chi2dof")
-        self.ye_ds = self.compute_ejecta_ye_fits().sort_values(by="chi2dof")
-        self.theta_ds = self.compute_ejecta_theta_fits().sort_values(by="chi2dof")
-        self.diskmass_ds = self.compute_ejecta_diskmass_fits().sort_values(by="chi2dof")
+        self.mass_ds = self.compute_ejecta_mass_fits(modify="log10", usesigma=True).sort_values(by="chi2dof")
+        self.vel_ds = self.compute_ejecta_vel_fits(modify=None, usesigma=True).sort_values(by="chi2dof")
+        self.ye_ds = self.compute_ejecta_ye_fits(modify=None, usesigma=True).sort_values(by="chi2dof")
+        self.theta_ds = self.compute_ejecta_theta_fits(modify=None, usesigma=True).sort_values(by="chi2dof")
+        self.diskmass_ds = self.compute_ejecta_diskmass_fits(modify=None, usesigma=False).sort_values(by="chi2dof")
 
-    def compute_ejecta_mass_fits(self):
+    def compute_ejecta_mass_fits(self, modify=None, usesigma=True):
 
         names = []
         vals_coeffs = []
@@ -1062,25 +1125,25 @@ class BestFits:
         chi2dods.append(chi2dof)
 
         # methods::poly2_lam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify, usesigma=usesigma)
         names.append("poly2_Lambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::poly2_qlam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
         names.append("poly22_qLambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::Kruger+2019
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19", modify=modify, usesigma=usesigma)
         names.append("krug19")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::Kruger+2019
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16", modify=modify, usesigma=usesigma)
         names.append("diet16")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
@@ -1088,10 +1151,12 @@ class BestFits:
         dic = {"fitmodel":names, "vals_coeffs":vals_coeffs, "chi2dof":chi2dods}
         df = pd.DataFrame(dic)
         df = df.set_index("fitmodel")
+        df["modify"] = modify
+        df["usesigma"] = usesigma
         print(df)
         return df
 
-    def compute_ejecta_vel_fits(self):
+    def compute_ejecta_vel_fits(self, modify=None, usesigma=True):
 
         names = []
         vals_coeffs = []
@@ -1106,19 +1171,19 @@ class BestFits:
         chi2dods.append(chi2dof)
 
         # methods::poly2_lam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify, usesigma=usesigma)
         names.append("poly2_Lambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::poly2_qlam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
         names.append("poly22_qLambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::Dietrich+16
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16", modify=modify, usesigma=usesigma)
         names.append("diet16")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
@@ -1126,9 +1191,12 @@ class BestFits:
         dic = {"fitmodel":names, "vals_coeffs":vals_coeffs, "chi2dof":chi2dods}
         df = pd.DataFrame(dic)
         df = df.set_index("fitmodel")
+        df["modify"] = modify
+        df["usesigma"] = usesigma
+        print(df)
         return df
 
-    def compute_ejecta_ye_fits(self):
+    def compute_ejecta_ye_fits(self, modify=None, usesigma=True):
 
         names = []
         vals_coeffs = []
@@ -1143,19 +1211,19 @@ class BestFits:
         chi2dods.append(chi2dof)
 
         # methods::poly2_lam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify, usesigma=usesigma)
         names.append("poly2_Lambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::poly2_qlam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
         names.append("poly22_qLambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::our
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="our", cf_name="our")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="our", cf_name="our", modify=modify, usesigma=usesigma)
         names.append("our")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
@@ -1163,9 +1231,12 @@ class BestFits:
         dic = {"fitmodel":names, "vals_coeffs":vals_coeffs, "chi2dof":chi2dods}
         df = pd.DataFrame(dic)
         df = df.set_index("fitmodel")
+        df["modify"] = modify
+        df["usesigma"] = usesigma
+        print(df)
         return df
 
-    def compute_ejecta_theta_fits(self):
+    def compute_ejecta_theta_fits(self, modify=None, usesigma=True):
 
         names = []
         vals_coeffs = []
@@ -1180,13 +1251,13 @@ class BestFits:
         chi2dods.append(chi2dof)
 
         # methods::poly2_lam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify, usesigma=usesigma)
         names.append("poly2_Lambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::poly2_qlam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
         names.append("poly22_qLambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
@@ -1194,9 +1265,12 @@ class BestFits:
         dic = {"fitmodel":names, "vals_coeffs":vals_coeffs, "chi2dof":chi2dods}
         df = pd.DataFrame(dic)
         df = df.set_index("fitmodel")
+        df["modify"] = modify
+        df["usesigma"] = usesigma
+        print(df)
         return df
 
-    def compute_ejecta_diskmass_fits(self):
+    def compute_ejecta_diskmass_fits(self, modify=None, usesigma=True):
 
         names = []
         vals_coeffs = []
@@ -1211,25 +1285,25 @@ class BestFits:
         chi2dods.append(chi2dof)
 
         # methods::poly2_lam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify, usesigma=usesigma)
         names.append("poly2_Lambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::poly2_qlam
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
         names.append("poly22_qLambda")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::Kruger+2019
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="rad18", cf_name="rad18")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="rad18", cf_name="rad18", modify=modify, usesigma=usesigma)
         names.append("rad18")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
 
         # methods::Kruger+2019
-        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+        val_coff, _, chi2dof, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19", modify=modify, usesigma=usesigma)
         names.append("krug19")
         vals_coeffs.append(val_coff)
         chi2dods.append(chi2dof)
@@ -1237,9 +1311,24 @@ class BestFits:
         dic = {"fitmodel":names, "vals_coeffs":vals_coeffs, "chi2dof":chi2dods}
         df = pd.DataFrame(dic)
         df = df.set_index("fitmodel")
+        df["modify"] = modify
+        df["usesigma"] = usesigma
+        print(df)
         return df
 
     # ---
+    @staticmethod
+    def get_fit_val(ffunc, coeffs, models, modify=None):
+        # print(ffunc, coeffs, models, modify); exit(1)
+        vals = ffunc(models, *coeffs)
+        if modify is None:
+            return vals
+        elif modify == "10**":
+            return np.log10(vals)
+        elif modify == "log10":
+            return 10**(vals)
+        else:
+            raise NameError("Not implmenented")
 
     def predict_mass(self, model):
         #print(model)
@@ -1250,23 +1339,28 @@ class BestFits:
                 vals.append(float(m["vals_coeffs"]))
             elif key == "poly2_Lambda":
                 coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.poly_2_Lambda(model, *coeffs))
+                # val = float(FittingFunctions.poly_2_Lambda(model, *coeffs))
+                val = self.get_fit_val(FittingFunctions.poly_2_Lambda, coeffs, model, str(mass_ds["modify"][-1]))
                 vals.append(val)
             elif key == "poly22_qLambda":
                 coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.poly_2_qLambda(model, *coeffs))
+                # val = float(FittingFunctions.poly_2_qLambda(model, *coeffs))
+                val = self.get_fit_val(FittingFunctions.poly_2_qLambda, coeffs, model, str(mass_ds["modify"][-1]))
                 vals.append(val)
             elif key == "diet16":
                 coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.mej_dietrich16(model, *coeffs))
+                # val = float(FittingFunctions.mej_dietrich16(model, *coeffs))
+                val = self.get_fit_val(FittingFunctions.mej_dietrich16, coeffs, model, str(mass_ds["modify"][-1]))
                 vals.append(val)
             elif key == "krug19":
                 coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.mej_kruger19(model, *coeffs))
+                # val = float(FittingFunctions.mej_kruger19(model, *coeffs))
+                val = self.get_fit_val(FittingFunctions.mej_kruger19, coeffs, model, str(mass_ds["modify"][-1]))
                 vals.append(val)
             else:
                 raise NameError("not implemented: {}".format(key))
         mass_ds[model.index[0]] = vals
+
 
         return mass_ds
 
@@ -1319,60 +1413,6 @@ class BestFits:
         ye_ds[model.index[0]] = vals
 
         return ye_ds
-
-    def predict_mass(self, model):
-        #print(model)
-        vals = []
-        mass_ds = self.mass_ds
-        for key, m in mass_ds.iterrows():
-            if key == "mean":
-                vals.append(float(m["vals_coeffs"]))
-            elif key == "poly2_Lambda":
-                coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.poly_2_Lambda(model, *coeffs))
-                vals.append(val)
-            elif key == "poly22_qLambda":
-                coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.poly_2_qLambda(model, *coeffs))
-                vals.append(val)
-            elif key == "diet16":
-                coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.mej_dietrich16(model, *coeffs))
-                vals.append(val)
-            elif key == "krug19":
-                coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.mej_kruger19(model, *coeffs))
-                vals.append(val)
-            else:
-                raise NameError("not implemented: {}".format(key))
-        mass_ds[model.index[0]] = vals
-
-        return mass_ds
-
-    def predict_vel(self, model):
-        #print(model)
-        vals = []
-        vel_ds = self.vel_ds
-        for key, m in vel_ds.iterrows():
-            if key == "mean":
-                vals.append(float(m["vals_coeffs"]))
-            elif key == "poly2_Lambda":
-                coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.poly_2_Lambda(model, *coeffs))
-                vals.append(val)
-            elif key == "poly22_qLambda":
-                coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.poly_2_qLambda(model, *coeffs))
-                vals.append(val)
-            elif key == "diet16":
-                coeffs = m["vals_coeffs"]
-                val = float(FittingFunctions.vej_dietrich16(model, *coeffs))
-                vals.append(val)
-            else:
-                raise NameError("not implemented: {}".format(key))
-        vel_ds[model.index[0]] = vals
-
-        return vel_ds
 
     def predict_theta(self, model):
         # print(model)
@@ -1493,6 +1533,7 @@ if __name__ == "__main__":
     # o_bf = BestFits(allmodels, "default", True)
     # model = models[models.index == "BLh_M13641364_M0_LK_SR"]
     # masses = o_bf.predict_mass(model)
+    # print(masses['BLh_M13641364_M0_LK_SR'])
     # vels = o_bf.predict_vel(model)
     # yes = o_bf.predict_ye(model)
     # thetas = o_bf.predict_theta(model)
@@ -1520,19 +1561,20 @@ if __name__ == "__main__":
     # print(len(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]))
     # print(np.mean(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]["Mej_tot-geo"]))
     ''' ejecta mass'''
-    o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator=',')
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator='&')
     # o_tbl.print_stats()
-    o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", )
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", modify="log10",usesigma=True)
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
     # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16")
     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
     #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".1f", ".2f", ".2f", ".2f", ".2f"])
-
+    #                      [".2f", ".2f", ".2f", ".2f", ".2f"], modify="log10",usesigma=True)
+    # exit(1)
     ''' ejecta velocity '''
-    # o_tbl = Fit_Tex_Tables(allmodels, "vel_inf_ave-geo", "default", True, deliminator=",")
+    # o_tbl = Fit_Tex_Tables(allmodels, "vel_inf_ave-geo", "default", True, deliminator="&")
     # o_tbl.print_stats()
     # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
@@ -1543,7 +1585,7 @@ if __name__ == "__main__":
     #                      [".2f", ".2f", ".2f", ".2f"])
 
     ''' ejecta electron fraction '''
-    # o_tbl = Fit_Tex_Tables(allmodels, "Ye_ave-geo", "default", True, deliminator=",")
+    # o_tbl = Fit_Tex_Tables(allmodels, "Ye_ave-geo", "default", True, deliminator="&")
     # o_tbl.print_stats()
     # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
@@ -1556,25 +1598,25 @@ if __name__ == "__main__":
     # print(list(set(allmodels["bibkey"])))
 
     ''' ejecta rms angle '''
-    # o_tbl = Fit_Tex_Tables(allmodels, "theta_rms-geo", "default", True)
+    # o_tbl = Fit_Tex_Tables(allmodels, "theta_rms-geo", "default", True, deliminator="&")
     # o_tbl.print_stats()
     # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
     # o_tbl.print_polyfit_table(ff_name="poly22_qLam", cf_name="poly22")
     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".2f",  ".2f", ".2f"])
+    #                      [".2f",  ".2f", ".2f"], usesigma=True)
 
     ''' disk mass '''
-    # o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True)
-    # o_tbl.print_stats()
+    o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True, deliminator="&")
+    o_tbl.print_stats()
     # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
-    # o_tbl.print_polyfit_table(ff_name="poly22_qLam", cf_name="poly22")
-    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", modify=None)
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "rad18-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}",
     #                       r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".2f", ".2f", ".2f", ".2f", ".2f"])
+    #                      [".2f", ".2f", ".2f", ".2f", ".2f"],usesigma=False)
     #
     # print(list(set(allmodels["bibkey"])))
 

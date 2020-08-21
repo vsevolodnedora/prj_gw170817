@@ -62,6 +62,15 @@ def mscatter(x, y, ax=None, m=None, **kw):
 
     return sc
 
+def get_fit_val(ffunc, coeffs, models, to_val=None):
+    vals = ffunc(models, *coeffs)
+    if to_val is None: return vals
+    elif to_val == "10**":
+        return 10**vals
+    elif to_val == "log10":
+        return np.log10(vals)
+    else:
+        raise NameError("Not implmenented")
 
 """ -----------------------------| MODULUS |------------------------------- """
 
@@ -102,19 +111,26 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
             if "v_n_y" in subplot_dic: model_dic["v_n_y"] = subplot_dic["v_n_y"] # overwrite
             #
             if x_dic["v_n"] == "Mej_tot-geo_fit" and y_dic["v_n"] == "Mej_tot-geo":
-                func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-                mej = func(models, *coeffs)# / 1.e3  # 1e-3 Msun -> Msun
-                if "dev" in fit_dic.keys(): mej = mej / fit_dic["dev"]
+                # func, coeffs = fit_dic["func"], fit_dic["coeffs"]
+                mej = get_fit_val(fit_dic["func"], fit_dic["coeffs"], models, fit_dic["to_val"])
+                # mej = func(models, *coeffs)# / 1.e3  # 1e-3 Msun -> Msun
+                # if "to_val" in fit_dic.keys():
+                #     if fit_dic["to_val"] == "10**":
+                #         mej = 10**mej
+                # if "dev" in fit_dic.keys(): mej = mej / fit_dic["dev"]
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mej)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
+                # print(x);
+                # exit(1)
             elif x_dic["v_n"] == "vel_inf_ave-geo_fit" and y_dic["v_n"] == "vel_inf_ave-geo":
                 func, coeffs = fit_dic["func"], fit_dic["coeffs"]
                 mej = func(models, *coeffs)  # 1e-3 Msun -> Msun
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mej)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
             elif x_dic["v_n"] == "Mdisk3D_fit" and y_dic["v_n"] == "Mdisk3D":
-                func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-                mdisk = func(models, *coeffs)  # 1e-3 Msun -> Msun
+                # func, coeffs = fit_dic["func"], fit_dic["coeffs"]
+                # mdisk = func(models, *coeffs)  # 1e-3 Msun -> Msun
+                mdisk = get_fit_val(fit_dic["func"], fit_dic["coeffs"], models, fit_dic["to_val"])
                 x = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, mdisk)
                 y = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models)
             elif x_dic["v_n"] == "Ye_ave-geo_fit" and y_dic["v_n"] == "Ye_ave-geo":
@@ -142,14 +158,19 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
             # sc = mscatter(x, y, ax=ax, s=mss, m=markers, label=None, alpha=plot_dic['alpha'],
             #               edgecolor=edgecolors, facecolor=facecolors)
             #
-            func, coeffs = fit_dic["func"], fit_dic["coeffs"]
-            fitted_values = func(models, *coeffs)
+            # func, coeffs = fit_dic["func"], fit_dic["coeffs"]
+            # fitted_values = func(models, *coeffs)
+            fitted_values = get_fit_val(fit_dic["func"], fit_dic["coeffs"], models, fit_dic["to_val"])
             #ss
-            if y_dic["v_n"] == "Mej_tot-geo":
-                if "dev" in fit_dic.keys(): fitted_values = fitted_values / fit_dic["dev"]
+            # if y_dic["v_n"] == "Mej_tot-geo":
+            #     if "dev" in fit_dic.keys(): fitted_values = fitted_values / fit_dic["dev"]
                     #fitted_values = fitted_values / 1.e3  # Tims fucking fit
             #
             y_from_fit = d_cl.get_mod_data(y_dic["v_n"], y_dic["mod"], models, fitted_values)
+
+            # if "to_val" in fit_dic.keys():
+            #     if fit_dic["to_val"] == "10**":
+            #         y_from_fit = 10 ** y_from_fit
 
             # y_ = np.array((y - y_from_fit) / y)
             if "method" in fit_dic.keys():
@@ -267,7 +288,23 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
             axi.axhline(**subplotdic["hline"])
 
         if "legend" in subplotdic.keys() and len(subplotdic["legend"].keys()) > 0:
-            axi.legend(**subplotdic["legend"])
+            ldic = subplotdic["legend"]
+            if "first_n" in ldic.keys():
+                ldic = subplotdic["legend"]
+                n = ldic["first_n"]
+                del ldic["first_n"]
+                han, lab = axi.get_legend_handles_labels()
+                axi.add_artist(axi.legend(han[n:], lab[n:], **ldic))
+                # ax[0].add_artist(ax[0].legend(han[len(han) - n:], lab[len(lab) - n:], **dic_))
+            elif "last_n" in ldic.keys():
+                ldic = subplotdic["legend"]
+                n = ldic["last_n"]
+                del ldic["last_n"]
+                han, lab = axi.get_legend_handles_labels()
+                axi.add_artist(axi.legend(han[:-1 * n], lab[:-1 * n], **ldic))
+                # ax[0].add_artist(ax[0].legend(han[len(han) - n:], lab[len(lab) - n:], **dic_))
+            else:
+                plt.legend(**subplotdic["legend"])
 
     # for the whole plot
     if "commonaxislabel" in plot_dic.keys() and plot_dic["commonaxislabel"] != None:
@@ -302,11 +339,10 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
         if plot_dic["tight_layout"]: plt.tight_layout()
 
 
-    plt.show()
     # saving
     plt.savefig(plot_dic["figname"], dpi=plot_dic["dpi"])
     if plot_dic["savepdf"]: plt.savefig(plot_dic["figname"].replace(".png", ".pdf"))
-
+    plt.show()
     plt.close()
     print(plot_dic["figname"])
 
@@ -358,34 +394,30 @@ def task_plot_mdisk_fits_only():
     o_fit = Fit_Data(md.simulations, "Mdisk3D", err_method="default", clean_nans=True)
 
     fit_dics = OrderedDict()
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=None, usesigma=False)
     fit_dics["poly2"] = { # 202 --  230
-        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs),
-        # "coeffs": np.array([-8.50e-01 , 1.12e+00 , 4.21e-04 , -3.71e-01 , 3.54e-05 , -2.13e-07]),
+        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs),"to_val":None,#"10**",# None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero": True
     }
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19", modify=None, usesigma=False)
     fit_dics["Eq.15"] = { # 481.6
-        "func": FittingFunctions.mdisk_kruger19, "coeffs": np.array(coeffs),
-        # "coeffs": np.array([ -0.011 , 1.001 , 1932.277]),
+        "func": FittingFunctions.mdisk_kruger19, "coeffs": np.array(coeffs), "to_val":None,#"10**",# None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero": True
     }
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="rad18", cf_name="rad18")
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="rad18", cf_name="rad18", modify=None, usesigma=False)
     fit_dics["Eq.14"] = { # 630 -- 730
-        "func": FittingFunctions.mdisk_radice18, "coeffs": np.array(coeffs),
-        # "coeffs": np.array([-66.479 , 66.661 , -1009.858 , 379.943]),
+        "func": FittingFunctions.mdisk_radice18, "coeffs": np.array(coeffs), "to_val":None,#"10**",# None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero": True
     }
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=None, usesigma=False)
     fit_dics["poly1"] = { # 640 -- 750
-        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
-        # "coeffs": np.array([-6.73e-02 , 4.78e-04 , -2.11e-07]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),  "to_val":None,#"10**",# None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "plot_zero": True
@@ -415,8 +447,8 @@ def task_plot_mdisk_fits_only():
 
     subplot_dics = OrderedDict()
     subplot_dics["poly2"] = {
-        "xmin": -0.02, "xmax": .27, "xscale": "linear",
-        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -430,8 +462,8 @@ def task_plot_mdisk_fits_only():
         "labels": True
     }
     subplot_dics["Eq.15"] = {
-        "xmin": -0.02, "xmax": .27, "xscale": "linear",
-        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -445,8 +477,8 @@ def task_plot_mdisk_fits_only():
         "labels": True
     }
     subplot_dics["Eq.14"] = {
-        "xmin": -0.02, "xmax": .27, "xscale": "linear",
-        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -457,11 +489,17 @@ def task_plot_mdisk_fits_only():
         "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(14)", 'fontsize': 14, 'color': 'black',
                  'horizontalalignment': 'center'},
         "plot_zero": True,
-        "labels": True
+        "labels": True,
+        "legend": {
+            "last_n": 4,
+            "fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+            # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+            "shadow": "False", "ncol": 1, "fontsize": 11,
+            "framealpha": 0., "borderaxespad": 0., "frameon": False}
     }
     subplot_dics["poly1"] = {
-        "xmin": -0.02, "xmax": .27, "xscale": "linear",
-        "ymin": -0.05, "ymax": 1.1, "yscale": "linear",
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -473,10 +511,12 @@ def task_plot_mdisk_fits_only():
                  'horizontalalignment': 'center'},
         "plot_zero": True,
         "labels": True,
-        "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
-                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 2, "fontsize": 11,
-                   "framealpha": 0., "borderaxespad": 0., "frameon": False}
+        "legend": {
+            "first_n":4,
+            "fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+            # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+            "shadow": "False", "ncol": 1, "fontsize": 11,
+            "framealpha": 0., "borderaxespad": 0., "frameon": False}
     }
 
     # subplot_dics = {
@@ -629,32 +669,33 @@ def task_plot_mej_fits_only():
 
     o_fit = Fit_Data(md.simulations, "Mej_tot-geo", err_method="default", clean_nans=True)
 
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+    # coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
     fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19", modify="log10")
     fit_dics["Eq.7"] = {  # best 53.2
-        "func": FittingFunctions.mej_kruger19, "coeffs": np.array(coeffs), #"dev":1e3,
+        "func": FittingFunctions.mej_kruger19, "coeffs": np.array(coeffs), "to_val": "10**",# None,
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
     }
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
     fit_dics["poly2"] = { # 2nd best  81.5
-        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs),
+        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs), "to_val": "10**",#None,
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
 
     }
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16", modify="log10")
     fit_dics["Eq.6"] = { # 153
-        "func": FittingFunctions.mej_dietrich16, "coeffs": np.array(coeffs), #"dev":1e3,
+        "func": FittingFunctions.mej_dietrich16, "coeffs": np.array(coeffs), "to_val": "10**",# None,
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
     }
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify="log10")
     fit_dics["poly1"] = { # 628
-        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": "10**",# None,
         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
         "plot_zero": True
@@ -688,8 +729,8 @@ def task_plot_mej_fits_only():
 
     subplot_dics = OrderedDict()
     subplot_dics["Eq.7"] = {
-        "xmin": -0.5, "xmax": 7., "xscale": "linear",
-        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
+        "xmin": -0.5, "xmax": 40., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -703,8 +744,8 @@ def task_plot_mej_fits_only():
         "labels": True,
     }
     subplot_dics["poly2"] = {
-        "xmin": -0.5, "xmax": 7., "xscale": "linear",
-        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
+        "xmin": -0.5, "xmax": 40., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -718,8 +759,8 @@ def task_plot_mej_fits_only():
         "labels": True
     }
     subplot_dics["Eq.6"] = {
-        "xmin": -0.5, "xmax": 7., "xscale": "linear",
-        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
+        "xmin": -0.5, "xmax": 40., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -733,8 +774,8 @@ def task_plot_mej_fits_only():
         "labels": True
     }
     subplot_dics["poly1"] = {
-        "xmin": -0.5, "xmax": 7., "xscale": "linear",
-        "ymin": -0.2, "ymax": 1.2, "yscale": "linear",
+        "xmin": -0.5, "xmax": 40., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
         # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
         # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
         "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
@@ -894,23 +935,21 @@ def task_plot_vej_fits_only():
     coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
     fit_dics["poly2"] = { # 5.6
         "func": FittingFunctions.poly_2_qLambda,
-        "coeffs": np.array(coeffs),
-        # np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
+        "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
         "plot_zero": True
     }
     coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
     fit_dics["Eq.9"] = { # 6.1
-        "func": FittingFunctions.vej_dietrich16, "coeffs": np.array(coeffs),
+        "func": FittingFunctions.vej_dietrich16, "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
         "plot_zero": True
     }
     coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 6.1
-        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
-        # np.array([-1.221e-2, 0.014, 8.396e-7]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
         "plot_zero": True
@@ -1102,8 +1141,7 @@ def task_plot_yeej_fits_only():
     fit_dics["poly2"] = { # 17
         "func": FittingFunctions.poly_2_qLambda,
         "method": "delta",
-        "coeffs": np.array(coeffs),
-        # np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
+        "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True
@@ -1111,7 +1149,7 @@ def task_plot_yeej_fits_only():
     coeffs, _, _, _ = o_fit.fit_curve(ff_name="our", cf_name="our")
     fit_dics["Eq.11"] = { # 23
         "method": "delta",
-        "func": FittingFunctions.yeej_ours, "coeffs": np.array(coeffs),
+        "func": FittingFunctions.yeej_ours, "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True
@@ -1119,8 +1157,7 @@ def task_plot_yeej_fits_only():
     coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 30+
         "method": "delta",
-        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),
-        # np.array([-1.221e-2, 0.014, 8.396e-7]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True
@@ -1308,8 +1345,7 @@ def task_plot_thetaej_fits_only():
     fit_dics["poly2"] = { # 17
         "func": FittingFunctions.poly_2_qLambda,
         "method": "delta",
-        "coeffs": np.array(coeffs), # 8.4 & 0.483
-        # np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
+        "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True
@@ -1317,8 +1353,7 @@ def task_plot_thetaej_fits_only():
     coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
     fit_dics["poly1"] = { # 30+
         "method": "delta",
-        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), # 14.3 & 0.115
-        # np.array([-1.221e-2, 0.014, 8.396e-7]),
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
         "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
         "plot_zero": True

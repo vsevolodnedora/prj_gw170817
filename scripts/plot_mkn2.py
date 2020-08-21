@@ -1363,6 +1363,7 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
 
     o_fit = BestFits(cmb.simulations, err_method="default", clean_nans=True)
 
+
     bands = [subplot_dic["band"] for subplot_dic in subplot_dics]
     fig, axes = plt.subplots(figsize=plotdic["figsize"], ncols=len(bands), nrows=1, sharey=True)
     # ax = fig.add_subplot(111)

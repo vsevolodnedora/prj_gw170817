@@ -265,7 +265,7 @@ well_resolved =  (fiducial) & (simulations.Mej > Struct.Mej_min)
 with_disk_mass = (fiducial) & (simulations.Mdisk.notnull())
 with_table_disk_mass = (fiducial) & (simulations.M_disk.notnull())
 # viscous = (fiducial) & (simulations.viscosity == "LK")
-with_m0 = (fiducial) & (simulations.comment == "M0")
+with_m0 = (simulations.resolution == 0.125) & (simulations.comment == "M0")
 # non_viscous = (fiducial) & (simulations.viscosity != "LK")
 # not_blacklist =
 # unique_simulations = copy.deepcopy(simulations)

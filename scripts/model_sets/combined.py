@@ -225,8 +225,8 @@ def polyfit(models, v_ns_x="Lambda", v_n_y="Mej_tot-geo", degree=2):
 basuwein13 = simulations[simulations["bibkey"] == "Bauswein:2013yna"]
 reference = simulations[simulations["bibkey"] == "Reference set"]
 vincent19 = simulations[simulations["bibkey"] == "Vincent:2019kor"]
-radice18lk = simulations[(simulations["bibkey"] == "Radice:2018pdn")&(simulations["nus"] == "leak")]
-radice18m0 = simulations[(simulations["bibkey"] == "Radice:2018pdn")&(simulations["nus"] == "leakM0")]
+# radice18lk = simulations[(simulations["bibkey"] == "Radice:2018pdn")&(simulations["nus"] == "leak")]
+# radice18m0 = simulations[(simulations["bibkey"] == "Radice:2018pdn")&(simulations["nus"] == "leakM0")]
 lehner16 = simulations[simulations["bibkey"] == "Lehner:2016lxy"]
 kiuchi19 = simulations[simulations["bibkey"] == "Kiuchi:2019lls"]
 dietrich16 = simulations[simulations["bibkey"] == "Dietrich:2016lyp"]
@@ -234,6 +234,8 @@ dietrich15 = simulations[simulations["bibkey"] == "Dietrich:2015iva"]
 sekiguchi16 = simulations[simulations["bibkey"] == "Sekiguchi:2016bjd"]
 sekiguchi15 = simulations[simulations["bibkey"] == "Sekiguchi:2015dma"]
 hotokezaka12 = simulations[simulations["bibkey"] == "Hotokezaka:2012ze"]
+radice18lk = simulations[(simulations["bibkey"] == "Radice:2018pdn(LK)")]
+radice18m0 = simulations[(simulations["bibkey"] == "Radice:2018pdn(M0)")]
 
 datasets_markers = {
     "bauswein":     "h", #"s",
@@ -297,7 +299,6 @@ eos_dic_marker = {
     # "BHBlp": "v"
 }
 
-
 eos_dic_color = {
     "DD2": "blue",
     "BLh": "green",
@@ -307,15 +308,20 @@ eos_dic_color = {
     # "BHBlp": "lime"
 }
 
+# ---
+
+# simulations = simulations[simulations["Mej_tot-geo"] > 5e-5]
 
 if __name__ == "__main__":
 
-    i_simulations = simulations[np.isnan(simulations["Mdisk3D"])]
-    print(list(set(i_simulations["bibkey"])))
-    i_simulations = simulations[~np.isnan(simulations["Mdisk3D"])]
-    print(list(set(i_simulations["bibkey"])))
-    for key in simulations["bibkey"]:
-        print(key)
+    print(len(simulations))
+
+    # i_simulations = simulations[np.isnan(simulations["Mdisk3D"])]
+    # print(list(set(i_simulations["bibkey"])))
+    # i_simulations = simulations[~np.isnan(simulations["Mdisk3D"])]
+    # print(list(set(i_simulations["bibkey"])))
+    # for key in simulations["bibkey"]:
+    #     print(key)
 
     # dfname2 = "/home/vsevolod/GIT/bitbucket/bns_gw170817/data/dynej_disc_literature/LiteratureData.csv"
     # keys = {
