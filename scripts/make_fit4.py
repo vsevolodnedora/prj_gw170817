@@ -1561,12 +1561,12 @@ if __name__ == "__main__":
     # print(len(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]))
     # print(np.mean(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]["Mej_tot-geo"]))
     ''' ejecta mass'''
-    # o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator='&')
+    o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator='&')
     # o_tbl.print_stats()
     # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", modify="log10",usesigma=True)
     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
-    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16")
+    o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16", modify="log10")
     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
@@ -1608,8 +1608,8 @@ if __name__ == "__main__":
     #                      [".2f",  ".2f", ".2f"], usesigma=True)
 
     ''' disk mass '''
-    o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True, deliminator="&")
-    o_tbl.print_stats()
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True, deliminator="&")
+    # o_tbl.print_stats()
     # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", modify=None)

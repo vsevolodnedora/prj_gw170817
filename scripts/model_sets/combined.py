@@ -237,6 +237,24 @@ hotokezaka12 = simulations[simulations["bibkey"] == "Hotokezaka:2012ze"]
 radice18lk = simulations[(simulations["bibkey"] == "Radice:2018pdn(LK)")]
 radice18m0 = simulations[(simulations["bibkey"] == "Radice:2018pdn(M0)")]
 
+mask_refset = simulations["bibkey"] == "Reference set"
+mask_heatcool = (simulations["bibkey"] == "Vincent:2019kor")| \
+                             (simulations["bibkey"] == "Sekiguchi:2016bjd")| \
+                             (simulations["bibkey"] == "Sekiguchi:2015dma")| \
+                             (simulations["bibkey"] == "Radice:2018pdn(M0)")
+mask_cool = (simulations["bibkey"] == "Radice:2018pdn(LK)")| \
+                         (simulations["bibkey"] == "Lehner:2016lxy")
+mask_none = (simulations["bibkey"] == "Bauswein:2013yna")| \
+                         (simulations["bibkey"] == "Kiuchi:2019lls")| \
+                         (simulations["bibkey"] == "Dietrich:2016lyp")| \
+                         (simulations["bibkey"] == "Dietrich:2015iva")| \
+                         (simulations["bibkey"] == "Hotokezaka:2012ze")
+
+group_refset = simulations[mask_refset]
+group_heatcool = simulations[mask_heatcool]
+group_cool = simulations[mask_cool]
+group_none = simulations[mask_none]
+
 datasets_markers = {
     "bauswein":     "h", #"s",
     "hotokezaka":   "d",  #">",
@@ -271,6 +289,27 @@ datasets_labels = {
     "our":          "Nedora+2020", #"This work",
     "our_total":    "This work Total",
     "reference":    "Reference set"
+}
+
+dataset_group_labels = {
+    "none":         r"No neutrinos", #"s",
+    "heatcool":     r"Heating \& Cooling",  #"p",
+    "cool":         r"Cooling", #"P",
+    "refset":       r"Reference set"
+}
+
+dataset_group_markers = {
+    "none":         r"s", #"s",
+    "heatcool":     r"d",  #"p",
+    "cool":         r"P", #"P",
+    "refset":       r"o"
+}
+
+dataset_group_colors = {
+    "none": "gray",
+    "cool": "green",
+    "heatcool": "red",
+    "refset": "blue"
 }
 
 datasets_colors = {
@@ -313,9 +352,11 @@ eos_dic_color = {
 # simulations = simulations[simulations["Mej_tot-geo"] > 5e-5]
 
 if __name__ == "__main__":
-
-    print(len(simulations))
-
+    test = simulations#[mask_refset|mask_heatcool|mask_cool]#[mask_refset|mask_heatcool|mask_cool]
+    # print(test["Mej_tot-geo"].describe())
+    # print(test["vel_inf_ave-geo"].describe())
+    # print(test["Ye_ave-geo"].describe())
+    print(test["Mdisk3D"].describe())
     # i_simulations = simulations[np.isnan(simulations["Mdisk3D"])]
     # print(list(set(i_simulations["bibkey"])))
     # i_simulations = simulations[~np.isnan(simulations["Mdisk3D"])]

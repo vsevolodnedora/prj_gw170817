@@ -304,7 +304,7 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
                 axi.add_artist(axi.legend(han[:-1 * n], lab[:-1 * n], **ldic))
                 # ax[0].add_artist(ax[0].legend(han[len(han) - n:], lab[len(lab) - n:], **dic_))
             else:
-                plt.legend(**subplotdic["legend"])
+                axi.legend(**subplotdic["legend"])
 
     # for the whole plot
     if "commonaxislabel" in plot_dic.keys() and plot_dic["commonaxislabel"] != None:
@@ -325,8 +325,8 @@ def plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, model_dics):
     if "tick_params" in plot_dic.keys() and len(plot_dic["tick_params"].keys()) > 0:
         plt.tick_params(**plot_dic["tick_params"])
 
-    if "legend" in plot_dic.keys() and len(plot_dic["legend"].keys()) > 0:
-        plt.legend(**plot_dic["legend"])
+    # if "legend" in plot_dic.keys() and len(plot_dic["legend"].keys()) > 0:
+    #     plt.legend(**plot_dic["legend"])
 
     if "subplots_adjust" in plot_dic.keys() and len(plot_dic["subplots_adjust"].keys()) > 0:
         plt.subplots_adjust(**plot_dic["subplots_adjust"])
@@ -1480,25 +1480,1082 @@ def task_plot_thetaej_fits_only():
 
     plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
 
+# ---
+
+def task_plot_mdisk_fits_only_group():
+
+    from model_sets import combined as md
+    from make_fit4 import Fit_Data
+
+    # -------------------------------------------
+
+    datasets = OrderedDict()
+    datasets['refset'] =    {"models": md.group_refset, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["heatcool"] =  {"models": md.group_heatcool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["cool"] =      {"models": md.group_cool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["none"] =      {"models": md.group_none, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+
+    for key in datasets.keys():
+        datasets[key]["x_dic"] = {"v_n": "Mdisk3D_fit", "err": None, "deferr": None, "mod": {}}
+        datasets[key]["y_dic"] = {"v_n": "Mdisk3D", "err": "ud", "deferr": 0.2, "mod": {}}
+        datasets[key]["mod_x"] = {}
+        datasets[key]["plot_errorbar"] = False
+        datasets[key]["facecolor"] = 'none'
+        datasets[key]["edgecolor"] = md.dataset_group_colors[key]
+        datasets[key]["marker"] = md.dataset_group_markers[key]
+        datasets[key]["label"] = md.dataset_group_labels[key]
+        datasets[key]["ms"] = 40
+        datasets[key]["alpha"] = 0.8
+
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "Mdisk3D", err_method="default", clean_nans=True)
+
+    fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=None, usesigma=False)
+    fit_dics["poly2"] = { # 202 --  230
+        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs),"to_val":None,#"10**",# None,
+        "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19", modify=None, usesigma=False)
+    fit_dics["Eq.15"] = { # 481.6
+        "func": FittingFunctions.mdisk_kruger19, "coeffs": np.array(coeffs), "to_val":None,#"10**",# None,
+        "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="rad18", cf_name="rad18", modify=None, usesigma=False)
+    fit_dics["Eq.14"] = { # 630 -- 730
+        "func": FittingFunctions.mdisk_radice18, "coeffs": np.array(coeffs), "to_val":None,#"10**",# None,
+        "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=None, usesigma=False)
+    fit_dics["poly1"] = { # 640 -- 750
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs),  "to_val":None,#"10**",# None,
+        "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "plot_zero": True
+    }
+    # fit_dics = {
+    #     "Eq.14":
+    #         {"func": fit_funcs.mdisk_radice18, "coeffs": np.array([0.070,0.101,305.009,189.952]),
+    #         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #         "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #         "plot_zero": True},
+    #     "Eq.15":
+    #         {"func": fit_funcs.mdisk_kruger20, "coeffs": np.array([-0.013, 1.000, 1325]),
+    #          "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "plot_zero": True},
+    #     "poly1":
+    #         {"func": fit_funcs.poly_2_Lambda, "coeffs": np.array([-8.46e-02, 6.38e-04, -3.85e-07]),
+    #          "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "plot_zero": True},
+    #     "poly2":
+    #         {"func": fit_funcs.poly_2_qLambda, "coeffs": np.array([-8.951e-1,1.195,4.292e-4,-3.991e-1,4.778e-5,-2.266e-7]),
+    #          "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          "ymin": -5.0, "ymax": 3.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "plot_zero": True},
+    # }
+
+    subplot_dics = OrderedDict()
+    subplot_dics["poly2"] = {
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's':r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["Eq.15"] = {
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(15)", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["Eq.14"] = {
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(14)", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True,
+        "legend": {
+            # "last_n": 4,
+            "fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+            # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+            "shadow": "False", "ncol": 1, "fontsize": 12,
+            "framealpha": 0., "borderaxespad": 0., "frameon": False}
+    }
+    subplot_dics["poly1"] = {
+        "xmin": -0.02, "xmax": .30, "xscale": "linear",
+        "ymin": -4.2, "ymax": 1.8, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True,
+        # "legend": {
+        #     "first_n":4,
+        #     "fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+        #     # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+        #     "shadow": "False", "ncol": 1, "fontsize": 11,
+        #     "framealpha": 0., "borderaxespad": 0., "frameon": False}
+    }
+
+    # subplot_dics = {
+    #     "Eq.14":
+    #         {"xmin": -0.02, "xmax": .3, "xscale": "linear",
+    #          "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis":'both', "which":'both', "labelleft":True,
+    #                            "labelright":False, "tick1On":True, "tick2On":True,
+    #                            "labelsize":14,
+    #                            "direction":'in',
+    #                            "bottom":True, "top":True, "left":True, "right":True},
+    #          "text":{'x':0.85, 'y':0.90, 's':r"Eq.(14)", 'fontsize':14, 'color':'black','horizontalalignment':'center'},
+    #          "plot_zero": True,
+    #          "labels": True,
+    #         },
+    #     "Eq.15":
+    #         {"xmin": -0.02, "xmax": .3, "xscale": "linear",
+    #          "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(15)", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True,
+    #          "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+    #                     # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+    #                     "shadow": "False", "ncol": 2, "fontsize": 13,
+    #                     "framealpha": 0., "borderaxespad": 0., "frameon": False},
+    #          },
+    #     "poly1":
+    #         {"xmin": -0.02, "xmax": .3, "xscale": "linear",
+    #          "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly1", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #          },
+    #     "poly2":
+    #         {"xmin": -0.02, "xmax": .3, "xscale": "linear",
+    #          "ymin": -10.0, "ymax": 2.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly2", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True,
+    #          },
+    # }
+
+    plot_dic = {
+        "subplots":{"figsize": (6.0, 8.0), "ncols":1,"nrows":4, "sharex":True,"sharey":False},
+        "subplot_adjust": {"left": 0.10, "bottom": 0.10, "top": 0.98, "right": 0.95, "hspace": 0},
+        "dpi": 128, "fontsize": 15, "labelsize": 15,
+        "tight_layout": False,
+        "xlabel": r"$M_{\rm disk;fit}$ $[M_{\odot}]$",
+        "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
+        "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
+        "savepdf": True,
+        "figname": __outplotdir__ + "residuals_sets_disk_mass.png",
+        "commonaxislabel":True,
+        "subplots_adjust":{"hspace":0, "wspace":0},
+        # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
+        #              "ncol":3, "labelspacing":0.}
+        "add_error_bar":{
+            "median":{'color':'blue','lw':0.6,'ls':':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            #"width":"1sigma",
+            "confinterv":0.68,
+            "fill_between":{"facecolor":'gray', "alpha":0.3}
+
+        }
+    }
+
+    plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
+
+def task_plot_mej_fits_only_group():
+    # from model_sets import models_vincent2019 as vi
+    # from model_sets import models_radice2018 as rd
+    # from model_sets import groups as md
+    # from model_sets import models_lehner2016 as lh  # [22] arxive:1603.00501
+    # from model_sets import models_kiuchi2019 as ki
+    # from model_sets import models_dietrich2015 as di15  # [21] arxive:1504.01266
+    # from model_sets import models_dietrich2016 as di16  # [24] arxive:1607.06636
+    # from model_sets import models_sekiguchi2016 as se16  # [23] arxive:1603.01918 # no Mb
+    # from model_sets import models_sekiguchi2015 as se15  # [-]  arxive:1502.06660 # no Mb
+    # from model_sets import models_hotokezaka2013 as hz          # [19] arxive:1212.0905
+    # from model_sets import models_bauswein2013 as bs            # [20] arxive:1302.6530
+
+    from model_sets import combined as md
+    from make_fit4 import Fit_Data
+
+    # -------------------------------------------
+
+    datasets = OrderedDict()
+    datasets['refset'] = {"models": md.group_refset, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["heatcool"] = {"models": md.group_heatcool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["cool"] = {"models": md.group_cool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["none"] = {"models": md.group_none, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+
+    for key in datasets.keys():
+        datasets[key]["x_dic"] = {"v_n": "Mej_tot-geo_fit", "err": None, "deferr": None, "mod":{"mult": [1e3]}}#{"mult": [1e3]}}#, "mod": {"mult": [1e3]}}
+        datasets[key]["y_dic"] = {"v_n": "Mej_tot-geo",     "err": "ud", "deferr": 0.2, "mod":{"mult": [1e3]}}#}{"mult": [1e3]}}#,  "mod": {"mult": [1e3]}}
+        datasets[key]["mod_x"] = {}
+        datasets[key]["facecolor"] = 'none'
+        datasets[key]["plot_errorbar"] = False
+        datasets[key]["edgecolor"] = md.dataset_group_colors[key]
+        datasets[key]["marker"] = md.dataset_group_markers[key]
+        datasets[key]["label"] = md.dataset_group_labels[key]
+        datasets[key]["ms"] = 40
+        datasets[key]["alpha"] = 0.8
+
+
+    o_fit = Fit_Data(md.simulations, "Mej_tot-geo", err_method="default", clean_nans=True)
+
+    # coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
+    fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="krug19", cf_name="krug19", modify="log10")
+    fit_dics["Eq.7"] = {  # best 53.2
+        "func": FittingFunctions.mej_kruger19, "coeffs": np.array(coeffs), "to_val": "10**",# None,
+        "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
+    fit_dics["poly2"] = { # 2nd best  81.5
+        "func": FittingFunctions.poly_2_qLambda, "coeffs": np.array(coeffs), "to_val": "10**",#None,
+        "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+        "plot_zero": True
+
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16", modify="log10")
+    fit_dics["Eq.6"] = { # 153
+        "func": FittingFunctions.mej_dietrich16, "coeffs": np.array(coeffs), "to_val": "10**",# None,
+        "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify="log10")
+    fit_dics["poly1"] = { # 628
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": "10**",# None,
+        "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+        "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+        "plot_zero": True
+    }
+
+    #
+    # fit_dics = {
+    #     "Eq.6":
+    #         {"func": fit_funcs.mej_dietrich16, "coeffs": np.array([-1.234, 3.089, -31.801, 17.526, -3.146]),
+    #         "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+    #         "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+    #         "plot_zero": True},
+    #     "Eq.7":
+    #         {"func": fit_funcs.mej_kruger20, "coeffs": np.array([-0.981, 12.880, -35.148, 2.030]),
+    #          "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+    #          "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+    #          "plot_zero": True},
+    #     "poly1":
+    #         {"func": fit_funcs.poly_2_Lambda, "coeffs": np.array([-3.209e+00, 0.032, -2.759e-05]),
+    #             #np.array([-1.221e-2, 0.014, 8.396e-7]),
+    #          "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+    #          "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+    #          "plot_zero": True},
+    #     "poly2":
+    #         {"func": fit_funcs.poly_2_qLambda, "coeffs": np.array([2.549, 2.394, -3.005e-02, -3.376e+00, 0.038, -1.149e-05]),
+    #             #np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
+    #          "xmin": 0, "xmax": 24., "xscale": "linear", "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+    #          "ymin": -100.0, "ymax": 100.0, "yscale": "linear", "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$",
+    #          "plot_zero": True},
+    # }
+
+    subplot_dics = OrderedDict()
+    subplot_dics["Eq.7"] = {
+        "xmin": -0.5, "xmax": 25., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(7)", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True,
+    }
+    subplot_dics["poly2"] = {
+        "xmin": -0.5, "xmax": 25., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["Eq.6"] = {
+        "xmin": -0.5, "xmax": 25., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(6)", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["poly1"] = {
+        "xmin": -0.5, "xmax": 25., "xscale": "linear",
+        "ymin": -12., "ymax": 2.2, "yscale": "linear",
+        # "xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+        # "ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+                   # "bbox_to_anchor": (0.8, 1.1),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 12,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "plot_zero": True,
+        "labels": True
+    }
+
+
+
+
+    # subplot_dics = {
+    #     "Eq.6":
+    #         {"xmin": -4, "xmax": 40., "xscale": "linear",
+    #          "ymin": -11.0, "ymax": 9.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis":'both', "which":'both', "labelleft":True,
+    #                            "labelright":False, "tick1On":True, "tick2On":True,
+    #                            "labelsize":14,
+    #                            "direction":'in',
+    #                            "bottom":True, "top":True, "left":True, "right":True},
+    #          "text":{'x':0.85, 'y':0.90, 's':r"Eq.(6)", 'fontsize':14, 'color':'black','horizontalalignment':'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #         },
+    #     "Eq.7":
+    #         {"xmin": -4, "xmax": 40., "xscale": "linear",
+    #          "ymin": -11.0, "ymax": 9.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(7)", 'fontsize': 14, 'color': 'black', 'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True,
+    #          },
+    #     "poly1":
+    #         {"xmin": -4, "xmax": 40., "xscale": "linear",
+    #          "ymin": -11, "ymax": 9.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly1", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
+    #                     # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+    #                     "shadow": "False", "ncol": 2, "fontsize": 12,
+    #                     "framealpha": 0., "borderaxespad": 0., "frameon": False},
+    #          "labels": True
+    #          },
+    #     "poly2":
+    #         {"xmin": -4, "xmax": 40., "xscale": "linear",
+    #          "ymin": -11.0, "ymax": 9.0, "yscale": "linear",
+    #          #"xlabel": r"$M_{\rm disk;fit}$ $[10^{-3}M_{\odot}]$",
+    #          #"ylabel": r"$\Delta M_{\rm disk} / M_{\rm disk}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly2", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #          },
+    # }
+
+    # print(fit_dics.keys(), subplot_dics.keys())
+
+    plot_dic = {
+        "subplots":{"figsize": (6.0, 8.0), "ncols":1,"nrows":4, "sharex":True,"sharey":False},
+        "subplot_adjust": {"left" : 0.10, "bottom" : 0.10, "top" : 0.98, "right" : 0.95, "hspace" : 0},
+        "dpi": 128, "fontsize": 15, "labelsize": 15,
+        "xlabel": r"$M_{\rm ej;fit}$ $[10^{-3}M_{\odot}]$",
+        "ylabel": r"$\Delta M_{\rm ej} / M_{\rm ej}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
+        "tick_params": {"labelcolor":'none', "top":False, "bottom":False, "left":False, "right":False},
+        "savepdf": True,
+        "figname": __outplotdir__ + "residuals_sets_mej.png",
+        "commonaxislabel":True,
+        "subplots_adjust":{"hspace":0, "wspace":0},
+        # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
+        #              "ncol":3, "labelspacing":0.}
+        "add_error_bar": {
+            "median": {'color': 'blue', 'lw': 0.6, 'ls': ':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            # "width":"1sigma",
+            "confinterv": 0.68,
+            "fill_between": {"facecolor": 'gray', "alpha": 0.3}
+
+        },
+        "tight_layout":False
+    }
+
+    plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
+
+def task_plot_vej_fits_only_group():
+
+    from model_sets import combined as md
+
+
+    # datasets["kiuchi"] =    {'marker': "X", "ms": 20, "models": ki.simulations, "data": ki, "err": ki.params.Mej_err, "label": r"Kiuchi+2019", "color": "gray", "fit": False}
+    # datasets["radice"] =    {'marker': '*', "ms": 40, "models": rd.simulations[rd.fiducial], "data":rd, "err":rd.params.MdiskPP_err, "label": r"Radice+2018", "color": "blue", "fit": True}
+    # # datasets["dietrich"] =  {'marker': 'd', "ms": 20, "models": di.simulations[di.mask_for_with_sr], "data":di, "err":di.params.Mej_err, "label":"Dietrich+2016"}
+    # # datasets["dietrich"] =  {'marker': 'd', "ms": 20, "models": du.simulations, "data": du, "err": du.params.Mej_err, "label": r"Dietrich\&Ujevic+2016", "color": "black", "fit": False}
+    # # datasets["vincent"] =   {'marker': 'v', 'ms': 20, "models": vi.simulations, "data": vi, "err": vi.params.Mej_err,"label": r"Vincent+2019", "color": "blue", "fit": False}  # di.simulations[di.mask_for_with_sr & di.mask_for_with_disk]
+    # # datasets["bauswein"] =  {'marker': 's', 'ms': 20, "models": bs.simulations, "data": bs, "err": bs.params.Mej_err, "label": r"Bauswein+2013", "color": "blue", "fit": False}
+    # # datasets["lehner"] =    {'marker': 'P', 'ms': 20, "models": lh.simulations, "data": lh, "err": lh.params.Mej_err, "label": r"Lehner+2016", "color": "blue", "fit": False}
+    # # datasets["hotokezaka"] ={'marker': '>', 'ms': 20, "models": hz.simulations, "data": hz, "err": hz.params.Mej_err, "label": r"Hotokezaka+2013", "color": "gray", "fit": False}
+    # datasets['our'] =       {'marker': 'o', 'ms': 40, "models": md.groups, "data": md, "err": "v_n", "label": r"This work", "color": "red", "fit": True}
+    datasets = OrderedDict()
+    datasets['refset'] = {"models": md.group_refset, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["heatcool"] = {"models": md.group_heatcool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["cool"] = {"models": md.group_cool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["none"] = {"models": md.group_none, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+
+    for key in datasets.keys():
+        datasets[key]["x_dic"] = {"v_n": "vel_inf_ave-geo_fit", "err": None, "deferr": None, "mod": {}}
+        datasets[key]["y_dic"] = {"v_n": "vel_inf_ave-geo",     "err": "ud", "deferr": 0.2,  "mod": {}}
+        datasets[key]["mod_x"] = {}
+        datasets[key]["facecolor"] = 'none'
+        datasets[key]["plot_errorbar"] = False
+        datasets[key]["edgecolor"] = md.dataset_group_colors[key]
+        datasets[key]["marker"] = md.dataset_group_markers[key]
+        datasets[key]["label"] = md.dataset_group_labels[key]
+        datasets[key]["ms"] = 40
+        datasets[key]["alpha"] = 0.8
+
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "vel_inf_ave-geo", err_method="default", clean_nans=True)
+
+    fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+    fit_dics["poly2"] = { # 5.6
+        "func": FittingFunctions.poly_2_qLambda,
+        "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    fit_dics["Eq.9"] = { # 6.1
+        "func": FittingFunctions.vej_dietrich16, "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    fit_dics["poly1"] = { # 6.1
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
+        "plot_zero": True
+    }
+
+
+    # fit_dics = {
+    #     "Eq.9":
+    #         {"func": fit_funcs.vej_dietrich16, "coeffs": np.array([-0.422, 0.834, -1.510]),
+    #         "xmin":0.05, "xmax":.3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+    #         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
+    #         "plot_zero": True},
+    #     "poly1":
+    #         {"func": fit_funcs.poly_2_Lambda, "coeffs": np.array([0.252, -1.723e-04, 9.481e-08]),
+    #             #np.array([-1.221e-2, 0.014, 8.396e-7]),
+    #          "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+    #          "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
+    #          "plot_zero": True},
+    #     "poly2":
+    #         {"func": fit_funcs.poly_2_qLambda, "coeffs": np.array([0.182, 0.159, -1.509e-04, -1.046e-01, 9.233e-05, -1.581e-08]),
+    #             #np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
+    #          "xmin":0.05, "xmax":.3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+    #          "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
+    #          "plot_zero": True},
+    # }
+    subplot_dics = OrderedDict()
+    subplot_dics["poly2"] = {
+        "xmin": 0.1, "xmax": .3, "xscale": "linear",  # "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ymin": -1.1, "ymax": 1.1, "yscale": "linear",  # "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["Eq.9"] = {
+        "xmin": 0.1, "xmax": .3, "xscale": "linear",  # "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ymin": -1.1, "ymax": 1.1, "yscale": "linear",  # "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(9)", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["poly1"] = {
+        "xmin": 0.1, "xmax": .3, "xscale": "linear",  # "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ymin": -1.1, "ymax": 1.1, "yscale": "linear",  # "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "legend": {"fancybox": False, "loc": 'lower left',
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing": 0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "labels": True
+    }
+
+
+    # subplot_dics = {
+    #     "Eq.9":
+    #         {"xmin":0.03, "xmax":.35, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+    #          "ymin": -1.1, "ymax": 1.1, "yscale": "linear", #"ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
+    #          "tick_params": {"axis":'both', "which":'both', "labelleft":True,
+    #                            "labelright":False, "tick1On":True, "tick2On":True,
+    #                            "labelsize":14,
+    #                            "direction":'in',
+    #                            "bottom":True, "top":True, "left":True, "right":True},
+    #          "text":{'x':0.85, 'y':0.90, 's':r"Eq.(9)", 'fontsize':14, 'color':'black','horizontalalignment':'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #         },
+    #     "poly1":
+    #         {"xmin":0.03, "xmax":.35, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+    #          "ymin": -1.1, "ymax": 1.1, "yscale": "linear", #"ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly1", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "legend": {"fancybox": False, "loc": 'lower left',
+    #                     # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+    #                     "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing":0.4,
+    #                     "framealpha": 0., "borderaxespad": 0., "frameon": False},
+    #          "labels": True
+    #          },
+    #     "poly2":
+    #         {"xmin":0.03, "xmax":.35, "xscale": "linear", #"xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+    #          "ymin": -1.1, "ymax": 1.1, "yscale": "linear", #"ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly2", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #          },
+    # }
+
+    plot_dic = {
+        "subplots":{"figsize": (6.0, 6.0), "ncols":1,"nrows":3, "sharex":True,"sharey":False},
+        "subplot_adjust": {"left": 0.10, "bottom": 0.10, "top": 0.98, "right": 0.95, "hspace": 0},
+        "dpi": 128, "fontsize": 15, "labelsize": 15,
+        "tight_layout": False,
+        "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$", #r"$M_{\rm disk}$ $[10^{-3}M_{\odot}]$",
+        "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
+        "savepdf": True,
+        "figname": __outplotdir__ + "residuals_sets_vej.png",
+        "commonaxislabel":True,
+        "subplots_adjust":{"hspace":0, "wspace":0},
+        "add_error_bar": {
+            "median": {'color': 'blue', 'lw': 0.6, 'ls': ':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            # "width":"1sigma",
+            "confinterv": 0.68,
+            "fill_between": {"facecolor": 'gray', "alpha": 0.3}
+        }
+        # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
+        #              "ncol":3, "labelspacing":0.}
+
+    }
+
+    plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
+
+def task_plot_yeej_fits_only_group():
+
+    from model_sets import combined as md
+
+    datasets = OrderedDict()
+    datasets['refset'] = {"models": md.group_refset, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["heatcool"] = {"models": md.group_heatcool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["cool"] = {"models": md.group_cool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["none"] = {"models": md.group_none, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+
+    for key in datasets.keys():
+        datasets[key]["x_dic"] = {"v_n": "Ye_ave-geo_fit", "err": None, "deferr": None, "mod": {}}
+        datasets[key]["y_dic"] = {"v_n": "Ye_ave-geo",     "err": "ud", "deferr": 0.2,  "mod": {}}
+        datasets[key]["mod_x"] = {}
+        datasets[key]["facecolor"] = 'none'
+        datasets[key]["edgecolor"] = md.dataset_group_colors[key]
+        datasets[key]["marker"] = md.dataset_group_markers[key]
+        datasets[key]["label"] = md.dataset_group_labels[key]
+        datasets[key]["ms"] = 40
+        datasets[key]["alpha"] = 0.8
+        datasets[key]["plot_errorbar"] = False
+
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "Ye_ave-geo", err_method="default", clean_nans=True)
+
+    fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+    fit_dics["poly2"] = { # 17
+        "func": FittingFunctions.poly_2_qLambda,
+        "method": "delta",
+        "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="our", cf_name="our")
+    fit_dics["Eq.11"] = { # 23
+        "method": "delta",
+        "func": FittingFunctions.yeej_ours, "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    fit_dics["poly1"] = { # 30+
+        "method": "delta",
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "plot_zero": True
+    }
+
+    # fit_dics = {
+    #     "Eq.11":
+    #         {"func": fit_funcs.yeej_like_vej, "coeffs": np.array([0.177, 0.452, -4.611]),
+    #         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #         "ymin": -2.0, "ymax": 0.8, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #         "plot_zero": True},
+    #     "poly1":
+    #         {"func": fit_funcs.poly_2_Lambda, "coeffs": np.array([0.064, 3.485e-04, -2.638e-07]),
+    #             #np.array([-1.221e-2, 0.014, 8.396e-7]),
+    #          "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -2.0, "ymax": 0.8, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "plot_zero": True},
+    #     "poly2":
+    #         {"func": fit_funcs.poly_2_qLambda, "coeffs": np.array([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07]),
+    #             #np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
+    #          "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -2.0, "ymax": 0.8, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "plot_zero": True},
+    # }
+    subplot_dics = OrderedDict()
+    subplot_dics["poly2"] = {
+        "xmin": 0.05, "xmax": .225, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.18, "ymax": 0.18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's':r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["Eq.11"] = {
+        "xmin": 0.05, "xmax": .225, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.18, "ymax": 0.18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(11)", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["poly1"] = {
+        "xmin": 0.05, "xmax": .225, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.18, "ymax": 0.18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black', 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "legend": {"fancybox": False, "loc": 'lower left',
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing": 0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "labels": True
+    }
+
+    # subplot_dics = {
+    #     "Eq.11":
+    #         {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "tick_params": {"axis":'both', "which":'both', "labelleft":True,
+    #                            "labelright":False, "tick1On":True, "tick2On":True,
+    #                            "labelsize":14,
+    #                            "direction":'in',
+    #                            "bottom":True, "top":True, "left":True, "right":True},
+    #          "text":{'x':0.85, 'y':0.90, 's':r"Eq.(11)", 'fontsize':14, 'color':'black','horizontalalignment':'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #         },
+    #     "poly1":
+    #         {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly1", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "legend": {"fancybox": False, "loc": 'lower right',
+    #                     # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+    #                     "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing":0.4,
+    #                     "framealpha": 0., "borderaxespad": 0., "frameon": False},
+    #          "labels": True
+    #          },
+    #     "poly2":
+    #         {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly2", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #          },
+    # }
+
+    plot_dic = {
+        "subplots":{"figsize": (6.0, 6.0), "ncols":1,"nrows":3, "sharex":True,"sharey":False},
+        "subplot_adjust": {"left": 0.10, "bottom": 0.10, "top": 0.98, "right": 0.95, "hspace": 0},
+        "dpi": 128, "fontsize": 15, "labelsize": 15,
+        "tight_layout": False,
+        "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ylabel": r"$\Delta Y_{e\: \rm ej}$", #r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$"
+        "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
+        "savepdf": True,
+        "figname": __outplotdir__ + "residuals_sets_yeej.png",
+        "commonaxislabel":True,
+        "subplots_adjust":{"hspace":0, "wspace":0},
+        "add_error_bar": {
+            "median": {'color': 'blue', 'lw': 0.6, 'ls': ':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            # "width":"1sigma",
+            "confinterv": 0.68,
+            "fill_between": {"facecolor": 'gray', "alpha": 0.3}
+        }
+        # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
+        #              "ncol":3, "labelspacing":0.}
+    }
+
+    plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
+
+def task_plot_thetaej_fits_only_group():
+
+    from model_sets import combined as md
+
+    datasets = OrderedDict()
+    datasets['refset'] = {"models": md.group_refset, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": "v_n"}
+    datasets["heatcool"] = {"models": md.group_heatcool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["cool"] = {"models": md.group_cool, "data": md, "fit": True, "color": None, "plot_errorbar": True, "err": md.params.MdiskPP_err}
+    datasets["none"] = {"models": md.group_none, "data": md, "fit": True, "color": None, "plot_errorbar": False, "err": md.params.MdiskPP_err}
+
+    for key in datasets.keys():
+        datasets[key]["x_dic"] = {"v_n": "theta_rms-geo_fit", "err": None, "deferr": None, "mod": {}}
+        datasets[key]["y_dic"] = {"v_n": "theta_rms-geo",     "err": "ud", "deferr": 0.2,  "mod": {}}
+        datasets[key]["mod_x"] = {}
+        datasets[key]["facecolor"] = 'none'
+        datasets[key]["edgecolor"] = md.dataset_group_colors[key]
+        datasets[key]["marker"] = md.dataset_group_markers[key]
+        datasets[key]["label"] = md.dataset_group_labels[key]
+        datasets[key]["ms"] = 40
+        datasets[key]["alpha"] = 0.8
+        datasets[key]["plot_errorbar"] = False
+
+    from make_fit4 import Fit_Data
+    o_fit = Fit_Data(md.simulations, "theta_rms-geo", err_method="default", clean_nans=True)
+
+    fit_dics = OrderedDict()
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+    fit_dics["poly2"] = { # 17
+        "func": FittingFunctions.poly_2_qLambda,
+        "method": "delta",
+        "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "plot_zero": True
+    }
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly2_Lambda", cf_name="poly2")
+    fit_dics["poly1"] = { # 30+
+        "method": "delta",
+        "func": FittingFunctions.poly_2_Lambda, "coeffs": np.array(coeffs), "to_val": None,
+        "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -0.3, "ymax": 0.3, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "plot_zero": True
+    }
+
+    # fit_dics = {
+    #     "Eq.11":
+    #         {"func": fit_funcs.yeej_like_vej, "coeffs": np.array([0.177, 0.452, -4.611]),
+    #         "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #         "ymin": -2.0, "ymax": 0.8, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #         "plot_zero": True},
+    #     "poly1":
+    #         {"func": fit_funcs.poly_2_Lambda, "coeffs": np.array([0.064, 3.485e-04, -2.638e-07]),
+    #             #np.array([-1.221e-2, 0.014, 8.396e-7]),
+    #          "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -2.0, "ymax": 0.8, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "plot_zero": True},
+    #     "poly2":
+    #         {"func": fit_funcs.poly_2_qLambda, "coeffs": np.array([-4.555e-01, 0.793, 7.509e-04, -3.139e-01, -1.899e-04, -4.460e-07]),
+    #             #np.array([2.549e-03, 2.394e-03, -3.005e-05, -3.376e-03, 3.826e-05, -1.149e-08]),
+    #          "xmin": 0.1, "xmax": .25, "xscale": "linear", "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -2.0, "ymax": 0.8, "yscale": "linear", "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "plot_zero": True},
+    # }
+    subplot_dics = OrderedDict()
+    subplot_dics["poly2"] = {
+        "xmin": 0, "xmax": 35, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -18, "ymax": 18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's':r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["poly1"] = {
+        "xmin": 0, "xmax": 35, "xscale": "linear",  # "xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+        "ymin": -18, "ymax": 18, "yscale": "linear",  # "ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black', 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "legend": {"fancybox": False, "loc": 'lower left',
+                   # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                   "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing": 0.4,
+                   "framealpha": 0., "borderaxespad": 0., "frameon": False},
+        "labels": True
+    }
+
+    # subplot_dics = {
+    #     "Eq.11":
+    #         {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "tick_params": {"axis":'both', "which":'both', "labelleft":True,
+    #                            "labelright":False, "tick1On":True, "tick2On":True,
+    #                            "labelsize":14,
+    #                            "direction":'in',
+    #                            "bottom":True, "top":True, "left":True, "right":True},
+    #          "text":{'x':0.85, 'y':0.90, 's':r"Eq.(11)", 'fontsize':14, 'color':'black','horizontalalignment':'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #         },
+    #     "poly1":
+    #         {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly1", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "legend": {"fancybox": False, "loc": 'lower right',
+    #                     # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+    #                     "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing":0.4,
+    #                     "framealpha": 0., "borderaxespad": 0., "frameon": False},
+    #          "labels": True
+    #          },
+    #     "poly2":
+    #         {"xmin": 0.05, "xmax": .25, "xscale": "linear", #"xlabel": r"$Y_{e\: \rm{ej;fit}}$",
+    #          "ymin": -3.0, "ymax": 1.2, "yscale": "linear", #"ylabel": r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$",
+    #          "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+    #                          "labelright": False, "tick1On": True, "tick2On": True,
+    #                          "labelsize": 14,
+    #                          "direction": 'in',
+    #                          "bottom": True, "top": True, "left": True, "right": True},
+    #          "text": {'x': 0.85, 'y': 0.90, 's': r"Poly2", 'fontsize': 14, 'color': 'black',
+    #                   'horizontalalignment': 'center'},
+    #          "plot_zero": True,
+    #          "labels": True
+    #          },
+    # }
+
+    plot_dic = {
+        "subplots":{"figsize": (6.0, 4.0), "ncols":1,"nrows":2, "sharex":True,"sharey":False}, # 6.0, 8.0
+        "subplot_adjust": {"left": 0.10, "bottom": 0.12, "top": 0.98, "right": 0.95, "hspace": 0},
+        # "subplot_adjust": {"left": 0.10, "bottom": 0.10, "top": 0.98, "right": 0.95, "hspace": 0},
+        "dpi": 128, "fontsize": 15, "labelsize": 15,
+        "tight_layout": False,
+        "xlabel": r"$\theta_{\rm{RMS;\:fit}}$",
+        "ylabel": r"$\Delta \theta_{\rm RMS}$", #r"$\Delta Y_{e\: \rm ej} / Y_{e\: \rm ej}$"
+        "tick_params": {"labelcolor":'none', "top":"False", "bottom":False, "left":False, "right":False},
+        "savepdf": True,
+        "figname": __outplotdir__ + "residual_sets_thetaej.png",
+        "commonaxislabel":True,
+        "subplots_adjust":{"hspace":0, "wspace":0},
+        "add_error_bar": {
+            "median": {'color': 'blue', 'lw': 0.6, 'ls': ':'},
+            # "mean":{'color':'gray','lw':0.5,'ls':':'},
+            # "width":"1sigma",
+            "confinterv": 0.68,
+            "fill_between": {"facecolor": 'gray', "alpha": 0.3}
+        }
+        # "figlegend":{"loc" : 'lower center', "bbox_to_anchor":(0.5, 0.5),
+        #              "ncol":3, "labelspacing":0.}
+    }
+
+    plot_subplots_for_fits(plot_dic, subplot_dics, fit_dics, datasets)
+
 ''' --------- MAIN --------- '''
 
 if __name__ == "__main__":
 
     ''' --- Mej --- '''
-    task_plot_mej_fits_only()
+    # task_plot_mej_fits_only()
+    task_plot_mej_fits_only_group()
 
     ''' --- vej --- '''
-    task_plot_vej_fits_only()
+    # task_plot_vej_fits_only()
+    task_plot_vej_fits_only_group()
 
     ''' --- ye --- '''
-    task_plot_yeej_fits_only()
+    # task_plot_yeej_fits_only()
+    task_plot_yeej_fits_only_group()
 
     ''' --- theta --- '''
-    task_plot_thetaej_fits_only()
+    # task_plot_thetaej_fits_only()
+    task_plot_thetaej_fits_only_group()
 
     ''' --- Mdisk --- '''
-    task_plot_mdisk_fits_only()
-
+    # task_plot_mdisk_fits_only()
+    task_plot_mdisk_fits_only_group()
 
 
     ''' test '''

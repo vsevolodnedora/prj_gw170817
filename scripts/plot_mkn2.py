@@ -20,7 +20,7 @@ __lightcurves_store__= "/home/vsevolod/GIT/GitHub/prj_gw170817/data/" # should c
 __obs_filter_fname__= "AT2017gfo.h5"
 __nr_data__         = "/home/vsevolod/GIT/GitHub/prj_gw170817/data/"
 mkn_code_path       = "/home/vsevolod/GIT/bitbucket/mkn_framework/source/"
-__outplotdir__      = "../figs/all3/mkn_fit/"
+__outplotdir__      = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/mkn/"
 sys.path.append(mkn_code_path)
 try:
     from mkn_bayes import MKN
@@ -1355,6 +1355,8 @@ class COMBINE_LIGHTCURVES(EXTRACT_LIGHTCURVE):
         #
         # pass
 
+
+
 ''' --------------------------- Plotting modules ----------------------- '''
 
 def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
@@ -1600,7 +1602,560 @@ def plot_custom_lightcurves(plotdic, subplot_dics, tasks):
         plt.savefig(plotdic["figname"].replace(".png", ".pdf"))
     plt.close()
 
+def plot_custom_peak_t_mags(plotdic, subplot_dics, tasks):
+
+    models = md.simulations[md.mask_for_with_dynej]
+    bands = [subplot_dic["band"] for subplot_dic in subplot_dics]
+    fig, axes = plt.subplots(figsize=plotdic["figsize"], ncols=len(bands), nrows=1, sharey="all")
+
+    for task_dic in tasks:
+
+        if "sim" in task_dic.keys() and task_dic["data"] == "NR":
+
+            sim = task_dic["sim"]
+            fname = "{}{}/outflow_0/geo/ejecta_profile.dat".format(__nr_data__, sim)
+            assert os.path.isfile(fname)
+
+            o_mkn = COMPUTE_LIGHTCURVE(sim, __lightcurves_store__)
+            o_mkn.dyn_ejecta_profile_fpath = fname
+            o_mkn.set_use_bern_NR = False
+            o_mkn.set_use_dyn_NR = True
+            o_mkn.set_glob_par_var_source(True, False)
+
+            if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+            if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+            if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+            if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+
+            o_mkn.compute_save_lightcurve(write_output=True)
+
+            load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+
+            # Plotting
+            for ax, band, subplot_dic in zip(axes, bands, subplot_dics):
+                if task_dic["mode"] == "lightcurve":
+                    times, mags = load_mkn.get_model_median(band)
+                    ax.plot(times, mags, **task_dic["plot"])
+                elif task_dic["mode"] == "peak":
+                    tpeak, mpeak = load_mkn.get_model_peak(band)
+                    ax.scatter(tpeak, mpeak, **task_dic["plot"])
+                else:
+                    raise NameError("not implemented")
+
+        elif "sim" in task_dic.keys() and task_dic["data"] == "bestfit":
+
+            sim = task_dic["sim"]
+            model = models[models.index == sim]
+            assert len(model) == 1
+
+            o_fit = BestFits(task_dic["dataframe"], "default", True)
+
+            mej = np.float(o_fit.get_best("Mej_tot-geo", model))
+            vej = np.float(o_fit.get_best("vel_inf_ave-geo", model))
+            mdisk = np.float(o_fit.get_best("Mdisk3D", model))
+            theta_ej = np.float(o_fit.get_best("theta_rms-geo", model))
+
+            print("\t[{}] Mej:{} vej:{} mdisk:{}".format(sim, mej, vej, mdisk))
+
+            o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+            o_mkn.set_glob_par_var_source(False, False)
+            if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+            if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+            if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+            if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+
+            o_mkn.glob_vars['m_disk'] = mdisk
+            o_mkn.ejecta_vars['dynamics']["m_ej"] = mej
+            o_mkn.ejecta_vars["dynamics"]["central_vel"] = vej
+            o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
+            o_mkn.compute_save_lightcurve(write_output=True)
+            #
+            load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+
+            # Plotting
+            for ax, band, subplot_dic in zip(axes, bands, subplot_dics):
+                if task_dic["mode"] == "lightcurve":
+                    times, mags = load_mkn.get_model_median(band)
+                    ax.plot(times, mags, **task_dic["plot"])
+                elif task_dic["mode"] == "peak":
+                    tpeak, mpeak = load_mkn.get_model_peak(band)
+                    ax.scatter(tpeak, mpeak, **task_dic["plot"])
+                else:
+                    raise NameError("not implemented")
+
+            pass
+
+        elif "obs" in task_dic.keys():
+
+            load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+            for ax, band, subplot_dic in zip(axes, bands, subplot_dics):
+                tp, mp, emp = load_mkn.get_obs_peak(band)
+                ax.errorbar(tp, mp, yerr=emp, xerr=None, fmt='', fillstyle="none", ecolor="gray", capsize=4,
+                            markersize=7, marker="v")
+
+        else:
+            raise NameError("not implemented")
+
+    i = 0
+    for ax, band, subplot_dic in zip(axes, bands, subplot_dics):
+        ax.set_yscale(plotdic["yscale"])
+        ax.set_xscale(plotdic["xscale"])
+        #
+        ax.set_xlabel(plotdic["xlabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        if i == 0: ax.set_ylabel(plotdic["ylabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        #
+        if 'xmin' in subplot_dic.keys() and 'xmax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["xmin"], subplot_dic["xmax"])
+        else:
+            ax.set_xlim(plotdic["xmin"], plotdic["xmax"])
+
+        if 'ymin' in subplot_dic.keys() and 'ymax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["ymin"], subplot_dic["ymax"])
+        else:
+            ax.set_ylim(plotdic["ymin"], plotdic["ymax"])
+        #
+        ax.tick_params(axis='both', which='both', labelleft=True,
+                       labelright=False, tick1On=True, tick2On=True,
+                       labelsize=plotdic["fontsize"],
+                       direction='in',
+                       bottom=True, top=True, left=True, right=True)
+        ax.minorticks_on()
+        # #
+
+        if "add_lines" in subplot_dic.keys():
+            for entry in subplot_dic["add_lines"]:
+                ax.plot([-100, -100], [-200, -200], **entry)
+        #
+        if "add_scatter" in subplot_dic.keys():
+            for entry in subplot_dic["add_scatter"]:
+                ax.scatter([-100, -100], [-200, -200], **entry)
+        #
+        if "add_bands" in subplot_dic.keys():
+            for entry in subplot_dic["add_bands"]:
+                ax.fill_between([-100, -100], [-200, -200], [-400, -400], **entry)
+        #
+        if "title" in subplot_dic:
+            ax.set_title(subplot_dic["title"])
+        #
+        if "title" in plotdic.keys():
+            if plotdic["title"] == "#band":
+                ax.set_title(band)
+            else:
+                ax.set_title(plotdic["title"])
+        #
+        if i > 0:
+            ax.tick_params(labelleft=False)
+            # ax.get_yaxis().set_ticks([])
+            # ax.get_yaxis().set_visible(False)
+
+        if "legend" in subplot_dic.keys():
+            ax.legend(**subplot_dic["legend"])
+
+        i = i + 1
+
+    if "legend" in plotdic.keys() and len(plotdic["legend"].keys()) > 0:
+        plt.legend(**plotdic["legend"])
+
+    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.)
+    #
+    print("plotted: \n")
+    print(plotdic["figname"])
+    plt.show()
+    plt.savefig(plotdic["figname"], dpi=128)
+    if "savepdf" in plotdic.keys() and plotdic["savepdf"]:
+        plt.savefig(plotdic["figname"].replace(".png", ".pdf"))
+    plt.close()
+
+
+
+
+
+
+
+
+    models = md.simulations[md.mask_for_with_dynej]
+
+    o_fit = BestFits(cmb.simulations, err_method="default", clean_nans=True)
+
+
+    bands = [subplot_dic["band"] for subplot_dic in subplot_dics]
+    fig, axes = plt.subplots(figsize=plotdic["figsize"], ncols=len(bands), nrows=1, sharey=True)
+    # ax = fig.add_subplot(111)
+    i = 0
+    for ax, band, subplot_dic in zip(axes, bands, subplot_dics):
+
+        for task in tasks:
+
+            if "obs" in task.keys():
+                task_dic = task["obs"]
+                if task_dic["method"] == "peak marker":
+                    load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+                    tp, mp, emp = load_mkn.get_obs_peak(band)
+                    # print(tp, mp, emp); exit(1)
+                    # ax.scatter(tp, mp, **task_dic["plot"])
+                    # ax.axvline(x=tp, linestyle="-.", color="gray")
+                    # ax.axhline(y=mp, linestyle="-.", color="gray")
+                    ax.errorbar(tp, mp, yerr=emp, xerr=None, fmt='',
+                                fillstyle="none", ecolor="gray", capsize=4,
+                                markersize=7, marker="o")
+
+            if "model" in task.keys():
+
+                sim = task["sim"]
+                model = models[models.index == sim]
+                # ofit = Fit(model)
+
+                # load the NR data, compute lightcurve, plot lightcurve
+
+                # mdisk = ofit.value("Mdisk3D", task["Mdisk3D"])
+                fname = "{}{}/outflow_0/geo/ejecta_profile.dat".format(__nr_data__, sim)
+                assert os.path.isfile(fname)
+
+                task_dic = task["model"]
+                o_mkn = COMPUTE_LIGHTCURVE(sim, __lightcurves_store__)
+                o_mkn.dyn_ejecta_profile_fpath = fname
+                o_mkn.set_use_bern_NR = False
+                o_mkn.set_use_dyn_NR = True
+                o_mkn.set_glob_par_var_source(True, False)
+
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+                ### o_mkn.glob_vars['m_disk'] = mdisk
+
+                o_mkn.compute_save_lightcurve(write_output=True)
+
+                # "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/"
+                load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+                times, mags = load_mkn.get_model_median(band)
+                #
+                ax.plot(times, mags, **task_dic["plot"])
+
+            if "best" in task.keys() :
+
+                sim = task["sim"]
+                model = models[models.index == sim]
+                # ofit = Fit(model)
+
+                # extract paramters from the dic, compute lightcurve
+                task_dic = task["best"]
+
+                mej = o_fit.get_best("Mej_tot-geo", model)
+                vej = o_fit.get_best("vel_inf_ave-geo", model)
+                mdisk = o_fit.get_best("Mdisk3D", model)
+                theta_ej = o_fit.get_best("theta_rms-geo", model)
+
+                print("\t[{}] Mej:{} vej:{} mdisk:{}".format(sim, mej, vej, mdisk))
+
+                o_mkn = COMPUTE_LIGHTCURVE(None, "/data01/numrel/vsevolod.nedora/prj_gw170817/scripts/lightcurves/")
+                o_mkn.set_glob_par_var_source(False, False)
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+                o_mkn.glob_vars['m_disk']                   = mdisk
+                o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
+                o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
+                o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
+                o_mkn.compute_save_lightcurve(write_output=True)
+                #
+                load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+                times, mags = load_mkn.get_model_median(band)
+
+                ax.plot(times, mags, **task_dic["plot"])
+
+            if "worst" in task.keys():
+
+                sim = task["sim"]
+                model = models[models.index == sim]
+                # ofit = Fit(model)
+
+                # extract paramters from the dic, compute lightcurve
+
+                task_dic = task["worst"]
+
+
+                mej = o_fit.get_worst("Mej_tot-geo", model)
+                vej = o_fit.get_worst("vel_inf_ave-geo", model)
+                mdisk = o_fit.get_worst("Mdisk3D", model)
+                theta_ej = o_fit.get_worst("theta_rms-geo", model)
+
+                o_mkn = COMPUTE_LIGHTCURVE(None, __lightcurves_store__)
+                o_mkn.set_glob_par_var_source(False, False)
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+                o_mkn.glob_vars['m_disk']                   = mdisk
+                o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
+                o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
+                o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
+                o_mkn.compute_save_lightcurve(write_output=True)
+                #
+                load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+                times, mags = load_mkn.get_model_median(band)
+
+                # print("mags", mags)
+                # if click.confirm("is it ok?",True):
+                #     pass
+
+                ax.plot(times, mags, **task_dic["plot"])
+
+            if "fits" in task.keys():
+
+                sim = task["sim"]
+                model = models[models.index == sim]
+                # ofit = Fit(model)
+
+                # for ever parameter set in parameter dics compute lightcurve, plot a band they span
+                fit_list = task["fits"]
+                all_mags = []
+                times = []
+                for fit_par_dic in fit_list:
+
+                    mej = ofit.value("Mej_tot-geo",     fit_par_dic["Mej_tot-geo"])
+                    vej = ofit.value("vel_inf_ave-geo", fit_par_dic["vel_inf_ave-geo"])
+                    mdisk = ofit.value("Mdisk3D",       fit_par_dic["Mdisk3D"])
+                    theta_ej = ofit.value("theta_rms-geo", fit_par_dic["theta_rms-geo"])
+
+                    #compute line
+                    o_mkn = COMPUTE_LIGHTCURVE(None, __lightcurves_store__)
+                    o_mkn.set_glob_par_var_source(False, False)
+                    if "dyn" in fit_par_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                    if "sec" in fit_par_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                    if "dyn" in fit_par_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                    if "sec" in fit_par_dic["components"]: o_mkn.set_secular_par_war("aniso")
+                    o_mkn.glob_vars['m_disk']                   = mdisk
+                    o_mkn.ejecta_vars['dynamics']["m_ej"]       = mej
+                    o_mkn.ejecta_vars["dynamics"]["central_vel"]= vej
+                    o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
+                    o_mkn.compute_save_lightcurve(write_output=True)
+                    #
+                    load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+                    times, mags = load_mkn.get_model_median(band)
+                    all_mags.append(mags)
+                all_mags = np.reshape(np.array(all_mags), (len(fit_list), len(times))).T
+                maxs = np.max(all_mags, axis=1)
+                mins = np.min(all_mags, axis=1)
+                # maxs = np.array([ np.max(all_mags[:, k]) for k in all_mags[:, k] ])
+                # mins = np.array([np.min(all_mags[:, k]) for k in all_mags[:, k]])
+                ax.fill_between(times, mins, maxs, **task["plotfits"])
+
+
+        # end of tasks
+
+        ax.set_yscale(plotdic["yscale"])
+        ax.set_xscale(plotdic["xscale"])
+        #
+        ax.set_xlabel(plotdic["xlabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        if i == 0: ax.set_ylabel(plotdic["ylabel"], fontsize=plotdic["fontsize"])  # , fontsize=11)
+        #
+        if 'xmin' in subplot_dic.keys() and 'xmax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["xmin"], subplot_dic["xmax"])
+        else:
+            ax.set_xlim(plotdic["xmin"], plotdic["xmax"])
+
+        if 'ymin' in subplot_dic.keys() and 'ymax' in subplot_dic.keys():
+            ax.set_xlim(subplot_dic["ymin"], subplot_dic["ymax"])
+        else:
+            ax.set_ylim(plotdic["ymin"], plotdic["ymax"])
+        #
+        ax.tick_params(axis='both', which='both', labelleft=True,
+                       labelright=False, tick1On=True, tick2On=True,
+                       labelsize=plotdic["fontsize"],
+                       direction='in',
+                       bottom=True, top=True, left=True, right=True)
+        ax.minorticks_on()
+        # #
+
+        if "add_lines" in subplot_dic.keys():
+            for entry in subplot_dic["add_lines"]:
+                ax.plot([-100, -100], [-200, -200], **entry)
+        #
+        if "add_scatter" in subplot_dic.keys():
+            for entry in subplot_dic["add_scatter"]:
+                ax.scatter([-100, -100], [-200, -200], **entry)
+        #
+        if "add_bands" in subplot_dic.keys():
+            for entry in subplot_dic["add_bands"]:
+                ax.fill_between([-100, -100], [-200, -200], [-400, -400], **entry)
+        #
+        if "title" in subplot_dic:
+            ax.set_title(subplot_dic["title"])
+        #
+        if "title" in plotdic.keys():
+            if plotdic["title"] == "#band":
+                ax.set_title(band)
+            else:
+                ax.set_title(plotdic["title"])
+        #
+        if i > 0:
+            ax.tick_params(labelleft=False)
+            # ax.get_yaxis().set_ticks([])
+            # ax.get_yaxis().set_visible(False)
+
+        if "legend" in subplot_dic.keys():
+            ax.legend(**subplot_dic["legend"])
+
+        i = i + 1
+
+    if "legend" in plotdic.keys() and len(plotdic["legend"].keys()) > 0:
+        plt.legend(**plotdic["legend"])
+
+    plt.tight_layout()
+    plt.subplots_adjust(wspace=0.)
+    #
+    print("plotted: \n")
+    print(plotdic["figname"])
+    plt.show()
+    plt.savefig(plotdic["figname"], dpi=128)
+    if "savepdf" in plotdic.keys() and plotdic["savepdf"]:
+        plt.savefig(plotdic["figname"].replace(".png", ".pdf"))
+    plt.close()
+
 ''' --------------------------- TASKS ------------------------------ '''
+
+def task_plot_peak_t_mag():
+
+    bands = ["g", "z", "Ks"]
+    dframe_ref = cmb.simulations[cmb.mask_refset]
+    dframe_heatcool = cmb.simulations[cmb.mask_refset|cmb.mask_heatcool]
+    dframe_cool = cmb.simulations[cmb.mask_refset | cmb.mask_heatcool | cmb.mask_cool]
+    dframe_none = cmb.simulations
+
+    # tpeak mpeak
+    tasks = [
+        {"sim":"BLh_M13641364_M0_LK_SR", "components":["dyn", "sec"],  "data":"NR", "dataframe":None, "mode":"peak",
+         "plot":{"marker":"o", "color":"green", "s":60,   "edgecolor":"green"}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_ref, "mode":"peak",
+         "plot": {"marker":"o", "color":"green", "s":60,  "facecolor":"none", "edgecolor":"green"}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_heatcool, "mode": "peak",
+         "plot": {"marker": "d", "color": "green", "s": 60, "facecolor": "none", "edgecolor": "green"}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_cool, "mode": "peak",
+         "plot": {"marker": "P", "color": "green", "s": 60, "facecolor": "none", "edgecolor": "green"}},
+        {"sim": "BLh_M13641364_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_none,  "mode": "peak",
+         "plot": {"marker": "s", "color": "green", "s": 60, "facecolor": "none", "edgecolor": "green"}},
+        #
+        {"sim": "BLh_M11461635_M0_LK_SR", "components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak",
+         "plot": {"marker": "o", "color": "blue", "s": 60,  "edgecolor": "blue"}},
+        {"sim": "BLh_M11461635_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_ref, "mode": "peak",
+         "plot": {"marker": "o", "color": "blue", "s": 60, "facecolor": "none", "edgecolor": "blue"}},
+        {"sim": "BLh_M11461635_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_heatcool, "mode": "peak",
+         "plot": {"marker": "d", "color": "blue", "s": 60, "facecolor": "none", "edgecolor": "blue"}},
+        {"sim": "BLh_M11461635_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_cool, "mode": "peak",
+         "plot": {"marker": "P", "color": "blue", "s": 60, "facecolor": "none", "edgecolor": "blue"}},
+        {"sim": "BLh_M11461635_M0_LK_SR", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_none, "mode": "peak",
+         "plot": {"marker": "s", "color": "blue", "s": 60, "facecolor": "none", "edgecolor": "blue"}},
+        #
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak",
+         "plot": {"marker": "o", "color": "red", "s": 60, "edgecolor": "red"}},
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_ref, "mode": "peak",
+         "plot": {"marker": "o", "color": "red", "s": 60, "facecolor": "none", "edgecolor": "red"}},
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_heatcool, "mode": "peak",
+         "plot": {"marker": "d", "color": "red", "s": 60, "facecolor": "none", "edgecolor": "red"}},
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_cool, "mode": "peak",
+         "plot": {"marker": "P", "color": "red", "s": 60, "facecolor": "none", "edgecolor": "red"}},
+        {"sim": "LS220_M13641364_M0_LK_SR_restart", "components": ["dyn", "sec"], "data": "bestfit", "dataframe": dframe_none, "mode": "peak",
+         "plot": {"marker": "s", "color": "red", "s": 60, "facecolor": "none", "edgecolor": "red"}},
+        #
+
+        {"obs":True}
+    ]
+
+    subplot_dics = [
+        {
+            "band": bands[0],
+            # "add_lines": [dic["plot"] for dic in pardics],
+            # "add_lines": [
+            #     {"lw": 1., "ls": "-", "color": "red", "label": r"LS220 q=1.00 (SR)"},
+            #     {"lw": 1., "ls": "-", "color": "green", "label": r"BLh q=1.00 (SR)"},
+            #     {"lw": 1., "ls": "-", "color": "blue", "label": "BLh q=1.43 (SR)"}#r"DD2 q=1.00 (SR)"},#r"BLh q=1.43 (SR)"},
+            # ],
+            "add_scatter":[
+                {"marker": 'v', "s": 40, "edgecolor": "gray", "facecolor": "none", "label": r"AT2017gfo"},
+                {"marker": 'o', "s": 40, "edgecolor": "gray", "facecolor": "none", "label": r"Reference set"},
+                {"marker": 'd', "s": 40, "edgecolor": "gray", "facecolor": "none", "label": r"Heating \& Cooling"},
+                {"marker": 'P', "s": 40, "edgecolor": "gray", "facecolor": "none", "label": r"Cooling"},
+                {"marker": 's', "s": 40, "edgecolor": "gray", "facecolor": "none", "label": r"No neutrinos"}
+            ],
+            "legend": {"fancybox": False, "loc": 'upper left',
+                       # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                       "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing": 0.4,
+                       "framealpha": 0., "borderaxespad": 0., "frameon": False},
+            "title": "#band",
+            'xmin': 1e-1, 'xmax': 2e0, 'xlabel': r"time [days]",
+
+        },
+        {
+            "band": bands[1],
+            #"add_lines": [dic["plot"] for dic in pardics],
+            "title": "#band",
+            # "add_scatter": [
+            #     {"marker": 'o', "s": 40, "edgecolor": "green", "color":"green", "label": r"BLh q=1.00 (SR)"},
+            #     {"marker": 'o', "s": 40, "edgecolor": "blue", "color":"blue",  "label": "BLh q=1.43 (SR)"},
+            #     {"marker": 'o', "s": 40, "edgecolor": "red", "color":"red", "label": r"LS220 q=1.00 (SR)"}, #  "facecolor": "none",
+            # ],
+            # "add_lines": [
+            #     {"lw": 1., "ls": "--", "color": "gray", "label": r"Model"},
+            #     {"lw": 1., "ls": "-", "color": "gray", "label": r"Best Fit"},
+            #     {"lw": 0.9, "ls": ":", "color": "gray", "label": r"Worst Fit"}
+            # ],
+            # "legend": {"fancybox": False, "loc": 'upper left',
+            #            # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+            #            "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+            #            "framealpha": 0., "borderaxespad": 0., "frameon": False},
+            'xmin': 1e-1, 'xmax': 5e0, 'xlabel': r"time [days]",
+        },
+        {
+            "band": bands[2],
+            # "lines": lineset[bands[2]],
+            # "add_bands": [
+            #     {"color": "gray", "alpha": 0.4, "label": "Other Fits"}
+            # ],
+            "title": "#band",
+            'xmin': 3e-1, 'xmax': 2e1, 'xlabel': r"time [days]",
+            "legend": {"fancybox": False, "loc": 'lower left',
+                       # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                       "shadow": "False", "ncol": 1, "fontsize": 13, "columnspacing": 0.4,
+                       "framealpha": 0., "borderaxespad": 0., "frameon": False},
+            "add_scatter": [
+                {"marker": 'o', "s": 50, "edgecolor": "green", "color": "green", "label": r"BLh q=1.00 (SR)"},
+                {"marker": 'o', "s": 50, "edgecolor": "blue", "color": "blue", "label": "BLh q=1.43 (SR)"},
+                {"marker": 'o', "s": 50, "edgecolor": "red", "color": "red", "label": r"LS220 q=1.00 (SR)"},
+                # "facecolor": "none",
+
+            ],
+        }
+    ]
+
+    plot_dic = {
+        "figsize": (6.4, 6.0),
+        'xmin': 3e-1, 'xmax': 3e1, 'xlabel': r"peak time [days]",
+        'ymin': 19.5, 'ymax': 17., 'ylabel': r"AB peak magnitude at 40 Mpc", # 23, 18 # sec: 22 17
+        # "text": {'x': 0.25, 'y': 0.95, 's': r"Ks band", 'fontsize': 14, 'color': 'black',
+        #          'horizontalalignment': 'center'},
+        "xscale": "log", "yscale": "linear",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,"direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "figname": __outplotdir__ + "dyn_sec_fit_lines_3eos.png",
+        'fontsize': 13,
+        'labelsize': 13,
+        "savepdf": True,
+        "title": "#band",
+        # "add_lines": [
+        #     [dic["plot"] for dic in pardics]
+        #     # {"ls": ":", "color": "gray", "label": r"$M_{\rm ej}, v_{\rm ej}$ Mean"},
+        #     # {"ls": "-", "color": "gray", "label": "SFho q=1.00 (SR)"},
+        #     # {"ls": "-", "color": "gray", "label": "BLh q=1.43 (SR)"},
+        #     # {"ls": "-", "color": "gray", "label": "BLh q=1.43 (SR)"}
+        # ],
+    }
+
+    plot_custom_peak_t_mags(plot_dic, subplot_dics, tasks)
 
 def task_plot_fromfit_model_mkn_multiband_band2():
 
@@ -1808,4 +2363,5 @@ def task_plot_fromfit_model_mkn_multiband_band2():
     plot_custom_lightcurves(plot_dic, subplot_dics, tasks)
 
 if __name__ == "__main__":
-    task_plot_fromfit_model_mkn_multiband_band2()
+    # task_plot_fromfit_model_mkn_multiband_band2()
+    task_plot_peak_t_mag()
