@@ -52,6 +52,8 @@ def get_label(v_n):
         return r"$Mb_i/Mb$"
     elif v_n == "note" or v_n == "comment":
         return "Note"
+    elif v_n == "Lambda" or v_n == r"$\tilde{\Lambda}$":
+        return "Note"
 
     if v_n == "Mwinddot":
         return r"$M_{\rm ej}^{\rm w}/\Delta t$"
@@ -1337,7 +1339,7 @@ def unique_sim_table(groups, tasks, settings):
 
 if __name__ == '__main__':
 
-    fpath = "../output/groups.csv"
+    fpath = "../datasets/groups.csv"
     print("loading {}...".format(fpath)),
     groups = pd.read_csv(fpath)
     groups.set_index("group")
@@ -1373,7 +1375,10 @@ if __name__ == '__main__':
         # ---
         # {"v_n": "Mej_tot-bern_geoend", "fmt": ".2f", "mod": "*1e2", "err": "ud",    "deferr": None},
     ]
-
+    # groups = groups
+    #print(groups["group"] == "BLh_M10651772_M0_LK"); exit(1)
+    # print("-"*20)
+    # unique_sim_table(groups, tasks, settings)
     # unique_sim_table(groups, tasks, settings)
 
     ''' -------------------------- Wind Table --------------------- '''
@@ -1387,6 +1392,7 @@ if __name__ == '__main__':
         # {"v_n":              "group", "fmt": None, "mod": None, "err":None, "deferr":None},
         {"v_n": "EOS", "fmt": "", "mod": None, "err": None, "deferr": None},
         {"v_n": "q", "fmt": ".2f", "mod": None, "err": None, "deferr": None},
+        {"v_n": "Lambda", "fmt": ".2f", "mod": None, "err": None, "deferr": None},
         # {"v_n": "comment",    "fmt": "",      "mod": None,    "err": None,        "deferr": None},
         {"v_n": "resolution", "fmt": "", "mod": None, "err": None, "deferr": None},
         {"v_n": "viscosity", "fmt": "", "mod": None, "err": None, "deferr": None},
@@ -1407,8 +1413,8 @@ if __name__ == '__main__':
         # ---
         # {"v_n": "Mej_tot-bern_geoend", "fmt": ".2f", "mod": "*1e2", "err": "ud",    "deferr": None},
     ]
-    groups = groups[(groups.tend_wind > 0.030) | (groups["group"] == "BLh_M10651772_M0_LK")]
-    #print(groups["group"] == "BLh_M10651772_M0_LK"); exit(1)
+    # groups = groups[(groups.tend_wind > 0.030) | (groups["group"] == "BLh_M10651772_M0_LK")]
+    # print(groups["group"] == "BLh_M10651772_M0_LK"); exit(1)
     print("-"*20)
     unique_sim_table(groups, tasks, settings)
 

@@ -107,12 +107,49 @@ def copy_run_from_old_to_new():
             except IOError :
                 print("IOError FAILED for {}".format(sim))
 
+def get_xmin_xmax_ymin_ymax_zmin_zmax(rl):
+    if rl == 6:
+        xmin, xmax = -14, 14
+        ymin, ymax = -14, 14
+        zmin, zmax = 0, 14
+    elif rl == 5:
+        xmin, xmax = -28, 28
+        ymin, ymax = -28, 28
+        zmin, zmax = 0, 28
+    elif rl == 4:
+        xmin, xmax = -48, 48
+        ymin, ymax = -48, +48
+        zmin, zmax = 0, 48
+    elif rl == 3:
+        xmin, xmax = -88, 88
+        ymin, ymax = -88, 88
+        zmin, zmax = 0, 88
+    elif rl == 2:
+        xmin, xmax = -178, 178
+        ymin, ymax = -178, +178
+        zmin, zmax = 0, 178
+    elif rl == 1:
+        xmin, xmax = -354, 354
+        ymin, ymax = -354, +354
+        zmin, zmax = 0, 354
+    elif rl == 0:
+        xmin, xmax = -1044, 1044
+        ymin, ymax = -1044, 1044
+        zmin, zmax = 0, 1044
+    else:
+        # pass
+        raise IOError("Set limits for rl:{}".format(rl))
+
+    conv_to_km = lambda val: units.conv_length(units.cactus, units.cgs, val)/1e5
+
+    return conv_to_km(xmin), conv_to_km(xmax), conv_to_km(ymin), \
+           conv_to_km(ymax), conv_to_km(zmin), conv_to_km(zmax)
 
 if __name__ == '__main__':
     ##### rename_old_initcsv()
-    run_preanalysis()
-    copy_run_from_old_to_new()
-    pass
+    # run_preanalysis()
+    # copy_run_from_old_to_new()
+    # pass
     # test_myavi()
     # print(15*constant_length)
     #task_copy_collated_gw_data()
@@ -123,3 +160,12 @@ if __name__ == '__main__':
     BLh_M11041699_M0_LR
     BLh_M10201856_M0_LR
     '''
+
+
+    from scidata import units
+    # print(units.conv_length(units.cactus, units.cgs, 1)/1e5) # Msun -> km
+    # print(units.conv_length(units.cgs, units.cactus, 1e5))
+
+    print(get_xmin_xmax_ymin_ymax_zmin_zmax(1))
+
+    # reflevel 0

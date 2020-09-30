@@ -4224,7 +4224,6 @@ def task_predict_for_event():
             if "v_n_x" in fit_func.keys():
                 vals = df.linear_regression_predict(lams, **fit_func)
                 vals[1:] = np.sort(vals[1:])
-
                 if method == "_^":
                     str_val = r"$ " + __apply_fmt(vals[0], fmt) + \
                               r"^{+" + __apply_fmt(vals[0]-vals[1], fmt) + \
@@ -4489,7 +4488,7 @@ if __name__ == '__main__':
     ''' --- tasks | mej --- '''
     # task_mej_chi2dofs()
     # task_mej_print_stats()
-    task_mej_print_table_overall()
+    # task_mej_print_table_overall()
     # task_mej_print_table_overall_2()
     #task_mj_print_table_overall_linear_regresion()
     # task_mj_print_table_overall_linear_regresion2()
@@ -4500,7 +4499,7 @@ if __name__ == '__main__':
     # task_vej_print_stats()
     # task_vej_print_table_overall()
     # task_vmj_print_table_overall_linear_regresion()
-    task_vmj_print_table_overall_linear_regresion2()
+    # task_vmj_print_table_overall_linear_regresion2()
 
     ''' --- task | Ye --- '''
     # task_ye_chi2dofs()
@@ -4518,4 +4517,4 @@ if __name__ == '__main__':
 
     ''' -------------------- '''
 
-    #task_predict_for_event()
+    task_predict_for_event()

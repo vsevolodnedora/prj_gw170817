@@ -1611,7 +1611,7 @@ def task_plot_mdisk_fits_only_group():
             # "last_n": 4,
             "fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
             # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-            "shadow": "False", "ncol": 1, "fontsize": 12,
+            "shadow": "False", "ncol": 1, "fontsize": 14,
             "framealpha": 0., "borderaxespad": 0., "frameon": False}
     }
     subplot_dics["poly1"] = {
@@ -1885,7 +1885,7 @@ def task_plot_mej_fits_only_group():
                  'horizontalalignment': 'center'},
         "legend": {"fancybox": False, "loc": 'lower right', "columnspacing": 0.4,
                    # "bbox_to_anchor": (0.8, 1.1),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 1, "fontsize": 12,
+                   "shadow": "False", "ncol": 1, "fontsize": 14,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "plot_zero": True,
         "labels": True
@@ -2023,17 +2023,17 @@ def task_plot_vej_fits_only_group():
     o_fit = Fit_Data(md.simulations, "vel_inf_ave-geo", err_method="default", clean_nans=True)
 
     fit_dics = OrderedDict()
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
-    fit_dics["poly2"] = { # 5.6
-        "func": FittingFunctions.poly_2_qLambda,
-        "coeffs": np.array(coeffs), "to_val": None,
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    fit_dics["Eq.9"] = { # 6.1
+        "func": FittingFunctions.vej_dietrich16, "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
         "plot_zero": True
     }
-    coeffs, _, _, _ = o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
-    fit_dics["Eq.9"] = { # 6.1
-        "func": FittingFunctions.vej_dietrich16, "coeffs": np.array(coeffs), "to_val": None,
+    coeffs, _, _, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22")
+    fit_dics["poly2"] = { # 5.6
+        "func": FittingFunctions.poly_2_qLambda,
+        "coeffs": np.array(coeffs), "to_val": None,
         "xmin": 0.05, "xmax": .3, "xscale": "linear", "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": 0.08, "ymax": .40, "yscale": "linear", "ylabel": r"$\upsilon_{\rm ej}$ [c]",
         "plot_zero": True
@@ -2067,19 +2067,6 @@ def task_plot_vej_fits_only_group():
     #          "plot_zero": True},
     # }
     subplot_dics = OrderedDict()
-    subplot_dics["poly2"] = {
-        "xmin": 0.1, "xmax": .3, "xscale": "linear",  # "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
-        "ymin": -1.1, "ymax": 1.1, "yscale": "linear",  # "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
-        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
-                        "labelright": False, "tick1On": True, "tick2On": True,
-                        "labelsize": 14,
-                        "direction": 'in',
-                        "bottom": True, "top": True, "left": True, "right": True},
-        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
-                 'horizontalalignment': 'center'},
-        "plot_zero": True,
-        "labels": True
-    }
     subplot_dics["Eq.9"] = {
         "xmin": 0.1, "xmax": .3, "xscale": "linear",  # "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
         "ymin": -1.1, "ymax": 1.1, "yscale": "linear",  # "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
@@ -2089,6 +2076,19 @@ def task_plot_vej_fits_only_group():
                         "direction": 'in',
                         "bottom": True, "top": True, "left": True, "right": True},
         "text": {'x': 0.85, 'y': 0.90, 's': r"Eq.(9)", 'fontsize': 14, 'color': 'black',
+                 'horizontalalignment': 'center'},
+        "plot_zero": True,
+        "labels": True
+    }
+    subplot_dics["poly2"] = {
+        "xmin": 0.1, "xmax": .3, "xscale": "linear",  # "xlabel": r"$\upsilon_{\rm ej;fit}$ [c]",
+        "ymin": -1.1, "ymax": 1.1, "yscale": "linear",  # "ylabel": r"$\Delta \upsilon_{\rm ej} / \upsilon_{\rm ej}$",
+        "tick_params": {"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 14,
+                        "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True},
+        "text": {'x': 0.85, 'y': 0.85, 's': r"$P_2(q,\tilde{\Lambda})$", 'fontsize': 14, 'color': 'black',
                  'horizontalalignment': 'center'},
         "plot_zero": True,
         "labels": True
@@ -2106,7 +2106,7 @@ def task_plot_vej_fits_only_group():
         "plot_zero": True,
         "legend": {"fancybox": False, "loc": 'lower left',
                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing": 0.4,
+                   "shadow": "False", "ncol": 1, "fontsize": 14, "columnspacing": 0.4,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "labels": True
     }
@@ -2293,7 +2293,7 @@ def task_plot_yeej_fits_only_group():
         "plot_zero": True,
         "legend": {"fancybox": False, "loc": 'lower left',
                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing": 0.4,
+                   "shadow": "False", "ncol": 1, "fontsize": 14, "columnspacing": 0.4,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "labels": True
     }
@@ -2457,7 +2457,7 @@ def task_plot_thetaej_fits_only_group():
         "plot_zero": True,
         "legend": {"fancybox": False, "loc": 'lower left',
                    # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
-                   "shadow": "False", "ncol": 1, "fontsize": 12, "columnspacing": 0.4,
+                   "shadow": "False", "ncol": 1, "fontsize": 14, "columnspacing": 0.4,
                    "framealpha": 0., "borderaxespad": 0., "frameon": False},
         "labels": True
     }
@@ -2539,19 +2539,19 @@ if __name__ == "__main__":
 
     ''' --- Mej --- '''
     # task_plot_mej_fits_only()
-    task_plot_mej_fits_only_group()
+    # task_plot_mej_fits_only_group()
 
     ''' --- vej --- '''
     # task_plot_vej_fits_only()
-    task_plot_vej_fits_only_group()
+    # task_plot_vej_fits_only_group()
 
     ''' --- ye --- '''
     # task_plot_yeej_fits_only()
-    task_plot_yeej_fits_only_group()
+    # task_plot_yeej_fits_only_group()
 
     ''' --- theta --- '''
     # task_plot_thetaej_fits_only()
-    task_plot_thetaej_fits_only_group()
+    # task_plot_thetaej_fits_only_group()
 
     ''' --- Mdisk --- '''
     # task_plot_mdisk_fits_only()
