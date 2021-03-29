@@ -76,6 +76,28 @@ def load_plot_TOVS_MR():
 
         ax.plot(R*GMsun_c2/1e3, M, c=color, ls = ls, label=eos)
 
+    # models
+    from model_sets import groups
+    simulations = groups.groups
+    for eos, color in zip(eoss, colors):
+        sel = simulations[simulations["EOS"] == eos]
+        qs = np.array(list(set(list(sel["q"]))))#.round(2)
+        print("eos:{} models:{} q:{}".format(eos, len(sel), qs))
+        for q in qs:
+            ssel = sel[sel["q"] == q]
+            img = float(np.array(ssel["Mg1"])[0])
+            tmr = float(np.array(ssel["R1"])[0]) * GMsun_c2/1e3
+            # print("\t{} {} {}".format(q, tmr, img))
+            ax.scatter(tmr, img, marker="d", s=60, edgecolors=color, facecolors="none")
+            # ax.annotate('{:.2f}'.format(q),
+            #             xy=(tmr, img),  # theta, radius
+            #             #xytext=(0.05, 0.05),  # fraction, fraction
+            #             #textcoords='figure fraction',
+            #             #arrowprops=dict(facecolor='black', shrink=0.05),
+            #             horizontalalignment='left',
+            #             verticalalignment='bottom',
+            #             )
+
     # ax.axhline(y=2.01, color='k', ls='--', label='J0348+0432')
     # ax.fill_between([6, 16], y1=2.01 - 0.04, y2=2.01 + 0.04, color='grey', alpha=0.5)
     # ax.axhline(y=2.14, color='k', ls='-.', label='J0740+6620')
@@ -93,6 +115,7 @@ def load_plot_TOVS_MR():
                    direction='in', labelsize=14)
     ax.minorticks_on()
 
+    print("plotted: {}".format(__outplotdir__ + 'tov_mr.pdf'))
     plt.savefig(__outplotdir__ + 'tov_mr.pdf')
     plt.show()
     plt.close()

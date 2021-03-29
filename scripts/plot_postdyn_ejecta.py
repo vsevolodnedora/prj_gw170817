@@ -3073,7 +3073,7 @@ if __name__ == '__main__':
 
     ''' ------ Ejecta mass evolution ------- '''
 
-    #task_plot_total_ejecta_flux_2()
+    task_plot_total_ejecta_flux_2()
 
     ''' ------ Ejecta 1D histrograms ------- '''
 

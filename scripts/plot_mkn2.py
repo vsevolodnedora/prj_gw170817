@@ -2,6 +2,7 @@ from __future__ import division
 
 import sys
 import os
+from distutils.command.clean import clean
 
 import h5py
 import math
@@ -19,7 +20,7 @@ import uutils
 __curdir__          = '/home/vsevolod/GIT/GitHub/prj_gw170817/scripts/'
 __lightcurves_store__= "/home/vsevolod/GIT/GitHub/prj_gw170817/data/" # should contain AT2017gfo.h5
 __obs_filter_fname__= "AT2017gfo.h5"
-__nr_data__         = "/home/vsevolod/GIT/GitHub/prj_gw170817/data/"
+__nr_data__         = "/home/vsevolod/Tullio/postprocessed5/"#"/media/vsevolod/Wings of Soul/"#"/home/vsevolod/GIT/GitHub/prj_gw170817/data/"
 mkn_code_path       = "/home/vsevolod/GIT/bitbucket/mkn_framework/source/"
 __outplotdir__      = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/mkn/"
 sys.path.append(mkn_code_path)
@@ -143,6 +144,7 @@ class COMPUTE_LIGHTCURVE():
                 if np.isnan(mdisk):
                     raise ValueError("mass of the disk is not avilable (nan) for sim:{}".format(self.sim))
             else:
+                # raise NameError("Disk mass is not given")
                 print("\tUsing default disk mass")
                 mdisk = 0.012
 
@@ -150,14 +152,14 @@ class COMPUTE_LIGHTCURVE():
             # mdisk = self.o_data.get_par("Mdisk3D")
             mdisk = float(md.simulations.loc[self.sim]["Mdisk3D"])
         self.glob_vars = {'m_disk':     mdisk, # mass of the disk [Msun], useful if the ejecta is expressed as a fraction of the disk mass
-                         'eps0':        2e19, # prefactor of the nuclear heating rate [erg/s/g]
-                         'view_angle':  180/12.,  # [deg]; if None, it uses the one in source properties
-                         'source_distance': 40.,  # [pc] ; if None, it uses the one in source properties
-                         'T_floor_LA':  1000., # floor temperature for Lanthanides [K]
-                         'T_floor_Ni':  5000., # floor temperature for Nikel [K]
-                         'a_eps_nuc':   0.5, # variation of the heating rate due to weak r-process heating: first parameter
-                         'b_eps_nuc':   2.5, # variation of the heating rate due to weak r-process heating: second parameter
-                         't_eps_nuc':   1.0} # variation of the heating rate due to weak r-process heating: time scale [days]
+                          'eps0':        2e19, # prefactor of the nuclear heating rate [erg/s/g]
+                          'view_angle':  180/12.,  # [deg]; if None, it uses the one in source properties
+                          'source_distance': 40.,  # [pc] ; if None, it uses the one in source properties
+                          'T_floor_LA':  1000., # floor temperature for Lanthanides [K]
+                          'T_floor_Ni':  5000., # floor temperature for Nikel [K]
+                          'a_eps_nuc':   0.5, # variation of the heating rate due to weak r-process heating: first parameter
+                          'b_eps_nuc':   2.5, # variation of the heating rate due to weak r-process heating: second parameter
+                          't_eps_nuc':   1.0} # variation of the heating rate due to weak r-process heating: time scale [days]
 
         # return glob_params, glob_vars, source_name
 
@@ -2159,45 +2161,164 @@ def task_plot_peak_t_mag():
 
     plot_custom_peak_t_mags(plot_dic, subplot_dics, tasks)
 
-def task_plot_peak_t_mag_for_each_model():
+def task_plot_peak_t_mag_for_each_model(comps = ("dyn", "sec"), usesigma=True):
 
-    band = "z"
-    dframe_ref = cmb.simulations[cmb.mask_refset]
-    dframe_heatcool = cmb.simulations[cmb.mask_refset|cmb.mask_heatcool]
-    dframe_cool = cmb.simulations[cmb.mask_refset | cmb.mask_heatcool | cmb.mask_cool]
-    dframe_none = cmb.simulations
+    # band = "z"
+    # dframe_ref = cmb.simulations[cmb.mask_refset]
+    dframe_heatcool = cmb.simulations[cmb.mask_refset | cmb.mask_heatcool]
+    # dframe_cool = cmb.simulations[cmb.mask_refset | cmb.mask_heatcool | cmb.mask_cool]
+    # dframe_none = cmb.simulations
+    if type(comps) is str:
+        comps = [comps]
 
+    type1="NR" # "NR
+    # fname = ''.join(comps)
+    # print(fname)
     # tpeak mpeak
     tasks = OrderedDict()
-    #
     tasks["BLh_M13641364_M0_LK_SR"] = [
-            {"components":["dyn", "sec"],  "data":"NR", "dataframe":None, "mode":"peak"},
-            {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak"},
-            ]
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]},
+    ]
     tasks["BLh_M11461635_M0_LK_SR"] = [
-            {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak"},
-            {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak"}
-        ]
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+    tasks["BLh_M10201856_M0_LK_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+
+    tasks["DD2_M13641364_M0_LK_SR_R04"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+    tasks["DD2_M15091235_M0_LK_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+
     tasks["LS220_M13641364_M0_LK_SR_restart"] = [
-            {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak"},
-            {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak"}
-        ]
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+    tasks["LS220_M14691268_M0_LK_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+    tasks["LS220_M11461635_M0_LK_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+
+    tasks["SFHo_M11461635_M0_LK_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+    tasks["SFHo_M14521283_M0_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+    tasks["SFHo_M13641364_M0_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands": ["g", "z", "Ks"]}
+    ]
+
+    tasks["SLy4_M14521283_M0_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+    tasks["SLy4_M13641364_M0_SR"] = [
+        {"components": comps, "data": type1, "dataframe": None, "mode": "peak", "bands": ["g", "z", "Ks"]},
+        {"components": comps, "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands": ["g", "z", "Ks"]}
+    ]
+
+    ''' -- '''
+    # # tasks["BLh_M13641364_M0_LK_SR"] = [
+    # #         {"components":["dyn", "sec"],  "data": "NR", "dataframe": None, "mode":"peak", "bands":["g", "z", "Ks"]},
+    # #         {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak", "bands":["g", "z", "Ks"]},
+    # #         ]
+    # # tasks["BLh_M11461635_M0_LK_SR"] = [
+    # #         {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    # #         {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # #     ]
+    # # tasks["BLh_M10201856_M0_LK_SR"] = [
+    # #         {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    # #         {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # #     ]
+
+    # tasks["DD2_M13641364_M0_LK_SR_R04"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    # tasks["DD2_M15091235_M0_LK_SR"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    #
+    # tasks["LS220_M13641364_M0_LK_SR_restart"] = [
+    #         {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #         {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    #     ]
+    # tasks["LS220_M14691268_M0_LK_SR"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    # tasks["LS220_M11461635_M0_LK_SR"] = [
+    #    {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #    {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    #
+    # tasks["SFHo_M11461635_M0_LK_SR"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    # tasks["SFHo_M14521283_M0_SR"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    # tasks["SFHo_M13641364_M0_SR"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    #
+    # tasks["SLy4_M14521283_M0_SR"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    # tasks["SLy4_M13641364_M0_SR"] = [
+    #     {"components": ["dyn", "sec"], "data": "NR", "dataframe": None, "mode": "peak","bands":["g", "z", "Ks"]},
+    #     {"components": ["dyn", "sec"], "data": "poly22", "dataframe": dframe_heatcool, "mode": "peak","bands":["g", "z", "Ks"]}
+    # ]
+    ''' -- '''
+
     labels = OrderedDict()
     labels["BLh_M13641364_M0_LK_SR"]= r"BLh q=1.00 (SR)"
     labels["BLh_M11461635_M0_LK_SR"]= r"BLh q=1.43 (SR)"
+    labels["BLh_M10201856_M0_LK_SR"] = r"BLh q=1.82 (SR)"
+
+    labels["DD2_M13641364_M0_LK_SR_R04"] = r"DD2 q=1.00 (SR)"
+    labels["DD2_M15091235_M0_LK_SR"] = r"DD2 q=1.22 (SR)"
+
     labels["LS220_M13641364_M0_LK_SR_restart"]= r"LS220 q=1.00 (SR)"
+    labels["LS220_M14691268_M0_LK_SR"] = r"LS220 q=1.18 (SR)"
+    labels["LS220_M11461635_M0_LK_SR"] = r"LS220 q=1.43 (SR)" # might be unreliable LS220_M10651772_M0_LK_SR
 
+    labels["SFHo_M11461635_M0_LK_SR"] = r"SFHo q=1.43 (SR)"  # might be unreliable
+    labels["SFHo_M14521283_M0_SR"] = r"SFHo* q=1.13 (SR)"  # might be unreliable
+    labels["SFHo_M13641364_M0_SR"] = r"SFHo* q=1.00 (SR)"  # might be unreliable # SFHo_M13641364_M0_LK_SR_2019pizza
 
+    labels["SLy4_M14521283_M0_SR"] = r"SLy4* q=1.13 (SR)"  # might be unreliable
+    labels["SLy4_M13641364_M0_SR"] = r"SLy4* q=1.00 (SR)"
 
     ''' --- --- --- '''
-
+    print(len(comps))
     models = md.simulations[md.mask_for_with_dynej]
 
     ''' --- --- --- '''
 
     for sim, task_dics in tasks.iteritems():
-        # print(task_dics[0][1])
-        # print(len(task_dics))
+
         for task_dic in task_dics:
 
             if task_dic["data"] == "NR":
@@ -2218,8 +2339,50 @@ def task_plot_peak_t_mag_for_each_model():
                 o_mkn.compute_save_lightcurve(write_output=True)
 
                 load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
-                task_dic["times"], task_dic["mags"] = load_mkn.get_model_median(band)
-                task_dic["tpeak"], task_dic["mpeak"] = load_mkn.get_model_peak(band)
+                for band in task_dic["bands"]:
+                    task_dic[band] = {}
+                    task_dic[band]["times"], task_dic[band]["mags"] = load_mkn.get_model_median(band)
+                    task_dic[band]["tpeak"], task_dic[band]["mpeak"] = load_mkn.get_model_peak(band)
+
+            elif task_dic["data"] == "NRval":
+                fname = "{}{}/outflow_0/geo/ejecta_profile.dat".format(__nr_data__, sim)
+                assert os.path.isfile(fname)
+
+                mej = np.float(md.simulations.loc[sim]["Mej_tot-geo"])
+                vej = np.float(md.simulations.loc[sim]["vel_inf_ave-geo"])
+                mdisk = np.float(md.simulations.loc[sim]["Mdisk3D"])
+                theta_ej = np.float(md.simulations.loc[sim]["theta_rms-geo"])
+
+                o_mkn = COMPUTE_LIGHTCURVE(sim, __lightcurves_store__)
+                o_mkn.dyn_ejecta_profile_fpath = fname
+                o_mkn.set_use_bern_NR = False
+                o_mkn.set_use_dyn_NR = False
+                o_mkn.set_glob_par_var_source(False, False)
+
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_iso_aniso = "aniso"
+                if "sec" in task_dic["components"]: o_mkn.set_secular_iso_aniso = "aniso"
+                if "dyn" in task_dic["components"]: o_mkn.set_dyn_par_var("aniso")
+                if "sec" in task_dic["components"]: o_mkn.set_secular_par_war("aniso")
+
+                o_mkn.glob_vars['m_disk'] = mdisk
+                o_mkn.ejecta_vars['dynamics']["m_ej"] = mej
+                o_mkn.ejecta_vars["dynamics"]["central_vel"] = vej
+                o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
+                o_mkn.compute_save_lightcurve(write_output=True)
+
+                task_dic["nrdata"] = {}
+                task_dic["nrdata"]["mdisk"] = mdisk
+                task_dic["nrdata"]["m_ej"] = mej
+                task_dic["nrdata"]["central_vel"] = vej
+                task_dic["nrdata"]["step_angle_op"] = np.radians(theta_ej)
+
+                load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
+                for band in task_dic["bands"]:
+                    task_dic[band] = {}
+                    task_dic[band]["times"], task_dic[band]["mags"] = load_mkn.get_model_median(band)
+                    task_dic[band]["tpeak"], task_dic[band]["mpeak"] = load_mkn.get_model_peak(band)
+                    assert task_dic[band]["tpeak"] > 0
+                    assert task_dic[band]["mpeak"] > 0
 
             elif task_dic["data"] == "bestfit":
 
@@ -2227,7 +2390,7 @@ def task_plot_peak_t_mag_for_each_model():
                 model = models[models.index == sim]
                 assert len(model) == 1
 
-                o_fit = BestFits(task_dic["dataframe"], "default", True)
+                o_fit = BestFits(task_dic["dataframe"], "default", clean_nans=True, usesigma=True)
 
                 mej = np.float(o_fit.get_best("Mej_tot-geo", model))
                 vej = np.float(o_fit.get_best("vel_inf_ave-geo", model))
@@ -2250,8 +2413,10 @@ def task_plot_peak_t_mag_for_each_model():
                 o_mkn.compute_save_lightcurve(write_output=True)
                 #
                 load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
-                task_dic["times"], task_dic["mags"] = load_mkn.get_model_median(band)
-                task_dic["tpeak"], task_dic["mpeak"] = load_mkn.get_model_peak(band)
+                for band in task_dic["bands"]:
+                    task_dic[band] = {}
+                    task_dic[band]["times"], task_dic[band]["mags"] = load_mkn.get_model_median(band)
+                    task_dic[band]["tpeak"], task_dic[band]["mpeak"] = load_mkn.get_model_peak(band)
 
             elif task_dic["data"] == "poly22":
 
@@ -2259,7 +2424,7 @@ def task_plot_peak_t_mag_for_each_model():
                 model = models[models.index == sim]
                 assert len(model) == 1
 
-                o_fit = BestFits(task_dic["dataframe"], "default", True)
+                o_fit = BestFits(task_dic["dataframe"], "default", clean_nans=True, usesigma=usesigma)
 
                 mej = np.float(o_fit.get_poly22("Mej_tot-geo", model))
                 vej = np.float(o_fit.get_poly22("vel_inf_ave-geo", model))
@@ -2281,9 +2446,17 @@ def task_plot_peak_t_mag_for_each_model():
                 o_mkn.ejecta_vars["dynamics"]["step_angle_op"] = np.radians(theta_ej)
                 o_mkn.compute_save_lightcurve(write_output=True)
                 #
+                task_dic["polydata"] = {}
+                task_dic["polydata"]["mdisk"] = mdisk
+                task_dic["polydata"]["m_ej"] = mej
+                task_dic["polydata"]["central_vel"] = vej
+                task_dic["polydata"]["step_angle_op"] = np.radians(theta_ej)
+                #
                 load_mkn = COMBINE_LIGHTCURVES(None, __lightcurves_store__)
-                task_dic["times"], task_dic["mags"] = load_mkn.get_model_median(band)
-                task_dic["tpeak"], task_dic["mpeak"] = load_mkn.get_model_peak(band)
+                for band in task_dic["bands"]:
+                    task_dic[band] = {}
+                    task_dic[band]["times"], task_dic[band]["mags"] = load_mkn.get_model_median(band)
+                    task_dic[band]["tpeak"], task_dic[band]["mpeak"] = load_mkn.get_model_peak(band)
 
             else:
                 raise NameError("not implemented")
@@ -2307,47 +2480,112 @@ def task_plot_peak_t_mag_for_each_model():
         #                     markersize=7, marker="v")
 
 
-
-    ''' --- --- --- '''
+    ''' --- computing the difference NR vs Fit --- '''
 
     peak_tasks = OrderedDict()
-    for sim in tasks.keys():
+    for sim, task_dics in tasks.iteritems():
+
+        print("-"*20+sim+'-'*20)
+        for task_dic in task_dics:
+            if task_dic["data"] == "NRval":
+                print('NRval', task_dic["nrdata"])
+            elif task_dic["data"] == "poly22":
+                print('Poly22',task_dic["polydata"])
+        print("-" * 20 + '='*10 + '-' * 20)
+
+        _bands = task_dics[0]["bands"]
         peak_tasks[sim] = {}
-        tp_nr, mp_nr, tp_f, mp_f = 0., 0., 0., 0
-        for task in tasks[sim]:
-            if task["data"] == "NR":
-                tp_nr, mp_nr = task["tpeak"], task["mpeak"]
-            if task["data"] == "poly22":
-                tp_f, mp_f = task["tpeak"], task["mpeak"]
-        assert tp_nr > 0
-        assert tp_f > 0
-        assert ~np.isnan(tp_nr - tp_f)
-        assert ~np.isnan(mp_nr - mp_f)
-        peak_tasks[sim]["tpeak"] = tp_nr - tp_f
-        peak_tasks[sim]["mpeak"] = mp_nr - mp_f
+        for band in _bands:
+            peak_tasks[sim][band] = {}
+            tp_nr, mp_nr, tp_f, mp_f = 0., 0., 0., 0
+            for task in tasks[sim]:
+                if task["data"] == "NR":
+                    tp_nr, mp_nr = task[band]["tpeak"], task[band]["mpeak"]
+                if task["data"] == "NRval":
+                    tp_nr, mp_nr = task[band]["tpeak"], task[band]["mpeak"]
+                if task["data"] == "poly22":
+                    tp_f, mp_f = task[band]["tpeak"], task[band]["mpeak"]
+            assert tp_nr > 0
+            assert tp_f > 0
+            assert ~np.isnan(tp_nr - tp_f)
+            assert ~np.isnan(mp_nr - mp_f)
+            peak_tasks[sim][band]["tpeak"] = tp_nr - tp_f
+            peak_tasks[sim][band]["mpeak"] = mp_nr - mp_f
 
 
-    ''' --- --- --- '''
+    ''' --- Plotting --- '''
 
-    fig, axes = plt.subplots(nrows=2, ncols=1, sharex="all")
 
-    for i, sim in enumerate(tasks.keys()):
-        axes[0].plot(np.array([i]), peak_tasks[sim]["tpeak"], marker="x")
-        axes[1].plot(np.array([i]), peak_tasks[sim]["mpeak"], marker="o")
+    fig, axes = plt.subplots(figsize=(8.0,6.0), nrows=2, ncols=1, sharex="all")
+    fig.subplots_adjust(**{"left": 0.10, "bottom": 0.25, "top": 0.93, "right": 0.95, "hspace": 0.02})
 
-    axes[0].set_ylabel(r"$\Delta t_{\rm peak}$ [days]", fontsize=14)
-    axes[1].set_ylabel(r"$\Delta m_{\rm peak}$ at 40 Mpc", fontsize=14)
+    for i, (sim, task_dics) in enumerate(tasks.iteritems()):
+        _bands = task_dics[0]["bands"]
+        for band in _bands:
+            if band == "g":
+                marker, markeredgecolor = 'o', 'blue'
+            elif band == "z":
+                marker, markeredgecolor = 'x', 'green'
+            elif band == "Ks":
+                marker, markeredgecolor = 'd', 'red'
+            else:
+                raise NameError()
+            if i == 0 : label = band
+            else: label=None
+
+            axes[0].plot(np.array([i]), peak_tasks[sim][band]["tpeak"], marker=marker, ms=8, markerfacecolor="None",
+                         markeredgecolor=markeredgecolor, markeredgewidth=1.1, label=label, ls="None")
+            axes[1].plot(np.array([i]), peak_tasks[sim][band]["mpeak"], marker=marker, ms=8, markerfacecolor="None",
+                         markeredgecolor=markeredgecolor, markeredgewidth=1.1, label=label, ls="None")
+
+    axes[0].set_ylabel(r"$\Delta t_{\rm peak}$ [days]", fontsize=16)
+    axes[1].set_ylabel(r"$\Delta m_{\rm peak}$ at 40 Mpc", fontsize=16)
+
+    axes[0].axhline(y=0, color='gray', linestyle=':', linewidth=.7)
+    axes[1].axhline(y=0, color='gray', linestyle=':', linewidth=.7)
+
+    axes[0].tick_params(**{"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 12, "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True})
+    axes[1].tick_params(**{"axis": 'both', "which": 'both', "labelleft": True,
+                        "labelright": False, "tick1On": True, "tick2On": True,
+                        "labelsize": 12, "direction": 'in',
+                        "bottom": True, "top": True, "left": True, "right": True})
 
     axes[1].set_xticks(range(len(tasks.keys())), minor=False)
     lbls = [item.get_text() for item in axes[1].get_xticklabels()]
     for i, lbl in enumerate(labels.keys()):
         lbls[i] = labels[lbl]
-    axes[1].set_xticklabels(lbls)
+    axes[1].set_xticklabels(lbls, fontsize=12)
     for tick in axes[1].get_xticklabels():
-        tick.set_rotation(45)
+        tick.set_rotation(80)
+
+    if len(comps)==1:
+        axes[0].set_title("One components", fontsize=14)
+        axes[0].set_ylim(-0.8, 0.8)  # one compoennt
+        axes[1].set_ylim(-1.5, 1.5)  # one component
+        axes[1].legend(**{"fancybox": False, "loc": 'upper right',
+                           # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                           "shadow": "False", "ncol": 3, "fontsize": 12, "columnspacing": 0.4,
+                           "framealpha": 0., "borderaxespad": 0., "frameon": False})
+    elif len(comps)==2:
+        axes[0].set_title("Two components", fontsize=14)
+        axes[0].set_ylim(-2.3, 2.3)  # one compoennt
+        axes[1].set_ylim(-0.6, 0.6)  # one component
+        axes[0].legend(**{"fancybox": False, "loc": 'lower left',
+                           # "bbox_to_anchor": (0.5, 1.2),  # loc=(0.0, 0.6),  # (1.0, 0.3), # <-> |
+                           "shadow": "False", "ncol": 3, "fontsize": 12, "columnspacing": 0.4,
+                           "framealpha": 0., "borderaxespad": 0., "frameon": False})
+
 
     # plt.subplots_adjust(wspace=0.)
-    plt.tight_layout()
+    fname = ''.join(comps)
+    if not usesigma: fname += "_res"
+    path = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/mkn/"
+    plt.savefig(path + "mkn_multiband_" + fname + '_' + type1 + ".png", dpi=128)
+    plt.savefig(path + "mkn_multiband_" + fname + '_' + type1 + ".pdf")
+    # plt.tight_layout()
     plt.show()
     plt.close()
 
@@ -2560,5 +2798,6 @@ def task_plot_fromfit_model_mkn_multiband_band2():
 
 if __name__ == "__main__":
     # task_plot_fromfit_model_mkn_multiband_band2()
-    task_plot_peak_t_mag_for_each_model()
+    # task_plot_peak_t_mag_for_each_model()
+    task_plot_peak_t_mag_for_each_model(comps=("dyn"),usesigma=False)
     # task_plot_peak_t_mag()

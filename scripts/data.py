@@ -8,7 +8,7 @@ import copy
 import h5py
 import csv
 from scipy import interpolate
-sys.path.append('/home/vsevolod/GIT/GitHub/bns_ppr_tools/')
+sys.path.append('/home/vsevolod/GIT/GitHub/old_bns_ppr_tools/')
 from preanalysis import LOAD_INIT_DATA
 from outflowed import EJECTA_PARS
 from preanalysis import LOAD_ITTIME

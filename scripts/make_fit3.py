@@ -7,6 +7,9 @@ from sklearn.preprocessing import PolynomialFeatures
 from scipy import stats
 
 # datasets
+
+from model_sets.combined import get_group_name # for dataset paper labels based in the bibkey
+
 from model_sets import models_vincent2019 as vi
 from model_sets import models_radice2018 as rd
 from model_sets import groups as md
@@ -63,6 +66,7 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
     #
     index_arr = []
     datasets_names = []
+    datasets_groups = []
     for name in datasets.keys():
         dic = datasets[name]
         flag = dic[key_for_usable_dataset]
@@ -74,9 +78,11 @@ def create_combine_dataframe2(datasets, v_ns, v_ns_err,
             for model in models:
                 datasets_names.append(name)
                 index_arr.append(model)
+                datasets_groups.append(get_group_name(name))  # paper dataset names
             # index_arr.append(list(dic["models"].index))
     new_data_frame['models'] = index_arr
     new_data_frame['bibkey'] = datasets_names
+    new_data_frame['dataset'] = datasets_groups
     print(len(index_arr))
     #
     for v_n in v_ns:
@@ -3010,9 +3016,10 @@ def task_save_csv_of_all_datasets(save=True):
             "arxiv"]
     #
     dataframe = create_combine_dataframe2(datasets, v_ns, [], {}, "fit", ifabsent=np.nan)
-    dataframe = dataframe[["bibkey"]+v_ns]
+    dataframe = dataframe[["bibkey", "dataset"]+v_ns]
     if save: dataframe.to_csv("../datasets/summary_table.csv")
     print("Total models: {}".format(len(dataframe)))
+    print(dataframe.keys())
     return dataframe
 
 if __name__ == '__main__':

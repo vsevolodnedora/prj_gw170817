@@ -1,5 +1,6 @@
 
 import os
+import pandas as pd
 import click
 from uutils import *
 # import mayavi
@@ -30,7 +31,7 @@ from uutils import *
 #                     os.system("cp -r {}{}/{} {}{}".format(indir,insim,reqdir, outdir,insim))
 #                 else:
 #                     print("\tDir: {} already in {}".format(reqdir, insim))
-#
+# #
 # def test_myavi():
 #
 #     figpath = "../figs/all3/test_myavi/"
@@ -53,8 +54,11 @@ simmulations = models.simulations
 
 
 # rename old initial data:
+__simpath__ = "/data01/numrel/vsevolod.nedora/postprocessed4/"
+__zenodopat__ = ""
+__pprscriptpath__ = "/data01/numrel/vsevolod.nedora/bns_ppr_tools/"
 def rename_old_initcsv():
-    simpath = "/data01/numrel/vsevolod.nedora/postprocessed4/"
+    simpath = __simpath__
     fname = "init_data.csv"
     missing = []
     for sim, dic in simmulations.iterrows():
@@ -71,7 +75,7 @@ def rename_old_initcsv():
 
 # run preanalysis to update the initial data
 def run_preanalysis():
-    scriptfpath = "/data01/numrel/vsevolod.nedora/bns_ppr_tools/"
+    scriptfpath = __pprscriptpath__
     os.chdir(scriptfpath)
     for sim, md in simmulations.iterrows():
         if True:# "#click.confirm('Update initiad data for sim: {}'.format(sim)):
@@ -87,7 +91,7 @@ def copy_run_from_old_to_new():
 
     oldfname = "oldinit_data.csv"
     newfname = "init_data.csv"
-    simpath = "/data01/numrel/vsevolod.nedora/postprocessed4/"
+    simpath = __simpath__
 
     for sim, md in simmulations.iterrows():
         if True:#click.confirm('Update run data for sim: {}'.format(sim)):
@@ -106,6 +110,11 @@ def copy_run_from_old_to_new():
                     print("\tNo run info found")
             except IOError :
                 print("IOError FAILED for {}".format(sim))
+
+# copy ejecta data
+def copy_files_to_zenodo():
+    pass
+
 
 def get_xmin_xmax_ymin_ymax_zmin_zmax(rl):
     if rl == 6:
@@ -145,7 +154,49 @@ def get_xmin_xmax_ymin_ymax_zmin_zmax(rl):
     return conv_to_km(xmin), conv_to_km(xmax), conv_to_km(ymin), \
            conv_to_km(ymax), conv_to_km(zmin), conv_to_km(zmax)
 
+def update_simlog():
+
+    path_to_simlog = "/home/vsevolod/GIT/bitbucket/runs-thc-aa/GW170817/simulations.json"
+    simlog = pd.read_json(path_to_simlog, orient="records")
+    simlog = simlog["GW170817"]
+    # print(simlog)
+    missing_from_log = []
+    missing_from_sims = []
+
+    print('-'*40)
+
+    for e in simlog:
+        if not e["simfolder"] in simmulations.index:
+            missing_from_sims.append(e["simfolder"])
+    for sim, simdic in simmulations.iterrows():
+        found = False
+        for e in simlog:
+            if e["simfolder"] == sim:
+                found = True
+        if not found:
+            missing_from_log.append(sim)
+            #
+    print("Missing from log: ({})".format(len(missing_from_log)))
+    print(missing_from_log)
+
+    # print("Missing from sims: ({})".format(len(missing_from_sims)))
+    # print(missing_from_sims)
+            # print("mssing: {}".format(e["simfolder"]))
+        # print(entry) # -- dict for a given run
+        # print(e["simfolder"], e["res"], e["M_ADM"])
+
+
+    # for key, val in simlog.iterrows():
+    #     print(val)
+
 if __name__ == '__main__':
+    update_simlog()
+
+    # from model_sets.groups import groups
+    # print(groups.keys())
+    # print(groups[groups.index=="BLh_M10651772_M0_LK"][["tend_wind"]])
+    # groups = groups[(groups.tend_wind > 0.030)]# & (groups.index != "BLh_M10651772_M0_LK")]
+    # print(groups[["q", "resolution"]])
     ##### rename_old_initcsv()
     # run_preanalysis()
     # copy_run_from_old_to_new()
@@ -162,10 +213,26 @@ if __name__ == '__main__':
     '''
 
 
-    from scidata import units
+    #  from scidata import units
     # print(units.conv_length(units.cactus, units.cgs, 1)/1e5) # Msun -> km
     # print(units.conv_length(units.cgs, units.cactus, 1e5))
 
-    print(get_xmin_xmax_ymin_ymax_zmin_zmax(1))
+    # print(get_xmin_xmax_ymin_ymax_zmin_zmax(1))
 
     # reflevel 0
+
+    # print('='*60)
+    # from model_sets import combined as md
+    # sims = md.simulations[md.mask_none]
+
+    # print(sims)
+
+    # print("q:     ({}, {})".format(min(sims["q"]),max(sims["q"])))
+    # print("lambda:({}, {})".format(min(sims["Lambda"]), max(sims["Lambda"])))
+    # print("Mchirp:({}, {})".format(min(sims["Mchirp"]), max(sims["Mchirp"])))
+    # print("Mtot:  ({}, {})".format(min(sims["Mtot"]), max(sims["Mtot"])))
+    # print(sims[md.mask_refset][["q"]])
+
+
+    # from model_sets.models_lehner2016 import simulations as tst
+    # print(tst)

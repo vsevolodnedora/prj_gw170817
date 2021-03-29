@@ -11,13 +11,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sympy import factorial2
 
-import matplotlib.pyplot as plt
-from matplotlib import rc
-from matplotlib import cm
-
-rc('text', usetex=True)
-rc('font', family='serif')
-
 import model_sets.combined as cmb
 
 class FittingCoefficients:
@@ -139,19 +132,15 @@ class FittingFunctions:
 class Fit_Data:
     """
     Collection of methods to fit data from :
-
     Parameters
     -------
         dataframe : pandas.dataframe
             contains table of data to fit, to use for fitting, i.e., Mej, Vej, Mdisk, etc
-
         fit_v_n : str
             name of the variable that is to be fitted with a function i.e., "Mej"
-
         err_method="default" : str
             method for error estimation for a given data, e.g., 'defatult' assumes
             errors from 'get_err()' for each varaible according to Radice+2018
-
         clean_nans : bool
             Remove nans from dataframe (rows of data, that is used for
              fitting that contain at least one nan) If 'False' errors might occure
@@ -203,11 +192,9 @@ class Fit_Data:
         :param y_pred:
         :return: 0-1 value float
         https://en.wikipedia.org/wiki/Coefficient_of_determination#:~:text=In%20statistics%2C%20the%20coefficient%20of,the%20independent%20variable(s).&text=In%20both%20such%20cases%2C%20the,ranges%20from%200%20to%201.
-
         The best possible score is 1.0 and it can be negative (because the model can be arbitrarily worse).
         A constant model that always predicts the expected value of y,
         disregarding the input features, would get a R^2 score of 0.0.
-
         """
 
         y_true = np.array(y_true, dtype=np.float)
@@ -281,19 +268,19 @@ class Fit_Data:
             res = 2. * np.std(vals)
 
         elif self.err_meth == "default":
-            if self.fit_v_n in ["Mej", "Mej_tot-geo", "Mej1e-2"]:
+            if self.fit_v_n in ["Mej_tot-geo", "Mej1e-2"]:
                 lambda_err = lambda Mej: 0.5 * Mej + Mej_min # Msun
 
-            elif self.fit_v_n in ["vej", "vel_inf_ave-geo", "Vej"]:
+            elif self.fit_v_n in ["vel_inf_ave-geo", "Vej", "vej"]:
                 lambda_err = lambda v: 1. * np.full(len(v), vej_def_err) # c
 
-            elif self.fit_v_n in ["Yeej", "Ye_ave-geo", "Yeej"]:
+            elif self.fit_v_n in ["Ye_ave-geo", "Yeej"]:
                 lambda_err = lambda v: 1. * np.full(len(v), ye_def_err) # NOne
 
-            elif self.fit_v_n in ["Mdisk", "Mdisk3D", "Mdisk1e-2"]:
+            elif self.fit_v_n in ["Mdisk3D", "Mdisk1e-2"]:
                 lambda_err = lambda MdiskPP: 0.5 * MdiskPP + MdiskPP_min # Msun
 
-            elif self.fit_v_n in ["theta_rms", "theta_rms-geo"]:
+            elif self.fit_v_n == "theta_rms-geo":
                 lambda_err = lambda v: 1. * np.full(len(v), theta_ej_min) # degrees
 
             else:
@@ -467,7 +454,7 @@ class Fit_Data:
 
         print("{} = f({}) : [{}] : {} : {}".format(self.fit_v_n, v_ns_x, len(ydata), chi2, chi2dof))
 
-    def fit_curve(self, ff_name="poly22_qLam", cf_name="default", modify=None, usesigma=True, return_residuals=False):
+    def fit_curve(self, ff_name="poly22_qLam", cf_name="default", modify=None, usesigma=True):
 
         fitfunc = self.get_fitfunc(ff_name)
         init_coeffs = self.get_coeffs(cf_name)
@@ -533,10 +520,7 @@ class Fit_Data:
 
         # chi2 = self.chi2dof(data, bfit, len(popt), sigma)
         # return pred_coeffs, pcov, perr, res, chi2dof, ypred
-        if not return_residuals:
-            return pred_coeffs, chi2, chi2dof, rs
-        else:
-            return pred_coeffs, chi2, chi2dof, rs, res
+        return pred_coeffs, chi2, chi2dof, rs
 
 class Fit_Tex_Tables_single:
 
@@ -1806,200 +1790,18 @@ class Fit_Tex_Tables:
         print(r"\end{tabular}")
         print(r"\end{table}")
 
-    # --- DATASET-vise
-
-    def print_chi2dofs_ds_vise(self, v_ns, v_ns_labels, fmts, modify=None, usesigma=True):
-
-        #v_ns = ["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"]
-        # masks = []
-        row_labels, all_vals = [], []
-        for i_key, i_mask in self.mask_list.iteritems():
-            masks = []
-            masks.append(i_mask)
-            row_labels.append(i_key)
-            dataframe = self.get_dataframe_subsets_masks(masks)
-            #
-            df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
-            #
-            if len(df.ds) == 0: continue
-            vals = []
-            for v_n in v_ns:
-
-                if v_n == "num":
-                    vals.append(len(df.ds))
-
-                if v_n.__contains__("mean-"):
-                    if v_n.__contains__("chi2dof"):
-                        _, chi2dof = df.get_chi2dof_for_mean()
-                        vals.append(chi2dof)
-
-                if v_n.__contains__("our-"):
-                    print("\tTask: {}".format(v_n))
-                    i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="our", cf_name="our", modify=modify,
-                                                               usesigma=usesigma)
-                    # print(chi2dof); exit(1)
-                    if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-
-                if v_n.__contains__("diet16-"):
-                    print("\tTask: {}".format(v_n))
-                    i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="diet16", cf_name="diet16", modify=modify,
-                                                               usesigma=usesigma)
-                    # print(chi2dof); exit(1)
-                    if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-
-                if v_n.__contains__("rad18-"):
-                    print("\tTask: {}".format(v_n))
-                    i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="rad18", cf_name="rad18", modify=modify,
-                                                               usesigma=usesigma)
-                    # print(chi2dof); exit(1)
-                    if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-
-                if v_n.__contains__("krug19-"):
-                    print("\tTask: {}".format(v_n))
-                    i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="krug19", cf_name="krug19", modify=modify,
-                                                               usesigma=usesigma)
-                    if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-
-                if v_n.__contains__("poly2-"):
-                    print("\tTask: {}".format(v_n))
-                    coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify,
-                                                             usesigma=usesigma)
-                    if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-
-                if v_n.__contains__("poly22-"):
-                    print("\tTask: {}".format(v_n))
-                    coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify,
-                                                             usesigma=usesigma)
-                    if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-            all_vals.append(vals)
-
-        # row_labels, all_vals = [], []
-        # sel_dsets = []
-        # for i in range(len(self.dsets_order)):
-        #     if self.dsets_order[i] in list(self.df["bibkey"]):
-        #         sel_dsets.append(self.dsets_order[i])
-        #         dataframe = self.get_dataframe_subset("bibkey", sel_dsets)
-        #         print("\t Adding {} : {}".format(sel_dsets[-1], len(dataframe["bibkey"])))
-        #         #
-        #         df = Fit_Data(dataframe, self.v_n, err_method=self.err_m, clean_nans=self.clean)
-        #         row_labels.append(sel_dsets[-1])
-        #         # i_coeffs, i_chi, i_chi2dof, i_rs = df.fit_curve(ff_name=ff_name, cf_name=cf_name)
-        #         #
-        #         vals = []
-        #         for v_n in v_ns:
-        #             if v_n.__contains__("mean-"):
-        #                 if v_n.__contains__("chi2dof"):
-        #                     _, chi2dof = df.get_chi2dof_for_mean()
-        #                     vals.append(chi2dof)
-        #
-        #             if v_n.__contains__("our-"):
-        #                 print("\tTask: {}".format(v_n))
-        #                 i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="our", cf_name="our", modify=modify, usesigma=usesigma)
-        #                 # print(chi2dof); exit(1)
-        #                 if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-        #
-        #             if v_n.__contains__("diet16-"):
-        #                 print("\tTask: {}".format(v_n))
-        #                 i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="diet16", cf_name="diet16", modify=modify, usesigma=usesigma)
-        #                 # print(chi2dof); exit(1)
-        #                 if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-        #
-        #             if v_n.__contains__("rad18-"):
-        #                 print("\tTask: {}".format(v_n))
-        #                 i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="rad18", cf_name="rad18", modify=modify, usesigma=usesigma)
-        #                 # print(chi2dof); exit(1)
-        #                 if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-        #
-        #             if v_n.__contains__("krug19-"):
-        #                 print("\tTask: {}".format(v_n))
-        #                 i_coeffs, chi2, chi2dof, R2 = df.fit_curve(ff_name="krug19", cf_name="krug19", modify=modify, usesigma=usesigma)
-        #                 if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-        #
-        #             if v_n.__contains__("poly2-"):
-        #                 print("\tTask: {}".format(v_n))
-        #                 coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly2_Lambda", cf_name="poly2", modify=modify, usesigma=usesigma)
-        #                 if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-        #
-        #             if v_n.__contains__("poly22-"):
-        #                 print("\tTask: {}".format(v_n))
-        #                 coeffs, chi2, chi2dof, r2 = df.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
-        #                 if v_n.__contains__("chi2dof"): vals.append(chi2dof)
-        #         all_vals.append(vals)
-        #         #
-        #     else:
-        #         print("\t Neglecting {} ".format(sel_dsets[-1]))
-
-        print("\t---<DataCollected>---")
-
-        ''' --- --- --- table --- --- --- '''
-
-        #fmts = [ ".2f", ".2f", ".2f", ".2f"]
-        #v_ns_labels = ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_vej}", r"$P_2(\tilde{\Lambda})$",
-        #               r"$P_2(q,\tilde{\Lambda})$"]
-
-        cells = "c" * len(v_ns_labels)
-        print("\n")
-        print(r"\begin{table*}")
-        print(r"\caption{I am your little table}")
-        print(r"\begin{tabular}{l|" + cells + "}")
-        line = ''
-        # HEADER
-        for name, label in zip(v_ns, v_ns_labels):
-            if name != v_ns[-1]:
-                line = line + label + ' & '
-            else:
-                line = line + label + r' \\'
-        print(line)
-        # TABLE
-
-
-        #
-        for i in range(len(row_labels)):
-            # DATA SET NAME
-            row_name = row_labels[i]
-
-            # row_name = row_names[-1]
-
-            if row_name == row_labels[0]:
-                row_name = cmb.dataset_group_labels[row_name]
-            else:
-                row_name = cmb.dataset_group_labels[row_name]
-                row_name = "\& " + row_name
-
-            # DATA ITSELF
-            vals = all_vals[i]
-            row = row_name + " {} ".format(self.dlm)
-            assert len(vals) == len(fmts)
-            for val, fmt in zip(vals, fmts):
-                if val != vals[-1]:
-                    val = self.__get_str_val(val, fmt)
-                    # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
-                    # else: val = __get_str_val()#str(("%{}".format(coeff_fmt) % float(val)))
-                    row = row + val + " {} ".format(self.dlm)
-                else:
-                    val = self.__get_str_val(val, fmt)
-                    # if val < 1e-2:  val = str(("%{}".format(coeff_small_fmt) % float(val)))
-                    # else: val = str(("%{}".format(coeff_fmt) % float(val)))
-                    row = row + val + r" \\ "
-
-            print(row)
-            # row[-2] = r" \\ "
-
-        print(r"\end{tabular}")
-        print(r"\end{table}")
-
 class BestFits:
-    def __init__(self, dataframe, err_method="default", clean_nans=True, usesigma=True):
+    def __init__(self, dataframe, err_method="default", clean_nans=True):
 
         self.ds = dataframe
         self.errm = err_method
         self.clean = clean_nans
         # ejecta mass
 
-        self.mass_ds = self.compute_ejecta_mass_fits(modify="log10", usesigma=usesigma).sort_values(by="chi2dof")
-        self.vel_ds = self.compute_ejecta_vel_fits(modify=None, usesigma=usesigma).sort_values(by="chi2dof")
-        self.ye_ds = self.compute_ejecta_ye_fits(modify=None, usesigma=usesigma).sort_values(by="chi2dof")
-        self.theta_ds = self.compute_ejecta_theta_fits(modify=None, usesigma=usesigma).sort_values(by="chi2dof")
+        self.mass_ds = self.compute_ejecta_mass_fits(modify="log10", usesigma=True).sort_values(by="chi2dof")
+        self.vel_ds = self.compute_ejecta_vel_fits(modify=None, usesigma=True).sort_values(by="chi2dof")
+        self.ye_ds = self.compute_ejecta_ye_fits(modify=None, usesigma=True).sort_values(by="chi2dof")
+        self.theta_ds = self.compute_ejecta_theta_fits(modify=None, usesigma=True).sort_values(by="chi2dof")
         self.diskmass_ds = self.compute_ejecta_diskmass_fits(modify=None, usesigma=False).sort_values(by="chi2dof")
 
     def compute_ejecta_mass_fits(self, modify=None, usesigma=True):
@@ -2416,338 +2218,6 @@ class BestFits:
             raise("not implemented")
     # ---
 
-class Colorcoded_Comparsion_plot:
-
-    @staticmethod
-    def poly_2_qLambda(q, Lambda, b0, b1, b2, b3, b4, b5):
-        # b0, b1, b2, b3, b4, b5 = x
-        return b0 + b1 * q + b2 * Lambda + b3 * q ** 2 + b4 * q * Lambda + b5 * Lambda ** 2
-
-    @staticmethod
-    def areal_plot_data_vs_fit(dset1, v_n="Mej_tot-geo", modify=None, q1=1., q2=2., Lam1=10, Lam2=2000,
-                       title=r'$|\log(M_{rj}^{res})-\log(M_{ej}^{\chi_2})/\log(M_{rj}^{res})|$, \texttt{HeatCool Set}',
-                       clabel=r"$M_{\rm ej}$ $[M_{\odot}]$",
-                       norm = cm.colors.LogNorm(vmin=1e-4, vmax=1e-1),
-                       levels=(1e-4, 1e-3, 1e-2, 1e-1, 5e-1, 1e0), usesigma=True,
-                       fname=None,
-                       clean_nans = True
-        ):
-
-        q_grid = np.arange(q1, q2, .01)
-        Lambda_grid = np.arange(Lam1, Lam2, 10)
-        Q, Lam = np.meshgrid(q_grid, Lambda_grid, indexing='ij')
-
-        o_fit = Fit_Data(dset1, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-
-        # --- chi2dof
-        coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
-        Res = Colorcoded_Comparsion_plot.poly_2_qLambda(Q, Lam, *coeffs)
-        if v_n == "Mej_tot-geo" or v_n == "Mej":
-            Res = 10 ** Res
-        Res[Res < 0.] = np.nan
-        # --- plotting
-        # print(np.abs((Res_R-Res_C2)/Res_R))
-
-        q_val_data = np.array(dset1["q"], dtype=float)
-        Lam_vals_data = np.array(dset1["Lambda"], dtype=float)
-        # errs = o_fit.get_err(10**poly_2_qLambda(q_val_data, Lam_vals_data, *coeffs))
-        vals = np.array(dset1[v_n], dtype=float)
-
-        if clean_nans:
-            _q_val_data, _Lam_vals_data, _vals = [], [], []
-            for _q, _lam, _val in zip(q_val_data, Lam_vals_data, vals):
-                if np.isfinite(_val):
-                    _q_val_data.append(_q)
-                    _Lam_vals_data.append(_lam)
-                    _vals.append(_val)
-            q_val_data, Lam_vals_data, vals = _q_val_data, _Lam_vals_data, _vals
-
-        plt.interactive(False)
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6., 4.0))
-
-        cmap = cm.PRGn_r# cm.viridis_r  # cm.PRGn
-        cset1 = ax.contourf(Lam, Q, Res, levels, norm=norm, cmap=cm.get_cmap(cmap, len(levels) - 1), alpha=1.0)
-        clb = fig.colorbar(cset1, ax=ax)
-        clb.ax.tick_params(labelsize=14)
-        clb.set_label(clabel, labelpad=-40, y=1.10, rotation=0, fontsize=14)
-        # ax.scatter(Lam_vals_data, q_val_data, c="white", edgecolor='white', alpha=1.0, s=90, marker='s')
-        ax.scatter(Lam_vals_data, q_val_data, c=cmap(norm(vals)), edgecolor='black', alpha=1.0, s=100, marker='o')
-
-        CS = ax.contour(Lam, Q, Res, levels=levels)
-        # clb = plt.colorbar(CS)
-        # clb.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", labelpad=-40, y=1.05, rotation=0)
-        ax.clabel(CS, inline=1, fontsize=14, fmt='%.0e')
-        # cbar.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$")
-        # CS.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", fontsize=14)
-        ax.set_title(title, fontsize=14)
-        ax.set_xlabel(r"$\tilde{\Lambda}$", fontsize=14)
-        ax.set_ylabel("q", fontsize=14)
-        ax.tick_params(which="both", direction="in", labelsize=14, axis="both",
-                       bottom=True, top=True, left=True, right=True)
-
-        ax.minorticks_on()
-        plt.tight_layout()
-        #path = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/"
-
-        if not fname is None: plt.savefig(fname)
-        plt.show()
-
-    # @staticmethod
-    # def areal_plot_mdisk(dset1, v_n="Mej_tot-geo", modify=None, q1=1., q2=2., Lam1=10, Lam2=2000,
-    #                      title=r'$|\log(M_{rj}^{res})-\log(M_{ej}^{\chi_2})/\log(M_{rj}^{res})|$, \texttt{HeatCool Set}',
-    #                      levels=(1e-4, 1e-3, 1e-2, 1e-1, 5e-1, 1e0), usesigma=True):
-    #
-    #     q_grid = np.arange(q1, q2, .01)
-    #     Lambda_grid = np.arange(Lam1, Lam2, 10)
-    #     Q, Lam = np.meshgrid(q_grid, Lambda_grid, indexing='ij')
-    #
-    #     o_fit = Fit_Data(dset1, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-    #
-    #     # --- chi2dof
-    #     coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
-    #     Res = Colorcoded_Comparsion_plot.poly_2_qLambda(Q, Lam, *coeffs)
-    #
-    #     if v_n == "Mej_tot-geo":
-    #         Res = 10 ** Res
-    #
-    #     # --- plotting
-    #     # print(np.abs((Res_R-Res_C2)/Res_R))
-    #
-    #     q_val_data = np.array(dset1["q"], dtype=float)
-    #     Lam_vals_data = np.array(dset1["Lambda"], dtype=float)
-    #     # errs = o_fit.get_err(10**poly_2_qLambda(q_val_data, Lam_vals_data, *coeffs))
-    #     vals = np.array(dset1[v_n], dtype=float)
-    #
-    #     import matplotlib.pyplot as plt
-    #     from matplotlib import rc
-    #     from matplotlib import cm
-    #     rc('text', usetex=True)
-    #     rc('font', family='serif')
-    #
-    #     plt.interactive(False)
-    #     fig, ax = plt.subplots(nrows=1, ncols=1)
-    #
-    #     norm = cm.colors.Normalize(vmin=0.01, vmax=0.5)
-    #     cmap = cm.viridis_r  # cm.PRGn
-    #     cset1 = ax.contourf(Lam, Q, Res, levels, norm=norm, cmap=cm.get_cmap(cmap, len(levels) - 1), alpha=1.0)
-    #     clb = fig.colorbar(cset1, ax=ax)
-    #     clb.set_label(r"$M_{\rm disk}$ $[M_{\odot}]$", labelpad=-40, y=1.05, rotation=0, fontsize=14)
-    #     # ax.scatter(Lam_vals_data, q_val_data, c="white", edgecolor='white', alpha=1.0, s=90, marker='s')
-    #     ax.scatter(Lam_vals_data, q_val_data, c=cmap(norm(vals)), edgecolor='black', alpha=1.0, s=100, marker='o')
-    #
-    #     CS = ax.contour(Lam, Q, Res, levels=levels)
-    #     # clb = plt.colorbar(CS)
-    #     # clb.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", labelpad=-40, y=1.05, rotation=0)
-    #     ax.clabel(CS, inline=1, fontsize=14, fmt='%.2f')
-    #     # cbar = fig.colorbar(CS)
-    #     # cbar.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$")
-    #     # CS.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", fontsize=14)
-    #     ax.set_title(title)
-    #     ax.set_xlabel(r"$\tilde{\Lambda}$", fontsize=14)
-    #     ax.set_ylabel("q", fontsize=14)
-    #     ax.tick_params(which="both", direction="in", labelsize=14, axis="both",
-    #                    bottom=True, top=True, left=True, right=True)
-    #
-    #     ax.minorticks_on()
-    #     plt.tight_layout()
-    #     path = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/"
-    #     plt.savefig(path + "parspace_mdisk.pdf")
-    #     plt.show()
-
-    def main_m0m1(self):
-
-        from model_sets.combined import simulations as all_models
-        from model_sets.combined import mask_none, mask_heatcool, mask_cool, mask_refset
-        dset1 = allmodels[mask_refset | mask_heatcool]
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mej_tot-geo", modify="log10", q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$M_{\rm ej} = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$M_{\rm ej}$ $[M_{\odot}]$",
-            norm=cm.colors.LogNorm(vmin=1e-3, vmax=1e0),
-            levels=(1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1), usesigma=True,
-            fname = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mej_m0m1.pdf"
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mdisk3D", modify=None, q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$M_{\rm disk} = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$M_{\rm disk}$ $[M_{\odot}]$",
-            norm=cm.colors.Normalize(vmin=0.01, vmax=0.5),
-            levels=(0.01, 0.05, 0.1, 0.2, 0.3, 0.4), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mdisk_m0m1.pdf"
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Ye_ave-geo", modify=None, q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$\langle Y_e \rangle = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$\langle Y_e \rangle$",
-            norm=cm.colors.Normalize(vmin=0.01, vmax=0.5),
-            levels=(0.01, 0.05, 0.1, 0.15, 0.2, 0.3), usesigma=True,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_yeej_m0m1.pdf"
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="vel_inf_ave-geo", modify=None, q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$\langle v_{\infty} \rangle = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$\langle v_{\infty} \rangle$",
-            norm=cm.colors.Normalize(vmin=0.01, vmax=0.5),
-            levels=(0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35), usesigma=True,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_vej_m0m1.pdf"
-        )
-
-    def main_all(self):
-
-        from model_sets.combined import simulations as all_models
-        from model_sets.combined import mask_none, mask_heatcool, mask_cool, mask_refset
-        dset1 = allmodels#[mask_refset | mask_heatcool]
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mej_tot-geo", modify="log10", q1=0.9, q2=2.5, Lam1=0, Lam2=3500,
-            title=r"$M_{\rm ej} = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$M_{\rm ej}$ $[M_{\odot}]$",
-            norm=cm.colors.LogNorm(vmin=1e-4, vmax=5e-1),
-            levels=(1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1), usesigma=True,
-            fname = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mej_all.pdf",
-            clean_nans=True
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mdisk3D", modify=None, q1=0.9, q2=2.5, Lam1=0, Lam2=2000,
-            title=r"$M_{\rm disk} = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$M_{\rm disk}$ $[M_{\odot}]$",
-            norm=cm.colors.Normalize(vmin=0.05, vmax=0.4),
-            levels=(0.005, 0.05, 0.1, 0.15, 0.2, 0.40), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mdisk_all.pdf",
-            clean_nans=True
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Ye_ave-geo", modify=None, q1=0.9, q2=2.5, Lam1=0, Lam2=3500,
-            title=r"$\langle Y_e \rangle = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$\langle Y_e \rangle$",
-            norm=cm.colors.Normalize(vmin=0.05, vmax=0.3),
-            levels=(0.05, 0.1, 0.15, 0.2, 0.25, 0.3), usesigma=True,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_yeej_all.pdf",
-            clean_nans=True
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="vel_inf_ave-geo", modify=None, q1=0.9, q2=2.5, Lam1=0, Lam2=3500,
-            title=r"$\langle v_{\infty} \rangle = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$\langle v_{\infty} \rangle$",
-            norm=cm.colors.Normalize(vmin=0.1, vmax=0.5),
-            levels=(0.1, 0.15, 0.2, 0.25, 0.3, 0.35), usesigma=True,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_vej_all.pdf",
-            clean_nans=True
-        )
-
-    def main_m0m1_res(self):
-
-        # "Mej_tot-geo"  Mdisk3D  Ye_ave-geo vel_inf_ave-geo
-
-        from model_sets.combined import simulations as all_models
-        from model_sets.combined import mask_none, mask_heatcool, mask_cool, mask_refset
-        dset1 = allmodels[mask_refset | mask_heatcool]
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mej", modify="log10", q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$M_{\rm ej} = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$M_{\rm ej}$ $[M_{\odot}]$",
-            norm=cm.colors.LogNorm(vmin=1e-3, vmax=1e0),
-            levels=(1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1), usesigma=False,
-            fname = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mej_m0m1_res.pdf"
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mdisk", modify=None, q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$M_{\rm disk} = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$M_{\rm disk}$ $[M_{\odot}]$",
-            norm=cm.colors.Normalize(vmin=0.01, vmax=0.6),
-            levels=(0.01, 0.05, 0.1, 0.2, 0.3, 0.4), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mdisk_m0m1_res.pdf"
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Yeej", modify=None, q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$\langle Y_e \rangle = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$\langle Y_e \rangle$",
-            norm=cm.colors.Normalize(vmin=0.01, vmax=0.5),
-            levels=(0.01, 0.05, 0.1, 0.15, 0.2, 0.4), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_yeej_m0m1_res.pdf"
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="vej", modify=None, q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-            title=r"$\langle v_{\infty} \rangle = P_2^2(q,\tilde{\Lambda})$ \texttt{M0RefSet} \& \texttt{M0/M1Set}",
-            clabel=r"$\langle v_{\infty} \rangle$",
-            norm=cm.colors.Normalize(vmin=0.01, vmax=0.5),
-            levels=(0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_vej_m0m1_res.pdf"
-        )
-
-    def main_all_res(self):
-
-        from model_sets.combined import simulations as all_models
-        from model_sets.combined import mask_none, mask_heatcool, mask_cool, mask_refset
-        dset1 = allmodels#[mask_refset | mask_heatcool]
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mej", modify="log10", q1=0.9, q2=2.5, Lam1=0, Lam2=3500,
-            title=r"$M_{\rm ej} = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$M_{\rm ej}$ $[M_{\odot}]$",
-            norm=cm.colors.LogNorm(vmin=1e-4, vmax=5e-1),
-            levels=(1e-4, 1e-3, 1e-2, 1e-1), usesigma=False,
-            fname = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mej_all_res.pdf",
-            clean_nans=True
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Mdisk", modify=None, q1=0.9, q2=2.5, Lam1=0, Lam2=2000,
-            title=r"$M_{\rm disk} = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$M_{\rm disk}$ $[M_{\odot}]$",
-            norm=cm.colors.Normalize(vmin=0.05, vmax=0.4),
-            levels=(0.005, 0.05, 0.1, 0.15, 0.2, 0.40), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_mdisk_all_res.pdf",
-            clean_nans=True
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="Yeej", modify=None, q1=0.9, q2=2.0, Lam1=0, Lam2=2000,
-            title=r"$\langle Y_e \rangle = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$\langle Y_e \rangle$",
-            norm=cm.colors.Normalize(vmin=0.05, vmax=0.3),
-            levels=(0.05, 0.1, 0.15, 0.2, 0.25, 0.3), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_yeej_all_res.pdf",
-            clean_nans=True
-        )
-
-        Colorcoded_Comparsion_plot.areal_plot_data_vs_fit(
-            dset1,
-            v_n="vej", modify=None, q1=0.9, q2=2.5, Lam1=0, Lam2=3500,
-            title=r"$\langle v_{\infty} \rangle = P_2^2(q,\tilde{\Lambda})$ All datasets",
-            clabel=r"$\langle v_{\infty} \rangle$",
-            norm=cm.colors.Normalize(vmin=0.1, vmax=0.5),
-            levels=(0.1, 0.15, 0.2, 0.25, 0.3, 0.35), usesigma=False,
-            fname="/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/" + "parspace_vej_all_res.pdf",
-            clean_nans=True
-        )
-
 def predict_for_event(dset):
 
     qs = [1., 1.37]
@@ -2774,659 +2244,213 @@ def predict_for_event(dset):
 
     print("v_ej: {} - {}".format(np.min(res), np.max(res)))
 
-# --- Compare fits (resid vs. chi2dof)
-
-def areal_plot_mej(dset1, v_n="Mej_tot-geo", modify=None, q1=1., q2=2., Lam1=10, Lam2=2000,
-            title=r'$|\log(M_{rj}^{res})-\log(M_{ej}^{\chi_2})/\log(M_{rj}^{res})|$, \texttt{HeatCool Set}',
-            levels=(1e-4, 1e-3, 1e-2, 1e-1, 5e-1, 1e0),usesigma=True):
-
-    def poly_2_qLambda(q, Lambda, b0, b1, b2, b3, b4, b5):
-        #b0, b1, b2, b3, b4, b5 = x
-        return b0 + b1 * q + b2 * Lambda + b3 * q ** 2 + b4 * q * Lambda + b5 * Lambda ** 2
-
-    q_grid = np.arange(q1, q2, .01)
-    Lambda_grid = np.arange(Lam1, Lam2, 10)
-    Q, Lam = np.meshgrid(q_grid, Lambda_grid, indexing='ij')
-
-    o_fit = Fit_Data(dset1, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-
-    # --- chi2dof
-    coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
-    Res = poly_2_qLambda(Q, Lam, *coeffs)
-
-    if v_n == "Mej_tot-geo":
-        Res = 10**Res
-
-    # --- plotting
-    #print(np.abs((Res_R-Res_C2)/Res_R))
-
-    q_val_data = np.array(dset1["q"], dtype=float)
-    Lam_vals_data = np.array(dset1["Lambda"], dtype=float)
-    # errs = o_fit.get_err(10**poly_2_qLambda(q_val_data, Lam_vals_data, *coeffs))
-    vals = np.array(dset1[v_n], dtype=float)
-
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    from matplotlib import cm
-    rc('text', usetex=True)
-    rc('font', family='serif')
-
-    plt.interactive(False)
-    fig, ax = plt.subplots(nrows=1, ncols=1)
-
-    norm = cm.colors.LogNorm(vmin=1e-3, vmax=1e0)
-    cmap = cm.viridis_r#cm.PRGn
-    cset1 =ax.contourf(Lam, Q, Res, levels, norm=norm, cmap=cm.get_cmap(cmap, len(levels) - 1), alpha=1.0)
-    clb = fig.colorbar(cset1, ax=ax)
-    clb.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", labelpad=-40, y=1.05, rotation=0, fontsize=14)
-    # ax.scatter(Lam_vals_data, q_val_data, c="white", edgecolor='white', alpha=1.0, s=90, marker='s')
-    ax.scatter(Lam_vals_data, q_val_data, c=cmap(norm(vals)), edgecolor='black',alpha=1.0,s=100,marker='o')
-
-    CS = ax.contour(Lam, Q, Res, levels=levels)
-    # clb = plt.colorbar(CS)
-    # clb.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", labelpad=-40, y=1.05, rotation=0)
-    ax.clabel(CS, inline=1, fontsize=14, fmt='%.0e')
-    # cbar = fig.colorbar(CS)
-    # cbar.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$")
-    # CS.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", fontsize=14)
-    ax.set_title(title)
-    ax.set_xlabel(r"$\tilde{\Lambda}$", fontsize=14)
-    ax.set_ylabel("q", fontsize=14)
-    ax.tick_params(which="both", direction="in", labelsize=14, axis="both",
-                   bottom=True, top=True, left=True, right=True)
-
-    ax.minorticks_on()
-    plt.tight_layout()
-    path = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/"
-
-    plt.savefig(path+"parspace_mej.pdf")
-    plt.show()
-
-def areal_plot_mdisk(dset1, v_n="Mej_tot-geo", modify=None, q1=1., q2=2., Lam1=10, Lam2=2000,
-            title=r'$|\log(M_{rj}^{res})-\log(M_{ej}^{\chi_2})/\log(M_{rj}^{res})|$, \texttt{HeatCool Set}',
-            levels=(1e-4, 1e-3, 1e-2, 1e-1, 5e-1, 1e0),usesigma=True):
-
-    def poly_2_qLambda(q, Lambda, b0, b1, b2, b3, b4, b5):
-        #b0, b1, b2, b3, b4, b5 = x
-        return b0 + b1 * q + b2 * Lambda + b3 * q ** 2 + b4 * q * Lambda + b5 * Lambda ** 2
-
-    q_grid = np.arange(q1, q2, .01)
-    Lambda_grid = np.arange(Lam1, Lam2, 10)
-    Q, Lam = np.meshgrid(q_grid, Lambda_grid, indexing='ij')
-
-    o_fit = Fit_Data(dset1, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-
-    # --- chi2dof
-    coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=usesigma)
-    Res = poly_2_qLambda(Q, Lam, *coeffs)
-
-    if v_n == "Mej_tot-geo":
-        Res = 10**Res
-
-    # --- plotting
-    #print(np.abs((Res_R-Res_C2)/Res_R))
-
-    q_val_data = np.array(dset1["q"], dtype=float)
-    Lam_vals_data = np.array(dset1["Lambda"], dtype=float)
-    # errs = o_fit.get_err(10**poly_2_qLambda(q_val_data, Lam_vals_data, *coeffs))
-    vals = np.array(dset1[v_n], dtype=float)
-
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    from matplotlib import cm
-    rc('text', usetex=True)
-    rc('font', family='serif')
-
-    plt.interactive(False)
-    fig, ax = plt.subplots(nrows=1, ncols=1)
-
-    norm = cm.colors.Normalize(vmin=0.01, vmax=0.5)
-    cmap = cm.viridis_r#cm.PRGn
-    cset1 =ax.contourf(Lam, Q, Res, levels, norm=norm, cmap=cm.get_cmap(cmap, len(levels) - 1), alpha=1.0)
-    clb = fig.colorbar(cset1, ax=ax)
-    clb.set_label(r"$M_{\rm disk}$ $[M_{\odot}]$", labelpad=-40, y=1.05, rotation=0, fontsize=14)
-    # ax.scatter(Lam_vals_data, q_val_data, c="white", edgecolor='white', alpha=1.0, s=90, marker='s')
-    ax.scatter(Lam_vals_data, q_val_data, c=cmap(norm(vals)), edgecolor='black',alpha=1.0,s=100,marker='o')
-
-    CS = ax.contour(Lam, Q, Res, levels=levels)
-    # clb = plt.colorbar(CS)
-    # clb.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", labelpad=-40, y=1.05, rotation=0)
-    ax.clabel(CS, inline=1, fontsize=14, fmt='%.2f')
-    # cbar = fig.colorbar(CS)
-    # cbar.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$")
-    # CS.set_label(r"$M_{\rm ej}$ $[M_{\odot}]$", fontsize=14)
-    ax.set_title(title)
-    ax.set_xlabel(r"$\tilde{\Lambda}$", fontsize=14)
-    ax.set_ylabel("q", fontsize=14)
-    ax.tick_params(which="both", direction="in", labelsize=14, axis="both",
-                   bottom=True, top=True, left=True, right=True)
-
-    ax.minorticks_on()
-    plt.tight_layout()
-    path = "/home/vsevolod/GIT/bitbucket/bns_gw170817/tex/fitpaper/figs/"
-    plt.savefig(path + "parspace_mdisk.pdf")
-    plt.show()
-
-def compare_datasets(v_n, dset1, dset2, q1=1., q2=2., Lam1=10, Lam2=2000,
-                     title="", modify=None, usesigma=True):
-
-    dset2keys = {
-        "q": "q",
-        "Lambda": "tLam",
-        "Mej_tot-geo": "Mej1e-2",
-        "vel_inf_ave-geo": "Vej",
-        "Ye_ave-geo": "Yeej",
-        "Mdisk3D": "Mdisk1e-2"
-    }
-
-    dset1_q = np.array(dset1["q"], dtype=float)
-    dset1_Lam = np.array(dset1["Lambda"], dtype=float)
-
-    dset2_q = np.array(dset2[dset2keys["q"]], dtype=float)
-    dset2_Lam = np.array(dset2[dset2keys["Lambda"]], dtype=float)
-
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    rc('text', usetex=True)
-    rc('font', family='serif')
-
-    plt.interactive(False)
-    plt, ax = plt.subplots(nrows=1, ncols=1)
-    ax.scatter(dset1_Lam, dset1_q, facecolors='none', edgecolor='blue', label='Paper Set')
-    ax.scatter(dset2_Lam, dset2_q, facecolors='none', edgecolor='red', label='Sebastiano Set')
-    ax.set_title(title)
-    ax.set_xlabel("Lambda", fontsize=12)
-    ax.set_ylabel("q", fontsize=12)
-    ax.set_xlim(Lam1,Lam2)
-    ax.set_ylim(q1,q2)
-    ax.tick_params(which="both", direction="in", labelsize=12, axis="both",
-                   bottom=True, top=True, left=True, right=True)
-    ax.minorticks_on()
-    ax.legend()
-    plt.show()
-
-    plt.savefig("../datasets_{}.png".format(v_n))
-
-def compare_mej(dset1, dset2, v_n="Mej_tot-geo", modify=None, q1=1., q2=2., Lam1=10, Lam2=2000,
-            title=r'$|\log(M_{rj}^{res})-\log(M_{ej}^{\chi_2})/\log(M_{rj}^{res})|$, \texttt{HeatCool Set}',
-            levels=(1e-4, 1e-3, 1e-2, 1e-1, 5e-1, 1e0),usesigma=True):
-
-    def poly_2_qLambda(q, Lambda, b0, b1, b2, b3, b4, b5):
-        #b0, b1, b2, b3, b4, b5 = x
-        return b0 + b1 * q + b2 * Lambda + b3 * q ** 2 + b4 * q * Lambda + b5 * Lambda ** 2
-
-    q_grid = np.arange(q1, q2, .01)
-    Lambda_grid = np.arange(Lam1, Lam2, 10)
-    Q, Lam = np.meshgrid(q_grid, Lambda_grid, indexing='ij')
-
-    o_fit = Fit_Data(dset1, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-
-    # --- residuals
-    coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=False)
-    Res_R = 10**poly_2_qLambda(Q, Lam, *coeffs)
-
-
-    # --- chi2dof
-    o_fit = Fit_Data(dset2, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-    coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=True)
-    Res_C2 = 10**poly_2_qLambda(Q, Lam, *coeffs)
-
-    # Res = np.abs((Res_R-Res_C2)/Res_R)
-    Res = np.abs(Res_R-Res_C2)
-
-    # --- plotting
-    #print(np.abs((Res_R-Res_C2)/Res_R))
-
-    q_val_data = np.array(dset1["q"], dtype=float)
-    Lam_vals_data = np.array(dset1["Lambda"], dtype=float)
-
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    from matplotlib import cm
-    rc('text', usetex=True)
-    rc('font', family='serif')
-
-    plt.interactive(False)
-    fig, ax = plt.subplots(nrows=1, ncols=1)
-
-    norm = cm.colors.LogNorm(vmax=1e-1, vmin=1e-6)
-    cmap = cm.PRGn
-    cset1 =ax.contourf(Lam, Q, Res, levels, norm=norm, cmap=cm.get_cmap(cmap, len(levels) - 1), alpha=0.4)
-    fig.colorbar(cset1, ax=ax)
-
-    errs = o_fit.get_err(10**poly_2_qLambda(q_val_data, Lam_vals_data, *coeffs))
-    # errs.fill(1e-5)
-    # errs = np.log10(errs)
-    ax.scatter(Lam_vals_data, q_val_data, c=cmap(norm(errs)), edgecolor='gray',alpha=0.4)
-
-    CS = ax.contour(Lam, Q, Res, levels=levels)
-    ax.clabel(CS, inline=1, fontsize=10, fmt='%.0e')
-    ax.set_title(title)
-    ax.set_xlabel("Lambda", fontsize=12)
-    ax.set_ylabel("q", fontsize=12)
-    ax.tick_params(which="both", direction="in", labelsize=12, axis="both",
-                   bottom=True, top=True, left=True, right=True)
-    ax.minorticks_on()
-    plt.savefig("../err_{}.png".format(v_n))
-    plt.show()
-
-def compare_mdisk(dset1, dset2, v_n="Mej_tot-geo", modify=None, q1=1., q2=2., Lam1=10, Lam2=2000,
-            title=r'$|\log(M_{rj}^{res})-\log(M_{ej}^{\chi_2})/\log(M_{rj}^{res})|$, \texttt{HeatCool Set}',
-            levels=(1e-4, 1e-3, 1e-2, 1e-1, 5e-1, 1e0),usesigma=False):
-
-    def poly_2_qLambda(q, Lambda, b0, b1, b2, b3, b4, b5):
-        #b0, b1, b2, b3, b4, b5 = x
-        return b0 + b1 * q + b2 * Lambda + b3 * q ** 2 + b4 * q * Lambda + b5 * Lambda ** 2
-
-    q_grid = np.arange(q1, q2, .01)
-    Lambda_grid = np.arange(Lam1, Lam2, 10)
-    Q, Lam = np.meshgrid(q_grid, Lambda_grid, indexing='ij')
-
-    o_fit = Fit_Data(dset1, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-
-    # --- residuals
-    coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=False)
-    Res_R = poly_2_qLambda(Q, Lam, *coeffs)
-
-
-    # --- chi2dof
-    o_fit = Fit_Data(dset2, v_n, "default")  # "Ye_ave-geo" "vel_inf_ave-geo"
-    coeffs, _, chi2dof, _ = o_fit.fit_curve(ff_name="poly22_qLambda", cf_name="poly22", modify=modify, usesigma=True)
-    Res_C2 = poly_2_qLambda(Q, Lam, *coeffs)
-
-    # Res = np.abs((Res_R-Res_C2)/Res_R)
-    Res = np.abs(Res_R-Res_C2)
-
-    # --- plotting
-    #print(np.abs((Res_R-Res_C2)/Res_R))
-
-    q_val_data = np.array(dset1["q"], dtype=float)
-    Lam_vals_data = np.array(dset1["Lambda"], dtype=float)
-
-    import matplotlib.pyplot as plt
-    from matplotlib import rc
-    from matplotlib import cm
-    rc('text', usetex=True)
-    rc('font', family='serif')
-
-    plt.interactive(False)
-    fig, ax = plt.subplots(nrows=1, ncols=1)
-
-    norm = cm.colors.LogNorm(vmax=1e0, vmin=1e-4)
-    cmap = cm.PRGn
-    cset1 =ax.contourf(Lam, Q, Res, levels, norm=norm, cmap=cm.get_cmap(cmap, len(levels) - 1), alpha=0.4)
-    fig.colorbar(cset1, ax=ax)
-
-    errs = o_fit.get_err(poly_2_qLambda(q_val_data, Lam_vals_data, *coeffs))
-    # errs.fill(1e-5)
-    # errs = np.log10(errs)
-    ax.scatter(Lam_vals_data, q_val_data, c=cmap(norm(errs)), edgecolor='gray',alpha=0.4)
-
-    CS = ax.contour(Lam, Q, Res, levels=levels)
-    ax.clabel(CS, inline=1, fontsize=10, fmt='%.0e')
-    ax.set_title(title)
-    ax.set_xlabel("Lambda", fontsize=12)
-    ax.set_ylabel("q", fontsize=12)
-    ax.tick_params(which="both", direction="in", labelsize=12, axis="both",
-                   bottom=True, top=True, left=True, right=True)
-    ax.minorticks_on()
-    plt.savefig("../err_{}.png".format(v_n))
-    plt.show()
-
-def additional_statisitcs(dataframe, v_n="Mej_tot-geo"):
-
-    df = Fit_Data(dataframe, v_n, err_method="default", clean_nans=True)
-    i_coeffs, i_chi, i_chi2dof, i_rs, res = df.fit_curve(ff_name="poly22_qLambda",
-                                                    cf_name="poly22",
-                                                    modify="log10",
-                                                    usesigma=True,
-                                                    return_residuals=True)
-    print(i_chi2dof, i_rs)
-    mean = np.mean(res)
-    std = np.std(res)
-
-    print("mean: {} (max:{}, min:{}) std:{} cv:{}".format(mean, res.max(), res.min(), std, std/mean))
-
-    ''' '''
-def additional_statisitcs2(dataframe, v_n="vel_inf_ave-geo"):
-
-    df = Fit_Data(dataframe, v_n, err_method="default", clean_nans=True)
-    i_coeffs, i_chi, i_chi2dof, i_rs, res = df.fit_curve(ff_name="poly22_qLambda",
-                                                    cf_name="poly22",
-                                                    modify=None,
-                                                    usesigma=True,
-                                                    return_residuals=True)
-    print(i_chi2dof, i_rs)
-    mean = np.mean(res)
-    std = np.std(res)
-
-    print("mean: {} (max:{}, min:{}) std:{} cv:{}".format(mean, res.max(), res.min(), std, std/mean))
-
-    ''' '''
-
-
-
 
 
 if __name__ == "__main__":
-
-
     # dfname2 = "/home/vsevolod/GIT/GitHub/prj_gw170817/datasets/summary_table.csv"
     dfname2 = "../datasets/released_summary_table.csv"
     allmodels = pd.read_csv(dfname2)
     print(allmodels.keys())
     print(list(set(allmodels["bibkey"])))
 
-
-    ''' add statistics '''
-    # additional_statisitcs(cmb.simulations[cmb.mask_refset|cmb.mask_heatcool], v_n="Mej_tot-geo")
-    # additional_statisitcs(cmb.simulations[cmb.mask_refset | cmb.mask_heatcool], v_n="vel_inf_ave-geo")
-    #exit(1)
     ''' --- mej ---'''
-    o_tbl = Fit_Tex_Tables(allmodels, "Mej", "default", True, deliminator='&')
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator='&')
     # o_tbl.print_stats()
-    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", modify="log10",usesigma=False, fancy=True)
-    o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", modify="log10",usesigma=False, fancy=True)
-    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16", modify="log10", fancy=True, usesigma=False)
-    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", modify="log10", fancy=True, usesigma=False)
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", modify="log10",usesigma=True,fancy=True)
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", modify="log10",usesigma=True, fancy=True)
+    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16", modify="log10", fancy=True)
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", modify="log10", fancy=True)
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
     #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".2f", ".2f", ".2f", ".2f", ".2f"], modify="log10", usesigma=False)
-    # exit(1)
-    # o_tbl.print_chi2dofs_ds_vise(["datasets", "num", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-    #                              ["datasets", r"$N$", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
-    #                                           r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                              ["d", ".2f", ".2f", ".2f", ".2f", ".2f"], modify="log10", usesigma=False)
-    # exit()
+    #                      [".2f", ".2f", ".2f", ".2f", ".2f"], modify="log10",usesigma=True)
 
     ''' --- vej ---'''
-    # o_tbl = Fit_Tex_Tables(allmodels, "vej", "default", True, deliminator="&") # "vel_inf_ave-geo"
+    o_tbl = Fit_Tex_Tables(allmodels, "vej", "default", True, deliminator="&") # vel_inf_ave-geo
     # o_tbl.print_stats()
-    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", fancy=True, usesigma=False)
-    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", fancy=True, usesigma=False)
-    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16", fancy=True, usesigma=False)
-    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}",
-    #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".2f", ".2f", ".2f", ".2f"], modify=None, usesigma=False)
-    # exit(1)
-    # o_tbl.print_chi2dofs_ds_vise(["datasets", "num", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-    #                      ["datasets", r"$N$", r"Mean", r"Eq.~\eqref{eq:fit_Mej}",
-    #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      ["d", ".2f", ".2f", ".2f", ".2f"], modify=None, usesigma=False)
-    # exit(1)
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", fancy=True)
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", fancy=True)
+    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16", fancy=True)
+    o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+                         ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}",
+                                      r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+                         [".2f", ".2f", ".2f", ".2f"])
+    exit(1)
     ''' --- yeej --- '''
-    # o_tbl = Fit_Tex_Tables(allmodels, "Yeej", "default", True, deliminator="&")# _ave-geo
+    # o_tbl = Fit_Tex_Tables(allmodels, "Ye_ave-geo", "default", True, deliminator="&")
     # o_tbl.print_stats()
-    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", fancy=True, usesigma=False)
-    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", fancy=False, usesigma=False)
-    # o_tbl.print_fitfunc_table(ff_name="our", cf_name="our", fancy=True, usesigma=False)
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", fancy=True)
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", fancy=True)
+    # o_tbl.print_fitfunc_table(ff_name="our", cf_name="our", fancy=True)
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "our-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Yeej}", r"$P_2(\tilde{\Lambda})$",
     #                       r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".2f", ".2f", ".2f", ".2f"], modify=None, usesigma=False)
-    # exit()
-    # o_tbl.print_chi2dofs_ds_vise(["datasets", "num", "mean-chi2dof", "our-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-    #                      ["datasets", r"$N$", r"Mean", r"Eq.~\eqref{eq:fit_Yeej}", r"$P_2(\tilde{\Lambda})$",
-    #                       r"$P_2(q,\tilde{\Lambda})$"],
-    #                      ["d", ".2f", ".2f", ".2f", ".2f"], modify=None, usesigma=False)
+    #                      [".2f", ".2f", ".2f", ".2f"])
     ''' --- theta rms --- '''
-    # o_tbl = Fit_Tex_Tables(allmodels, "theta_rms", "default", True, deliminator="&")# theta_rms-geo
+    # o_tbl = Fit_Tex_Tables(allmodels, "theta_rms-geo", "default", True, deliminator="&")
     # o_tbl.print_stats()
-    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", fancy=True, usesigma=False)
-    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", fancy=True, usesigma=False)
-    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", usesigma=False)
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", fancy=True)
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", fancy=True)
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".2f",  ".2f", ".2f"], modify=None, usesigma=False)
-    # exit()
-    # o_tbl.print_chi2dofs_ds_vise(["datasets", "num", "mean-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-    #                      ["datasets", r"$N$", r"Mean", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      ["d", ".2f",  ".2f", ".2f"], modify=None, usesigma=False)
-    # exit(1)
+    #                      [".2f",  ".2f", ".2f"], usesigma=True)
+
     ''' --- mdisk ---'''
-    # o_tbl = Fit_Tex_Tables(allmodels, "Mdisk", "default", True, deliminator="&") # Mdisk3D
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True, deliminator="&")
     # o_tbl.print_stats()
     # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", usesigma=False, fancy=True)
-    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", usesigma=False, fancy=False)
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", usesigma=False, fancy=True)
     # o_tbl.print_fitfunc_table(ff_name="rad18", cf_name="rad18", usesigma=False, fancy=True)
     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", usesigma=False, fancy=True)
     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "rad18-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}",
     #                       r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      [".2f", ".2f", ".2f", ".2f", ".2f"],usesigma=False)#, fancy=True)
-    #exit(1)
-    # o_tbl.print_chi2dofs_ds_vise(["datasets", "num", "mean-chi2dof", "rad18-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-    #                      ["datasets", r"$N$", r"Mean", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}",
-    #                       r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-    #                      ["d", ".2f", ".2f", ".2f", ".2f", ".2f"], usesigma=False)#, fancy=True)
+    #                      [".2f", ".2f", ".2f", ".2f", ".2f"],usesigma=False, fancy=True)
+
     """ --- predict for the event --- """
-    # predict_for_event(allmodels[allmodels["bibkey"] == "Reference set"])
+    predict_for_event(allmodels[allmodels["bibkey"] == "Reference set"])
 
-    """ --- Areal plot & comparsion fit VS model --- """
-
-    # o_comp = Colorcoded_Comparsion_plot()
-    # o_comp.main_m0m1()
-    # o_comp.main_all()
-    # o_comp.main_m0m1_res()
-    # o_comp.main_all_res()
-
-    exit(1)
-
-
-
-
-    # from model_sets.combined import mask_none, mask_heatcool, mask_cool, mask_refset
-    # import pandas as pd
-    # dset1 = allmodels[mask_refset|mask_heatcool]
-
-    # vals and parameter space
-    # areal_plot_mej(dset1,
-    #         v_n="Mej_tot-geo", modify="log10", q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-    #         title=r"$M_{\rm ej} = P_2^2(q,\tilde{\Lambda})$",
-    #         levels=(1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 5e-2, 1e-1),usesigma=True)
-    # areal_plot_mdisk(dset1,
-    #         v_n="Mdisk3D", modify=None, q1=0.9, q2=1.9, Lam1=200, Lam2=1500,
-    #         title=r"$M_{\rm disk} = P_2^2(q,\tilde{\Lambda})$",
-    #         levels=(0.01, 0.05, 0.1, 0.2, 0.3, 0.4),usesigma=False)
-
-    # dset2 = pd.read_csv("/home/vsevolod/GIT/bitbucket/bns_gw170817/data/dynej_disc_literature/LiteratureData.csv")
-    # dset2.set_index("sim")
-    # dset2["Mej1e-2"] /= 1.e2
-    # dset2 = dset2[(dset2["nus"]=="M1")|(dset2["nus"]=="leakM0")|(dset2["nus"]=="leakM1")]
+if __name__ == "__main__":
+    # dfname2 = "/home/vsevolod/GIT/bitbucket/bns_gw170817/data/dynej_disc_literature/LiteratureData.csv"
+    # allmodels = pd.read_csv(dfname2)
+    # # print(allmodels.keys())
+    # # print(list(set(allmodels["bibkey"])))
+    # # print(allmodels.loc["bibkey","Nedora:2020"])
     #
-    # compare_datasets(v_n="Mej_tot-geo", dset1=dset1, dset2=dset2, modify="log10", q1=1., q2=1.9, Lam1=200, Lam2=1400,
-    #                  title=r"Dataset comparison for \texttt{Heatcool Set}")
+    # allmodels["Lambda"] = allmodels["tLam"]
+    # allmodels["M1"] = allmodels["MA"]
+    # allmodels["M2"] = allmodels["MB"]
+    # allmodels["C1"] = allmodels["CA"]
+    # allmodels["C2"] = allmodels["CB"]
+    # allmodels["Mb1"] = allmodels["MbA"]
+    # allmodels["Mb2"] = allmodels["MbB"]
+    # allmodels["vel_inf_ave-geo"] = allmodels["Vej"]
+    # allmodels["Ye_ave-geo"] = allmodels["Yeej"]
+    # allmodels["Mdisk3D"] = allmodels["Mdisk1e-2"] * 1.e-2 # Msun
+    # allmodels["Mej_tot-geo"] = allmodels["Mej1e-2"] * 1.e-2 # Msun
 
-    # compare_mej(dset1, dset1,
-    #         v_n="Mej_tot-geo", modify="log10", q1=1., q2=1.9, Lam1=200, Lam2=1400,
-    #         title=r"$|M_{ej}^{res} - M_{ej}^{\chi_2}|$ \& $M_{ej;err}^{data}$ [for calibration $\log{M_{ej}}$ used]",
-    #         levels=(1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1))
+    dfname2 = "/home/vsevolod/GIT/GitHub/prj_gw170817/datasets/summary_table.csv"
+    allmodels = pd.read_csv(dfname2)
+    # print(allmodels.keys())
+    # print(list(set(allmodels["bibkey"])))
+    #
+    # from model_sets import models as mds
+    # models = mds.simulations[mds.mask_for_with_dynej]
+    # o_bf = BestFits(allmodels, "default", True)
+    # model = models[models.index == "BLh_M13641364_M0_LK_SR"]
+    # masses = o_bf.predict_mass(model)
+    # print(masses['BLh_M13641364_M0_LK_SR'])
+    # vels = o_bf.predict_vel(model)
+    # yes = o_bf.predict_ye(model)
+    # thetas = o_bf.predict_theta(model)
+    # mdisk = o_bf.predict_diskmass(model)
+    # print(vels)
+    # print(o_bf.get_best("vel_inf_ave-geo", model))
+    # print(vels)
+    # print(yes)
+    # print(thetas)
+    # print(mdisk)
 
-    # compare(dset1, dset1,
-    #         v_n="Mej_tot-geo", modify="log10", q1=1., q2=1.9, Lam1=200, Lam2=1400,
-    #         title=r'$|\log(M_{ej}^{res})-\log(M_{ej}^{\chi_2})/\log(M_{rj}^{res})|$, \texttt{HeatCool Set}',
-    #         levels=(1e-4, 1e-3, 1e-2, 1e-1, 5e-1, 1e0))
-    # compare(allmodels[mask_refset|mask_heatcool], v_n="vel_inf_ave-geo", modify=None, q1=1., q2=1.9, Lam1=200, Lam2=1400,
-    #         title=r'$|\log(\upsilon_{ej}^{res})-\log(\upsilon_{ej}^{\chi_2})/\log(\upsilon_{rj}^{res})|$, \texttt{HeatCool Set}',
-    #         levels=[1e-10, 1e-9, 1e-8, 1e-7, 5e-6, 1e5])
-    # compare(allmodels[mask_refset|mask_heatcool],
-    #         v_n="Ye_ave-geo", modify=None, q1=1., q2=1.9, Lam1=200, Lam2=1400,
-    #         title=r'$|\log(Y_{e;ej}^{res})-\log(Y_{e;ej}^{\chi_2})/\log(Y_{e;rj}^{res})|$, \texttt{HeatCool Set}',
-    #         levels=[1e-10, 1e-9, 1e-8, 1e-7, 5e-6, 1e5])
-    # compare(allmodels[mask_refset|mask_heatcool],
-    #         v_n="Mdisk3D", modify=None, q1=1., q2=1.9, Lam1=200, Lam2=1400,
-    #         title=r'$|\log(M_{disk}^{res})-\log(M_{disk}^{\chi_2})/\log(M_{disk}^{res})|$, \texttt{HeatCool Set}',
-    #         levels=[1e-1, 1, 2, 3, 4, 5])
-
-    # compare_mdisk(dset1, dset1,
-    #         v_n="Mdisk3D", modify=None, q1=1., q2=1.9, Lam1=200, Lam2=1400,
-    #         title=r"$|M_{disk}^{res} - M_{disk}^{\chi_2}|$ \& $M_{disk;err}^{data}$ [for calibration $M_{disk}$ used]",
-    #         levels=[1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e1])
-
-
-
-
-
-
-
-
-
+    #
 
 
+    with_lambda = (~np.isnan(allmodels["Lambda"])) & \
+                  (~np.isnan(allmodels["M1"])) & \
+                  (~np.isnan(allmodels["M2"])) & \
+                  (~np.isnan(allmodels["Mb1"])) & \
+                  (~np.isnan(allmodels["Mb2"])) & \
+                  (~np.isnan(allmodels["C1"])) & \
+                  (~np.isnan(allmodels["C2"]))
+    allmodels = allmodels[with_lambda]
+    # print(len(allmodels[allmodels["bibkey"] == "Bauswein:2013yna"]))
+    # print(np.mean(allmodels[allmodels["bibkey"] == "Bauswein:2013yna"]["Mej_tot-geo"]))
+    # print(len(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]))
+    # print(np.mean(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]["Mej_tot-geo"]))
+    ''' ejecta mass'''
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator='&')
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", modify="log10",usesigma=True)
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16", modify="log10")
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
+    #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f", ".2f", ".2f", ".2f", ".2f"], modify="log10",usesigma=True)
+    # exit(1)
+    ''' ejecta velocity '''
+    o_tbl = Fit_Tex_Tables(allmodels, "vel_inf_ave-geo", "default", True, deliminator="&")
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16")
+    o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+                         ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}",
+                                      r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+                         [".2f", ".2f", ".2f", ".2f"])
+    exit(1)
+    ''' ejecta electron fraction '''
+    # o_tbl = Fit_Tex_Tables(allmodels, "Ye_ave-geo", "default", True, deliminator="&")
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="our", cf_name="our")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "our-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Yeej}", r"$P_2(\tilde{\Lambda})$",
+    #                       r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f", ".2f", ".2f", ".2f"])
+    #
+    # print(list(set(allmodels["bibkey"])))
+
+    ''' ejecta rms angle '''
+    # o_tbl = Fit_Tex_Tables(allmodels, "theta_rms-geo", "default", True, deliminator="&")
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLam", cf_name="poly22")
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f",  ".2f", ".2f"], usesigma=True)
+
+    ''' disk mass '''
+    # o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True, deliminator="&")
+    # o_tbl.print_stats()
+    # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
+    # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
+    # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", modify=None)
+    # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "rad18-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
+    #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}",
+    #                       r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
+    #                      [".2f", ".2f", ".2f", ".2f", ".2f"],usesigma=False)
+    #
+    # print(list(set(allmodels["bibkey"])))
 
 
 
+    # o_fit = Fit_Data(allmodels, fit_v_n="vel_inf_ave-geo", err_method="default")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    #
+    # o_fit = Fit_Data(allmodels, fit_v_n="Ye_ave-geo", err_method="default")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_curve(ff_name="our", cf_name="our")
 
+    # o_fit = Fit_Data(allmodels, fit_v_n="Mej_tot-geo", err_method="default", clean_nans=True)
+    # o_fit.get_chi2dof_for_mean()
+    # o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
+    # o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+    #
+    # o_fit = Fit_Data(allmodels, fit_v_n="Mdisk3D", err_method="default", clean_nans=True)
+    # o_fit.get_chi2dof_for_mean()
+    # o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
+    # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
+    # o_fit.fit_poly(ff_name="poly22_qLam")
+    # o_fit.fit_curve(ff_name="rad18", cf_name="rad18")
+    # o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
+    # o_fit.git_func(ff_name="krug19", cf_name="krug19")
 
-
-
-
-
-
-
-# if __name__ == "__main__":
-#     dfname2 = "/home/vsevolod/GIT/bitbucket/bns_gw170817/data/dynej_disc_literature/LiteratureData.csv"
-#     allmodels = pd.read_csv(dfname2)
-#     # print(allmodels.keys())
-#     # print(list(set(allmodels["bibkey"])))
-#     # print(allmodels.loc["bibkey","Nedora:2020"])
-#
-#     allmodels["Lambda"] = allmodels["tLam"]
-#     allmodels["M1"] = allmodels["MA"]
-#     allmodels["M2"] = allmodels["MB"]
-#     allmodels["C1"] = allmodels["CA"]
-#     allmodels["C2"] = allmodels["CB"]
-#     allmodels["Mb1"] = allmodels["MbA"]
-#     allmodels["Mb2"] = allmodels["MbB"]
-#     allmodels["vel_inf_ave-geo"] = allmodels["Vej"]
-#     allmodels["Ye_ave-geo"] = allmodels["Yeej"]
-#     allmodels["Mdisk3D"] = allmodels["Mdisk1e-2"] * 1.e-2 # Msun
-#     allmodels["Mej_tot-geo"] = allmodels["Mej1e-2"] * 1.e-2 # Msun
-#
-#     dfname2 = "/home/vsevolod/GIT/GitHub/prj_gw170817/datasets/summary_table.csv"
-#     allmodels = pd.read_csv(dfname2)
-#     # print(allmodels.keys())
-#     # print(list(set(allmodels["bibkey"])))
-#     #
-#     # from model_sets import models as mds
-#     # models = mds.simulations[mds.mask_for_with_dynej]
-#     # o_bf = BestFits(allmodels, "default", True)
-#     # model = models[models.index == "BLh_M13641364_M0_LK_SR"]
-#     # masses = o_bf.predict_mass(model)
-#     # print(masses['BLh_M13641364_M0_LK_SR'])
-#     # vels = o_bf.predict_vel(model)
-#     # yes = o_bf.predict_ye(model)
-#     # thetas = o_bf.predict_theta(model)
-#     # mdisk = o_bf.predict_diskmass(model)
-#     # print(vels)
-#     # print(o_bf.get_best("vel_inf_ave-geo", model))
-#     # print(vels)
-#     # print(yes)
-#     # print(thetas)
-#     # print(mdisk)
-#
-#     #
-#
-#
-#     # with_lambda = (~np.isnan(allmodels["Lambda"])) & \
-#     #               (~np.isnan(allmodels["M1"])) & \
-#     #               (~np.isnan(allmodels["M2"])) & \
-#     #               (~np.isnan(allmodels["Mb1"])) & \
-#     #               (~np.isnan(allmodels["Mb2"])) & \
-#     #               (~np.isnan(allmodels["C1"])) & \
-#     #               (~np.isnan(allmodels["C2"]))
-#     # allmodels = allmodels[with_lambda]
-#     # print(len(allmodels[allmodels["bibkey"] == "Bauswein:2013yna"]))
-#     # print(np.mean(allmodels[allmodels["bibkey"] == "Bauswein:2013yna"]["Mej_tot-geo"]))
-#     # print(len(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]))
-#     # print(np.mean(allmodels[allmodels["bibkey"] == "Hotokezaka:2012ze"]["Mej_tot-geo"]))
-#     ''' ejecta mass'''
-#     # o_tbl = Fit_Tex_Tables(allmodels, "Mej_tot-geo", "default", True, deliminator='&')
-#     # o_tbl.print_stats()
-#     # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2", modify="log10",usesigma=True)
-#     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
-#     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
-#     # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16", modify="log10")
-#     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
-#     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-#     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}", r"Eq.~\eqref{eq:fit_Mej_Kruger}",
-#     #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-#     #                      [".2f", ".2f", ".2f", ".2f", ".2f"], modify="log10",usesigma=True)
-#     # exit(1)
-#     ''' ejecta velocity '''
-#     # o_tbl = Fit_Tex_Tables(allmodels, "vel_inf_ave-geo", "default", True, deliminator="&")
-#     # o_tbl.print_stats()
-#     # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
-#     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
-#     # o_tbl.print_fitfunc_table(ff_name="diet16", cf_name="diet16")
-#     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "diet16-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-#     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mej}",
-#     #                                   r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-#     #                      [".2f", ".2f", ".2f", ".2f"])
-#
-#     ''' ejecta electron fraction '''
-#     # o_tbl = Fit_Tex_Tables(allmodels, "Ye_ave-geo", "default", True, deliminator="&")
-#     # o_tbl.print_stats()
-#     # o_tbl.print_polyfit_table(ff_name="poly2_Lambda", cf_name="poly2")
-#     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22")
-#     # o_tbl.print_fitfunc_table(ff_name="our", cf_name="our")
-#     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "our-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-#     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Yeej}", r"$P_2(\tilde{\Lambda})$",
-#     #                       r"$P_2(q,\tilde{\Lambda})$"],
-#     #                      [".2f", ".2f", ".2f", ".2f"])
-#     #
-#     # print(list(set(allmodels["bibkey"])))
-#
-#     ''' ejecta rms angle '''
-#     # o_tbl = Fit_Tex_Tables(allmodels, "theta_rms-geo", "default", True, deliminator="&")
-#     # o_tbl.print_stats()
-#     # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
-#     # o_tbl.print_polyfit_table(ff_name="poly22_qLam", cf_name="poly22")
-#     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19")
-#     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-#     #                      ["datasets", r"Mean", r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-#     #                      [".2f",  ".2f", ".2f"], usesigma=True)
-#
-#     ''' disk mass '''
-#     # o_tbl = Fit_Tex_Tables(allmodels, "Mdisk3D", "default", True, deliminator="&")
-#     # o_tbl.print_stats()
-#     # o_tbl.print_polyfit_table(ff_name="poly2_Lam", cf_name="poly2")
-#     # o_tbl.print_polyfit_table(ff_name="poly22_qLambda", cf_name="poly22", modify="log10")
-#     # o_tbl.print_fitfunc_table(ff_name="krug19", cf_name="krug19", modify=None)
-#     # o_tbl.print_chi2dofs(["datasets", "mean-chi2dof", "rad18-chi2dof", "krug19-chi2dof", "poly2-chi2dof", "poly22-chi2dof"],
-#     #                      ["datasets", r"Mean", r"Eq.~\eqref{eq:fit_Mdisk}", r"Eq.~\eqref{eq:fit_Mdisk_Kruger}",
-#     #                       r"$P_2(\tilde{\Lambda})$", r"$P_2(q,\tilde{\Lambda})$"],
-#     #                      [".2f", ".2f", ".2f", ".2f", ".2f"],usesigma=False)
-#     #
-#     # print(list(set(allmodels["bibkey"])))
-#
-#
-#
-#     # o_fit = Fit_Data(allmodels, fit_v_n="vel_inf_ave-geo", err_method="default")
-#     # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-#     # o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
-#     #
-#     # o_fit = Fit_Data(allmodels, fit_v_n="Ye_ave-geo", err_method="default")
-#     # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-#     # o_fit.fit_curve(ff_name="our", cf_name="our")
-#
-#     # o_fit = Fit_Data(allmodels, fit_v_n="Mej_tot-geo", err_method="default", clean_nans=True)
-#     # o_fit.get_chi2dof_for_mean()
-#     # o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
-#     # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-#     # o_fit.fit_curve(ff_name="diet16", cf_name="diet16")
-#     # o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
-#     #
-#     # o_fit = Fit_Data(allmodels, fit_v_n="Mdisk3D", err_method="default", clean_nans=True)
-#     # o_fit.get_chi2dof_for_mean()
-#     # o_fit.fit_curve(ff_name="poly2_Lam", cf_name="poly2")
-#     # o_fit.fit_curve(ff_name="poly22_qLam", cf_name="poly22")
-#     # o_fit.fit_poly(ff_name="poly22_qLam")
-#     # o_fit.fit_curve(ff_name="rad18", cf_name="rad18")
-#     # o_fit.fit_curve(ff_name="krug19", cf_name="krug19")
-#     # o_fit.git_func(ff_name="krug19", cf_name="krug19")
-#
-#     ''' --- '''
-
+    ''' --- '''
